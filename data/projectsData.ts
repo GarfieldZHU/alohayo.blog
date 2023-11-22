@@ -1,19 +1,15 @@
 const projectsData = [
   {
-    title: 'A Search Engine',
-    description: `What if you could look up any information in the world? Webpages, images, videos
-    and more. Google has many features to help you find exactly what you're looking
-    for.`,
-    imgSrc: '/static/images/google.png',
-    href: 'https://www.google.com',
+    title: 'The Blog',
+    description: `The AlohaYo's Blog.`,
+    imgSrc: '/static/images/avatar.jpeg',
+    href: 'https://alohayo.me',
   },
   {
-    title: 'The Time Machine',
-    description: `Imagine being able to travel back in time or to the future. Simple turn the knob
-    to the desired date and press "Go". No more worrying about lost keys or
-    forgotten headphones with this simple yet affordable solution.`,
-    imgSrc: '/static/images/time-machine.jpg',
-    href: '/blog/the-time-machine',
+    title: 'AlohaYo\'s zone',
+    description: `AlohaYo's technical notes, materails and something interesting.`,
+    imgSrc: '/static/images/alohayo-zone.png',
+    href: 'https://garfieldzhu.github.io/Aloha.zone.io/',
   },
 ]
 
