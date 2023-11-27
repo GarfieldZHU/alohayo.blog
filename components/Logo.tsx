@@ -4,7 +4,7 @@ import { useTheme } from 'next-themes'
 import DarkLogo from '@/data/logo-dark.svg'
 import LightLogo from '@/data/logo-light.svg'
 
-const ThemeSwitch = () => {
+const Logo = () => {
   const [mounted, setMounted] = useState(false)
   const { theme, resolvedTheme } = useTheme()
 
@@ -16,4 +16,4 @@ const ThemeSwitch = () => {
   return mounted && (theme === 'dark' || resolvedTheme === 'dark') ? <DarkLogo /> : <LightLogo />
 }
 
-export default ThemeSwitch
+export default Logo
