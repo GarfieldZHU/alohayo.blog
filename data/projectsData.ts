@@ -1,7 +1,7 @@
 const projectsData = [
   {
     title: 'The Blog',
-    description: `The AlohaYo's Blog.`,
+    description: `The AlohaYo Blog.`,
     imgSrc: '/static/images/avatar.jpeg',
     href: 'https://alohayo.me',
   },

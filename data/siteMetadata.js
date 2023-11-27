@@ -2,7 +2,7 @@
 const siteMetadata = {
   title: 'AlohaYo Blog',
   author: 'Garfield Zhu',
-  headerTitle: 'AlohaYoBlog',
+  headerTitle: 'AlohaYo',
   description: 'A grocery blog by Garfield',
   language: 'en-us',
   theme: 'system', // system, dark or light
