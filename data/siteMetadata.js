@@ -13,8 +13,6 @@ const siteMetadata = {
   email: 'garfield.bupt@gmail.com',
   github: 'https://github.com/GarfieldZHU',
   twitter: 'https://twitter.com/_AlohaYo_',
-  facebook: 'https://facebook.com',
-  youtube: 'https://youtube.com',
   linkedin: 'https://www.linkedin.com',
   locale: 'en-US',
   analytics: {
