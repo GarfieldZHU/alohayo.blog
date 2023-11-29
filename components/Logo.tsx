@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
-import DarkLogo from '@/data/logo-dark.svg'
-import LightLogo from '@/data/logo-light.svg'
+import DarkLogo from '@/data/logo-circle-dark.svg'
+import LightLogo from '@/data/logo-circle-light.svg'
 
 const Logo = () => {
   const [mounted, setMounted] = useState(false)
