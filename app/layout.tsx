@@ -86,9 +86,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </SectionContainer>
         </ThemeProviders>
+        {/* Live2D component */}
+        <script src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js" />
       </body>
-      {/* Live2D component */}
-      <script src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js" />
     </html>
   )
 }
