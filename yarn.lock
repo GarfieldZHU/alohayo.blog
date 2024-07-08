@@ -2838,6 +2838,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@stefanprobst/rehype-extract-toc@npm:2.2.0":
+  version: 2.2.0
+  resolution: "@stefanprobst/rehype-extract-toc@npm:2.2.0"
+  dependencies:
+    estree-util-is-identifier-name: ^2.0.1
+    estree-util-value-to-estree: ^1.3.0
+    hast-util-heading-rank: ^2.1.0
+    hast-util-to-string: ^2.0.0
+    unist-util-visit: ^4.1.0
+  checksum: d20e280a50a5ca802ce7321d1d4d50d58e020633910defc42e5fa7bba90ac7ccab2eb42242631e2b91c529d2f2430080d645dda2d47876c9b3c607ccef6af47b
+  languageName: node
+  linkType: hard
+
 "@svgr/babel-plugin-add-jsx-attribute@npm:8.0.0":
   version: 8.0.0
   resolution: "@svgr/babel-plugin-add-jsx-attribute@npm:8.0.0"
@@ -5459,7 +5472,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"estree-util-is-identifier-name@npm:^2.0.0":
+"estree-util-is-identifier-name@npm:^2.0.0, estree-util-is-identifier-name@npm:^2.0.1":
   version: 2.1.0
   resolution: "estree-util-is-identifier-name@npm:2.1.0"
   checksum: cab317a071fafb99cf83b57df7924bccd2e6ab4e252688739e49f00b16cefd168e279c171442b0557c80a1c80ffaa927d670dadea65bb3c9b151efb8e772e89d
@@ -5477,7 +5490,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"estree-util-value-to-estree@npm:^1.0.0":
+"estree-util-value-to-estree@npm:^1.0.0, estree-util-value-to-estree@npm:^1.3.0":
   version: 1.3.0
   resolution: "estree-util-value-to-estree@npm:1.3.0"
   dependencies:
@@ -6282,7 +6295,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hast-util-heading-rank@npm:^2.0.0":
+"hast-util-heading-rank@npm:^2.0.0, hast-util-heading-rank@npm:^2.1.0":
   version: 2.1.1
   resolution: "hast-util-heading-rank@npm:2.1.1"
   dependencies:
@@ -11043,6 +11056,7 @@ __metadata:
   resolution: "tailwind-nextjs-starter-blog@workspace:."
   dependencies:
     "@next/bundle-analyzer": 13.5.6
+    "@stefanprobst/rehype-extract-toc": 2.2.0
     "@svgr/webpack": ^8.0.1
     "@tailwindcss/forms": ^0.5.4
     "@tailwindcss/typography": ^0.5.9
