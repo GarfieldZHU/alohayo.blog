@@ -1,0 +1,183 @@
+---
+title: Functional Programming with TypeScript
+date: '2019-11-08'
+tags: ['Functional', 'Program', 'TypeScript', 'Tricks', 'Learning', 'Type System']
+draft: false
+summary: 
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+
+As a declarative programming paradigm, [Functional Programming](https://en.wikipedia.org/wiki/Functional_programming) leverages the math theory and type system to build the program with pure functions in a modular manner.
+
+As a good language supporting functional paradigm, as well as a strong type system, TypeScript is ideal for practising FP.
+In this article, we just introduce and demo some useful snippets of FP in TypeScript.
+
+
+Related libraries:
+
+- [fp-ts](https://github.com/gcanti/fp-ts) is the most recommended to be used in ts. Read [code conventions](https://gcanti.github.io/fp-ts/guides/code-conventions.html) for a best practise.
+
+- Run with [Deno](https://deno.land/) runtime, like:
+  `deno run memoize.ts`
+
+- `ramda.js` is one of the common FP library for js.
+  Refer to [official doc](https://ramdajs.com/docs/) and [a tutorial](https://www.ruanyifeng.com/blog/2017/03/ramda.html) in Chinese.
+
+---
+
+## Keep *IMMUTABLE*
+
+The best practise in FP is using **immutable** variables anywhere if possible. 
+
+In TypeScript, use `const` for type declaration and `readonly` for properties of type/interface and args of functions as much as possible. Avoid using `let` or `var` declaration if they are not a must. (Actually, there should always be a way to abandon a mutable variable) 
+
+Example:
+
+```typescript
+declare const a : number
+const b = a > 0 ? 'positive' : 'negativeOrZero'   // $ExpectedType: 'positive' | 'negativeOrZero'
+let b = a > 0 ? 'postive' : 'negativeOrZero'     // $ExpectedType: string
+```
+
+## *Pure* function
+
+- **Cacheable**
+  
+  [Memoization](./memoize.ts)
+
+- Portable / Self-documenting
+- Testable
+- Reasonable
+- Concurrency
+
+## Curry
+
+TypeScript is not born to support curry. Node package like `[Rambda](https://github.com/ramda/ramda)` provides a good implementation of curry, but since we are on `Deno` with TypeScript, it seems not very direct for us to use it, neither give a cool implementation of it in TS. 
+
+A sample for a currying step by step: [How to master advanced TypeScript patterns](https://www.freecodecamp.org/news/typescript-curry-ramda-types-f747e99744ab/)
+
+Also, we can look forward for the proposed feature [Variadic Kinds](https://github.com/Microsoft/TypeScript/issues/5453), which will make it easier to define a typed `curry` function. 
+
+Fortunately, [Denofun](https://github.com/galkowskit/denofun) serves a group of useful utilities for FP including `curry`.
+
+Example:
+
+```typescript
+import curry from "https://deno.land/x/denofun/lib/curry.ts";
+
+const greet = (name: string, age: number) => `hello, I'm ${name} and I'm ${age} years old`;
+const curriedGreet = curry(greet);
+curriedGreet("Tomasz")(26) 
+```
+
+Practises: [using curry](./curry.ts)
+
+## Compose
+
+- Associativity
+
+  ```typescript
+    const associative = compose(f, compose(g, h)) == compose(compose(f, g), h)
+
+    // Both have:
+    // associative(x) = f(g(h(x)))
+  ```
+
+- Pointfree
+  "***Never say your data***"
+
+  ```typescript
+  // not pointfree, for data `word` is mentioned
+    const snakeCase = (word: string) => word.toLowerCase().replace(/\s+/ig, '_')
+
+    // pointfree
+    const pointfreeSnakeCase = compose(replace(/\s+/ig, '_'), toLowerCase);
+
+  ```
+
+  - Reference: [Favoring Curry](https://fr.umio.us/favoring-curry/)
+  - Blog: [using pointfree](http://www.ruanyifeng.com/blog/2017/03/pointfree.html)
+
+- Debug 
+  It could be hard to find the error place in a pointfree style, since we throw all the parameters away
+  Like this:
+
+  ```typescript
+    const dasherize = compose(join('-'), toLower, split(' '), replace(/\s{2,}/ig, ' '))
+    dasherize('The world is a vampire')
+    // TypeError: Cannot read property 'apply' of undefined
+  ```
+
+  We can simply use a curried `trace` function to telemetry the parameters for debugging:
+
+  ```typescript
+    const trace = curry(function(tag, x){
+      console.log(tag, x)
+      return x
+    })
+
+    const dasherize = compose(join('-'), toLower, trace("after split"), split(' '), replace(/\s{2,}/ig, ' '));
+    // after split [ 'The', 'world', 'is', 'a', 'vampire' ]
+
+
+    // Correct:
+    const dasherize = compose(join('-'), map(toLower), split(' '), replace(/\s{2,}/ig, ' '))
+    dasherize('The world is a vampire');
+  ```
+
+Moreover, we have a similar `pipe` function, which also combines the functions.
+The function parameter is called from right to left in `compose`, but left to right in `pipe`.
+
+Practises: [using compose](./compose.ts)
+
+## Functor
+
+> A Functor is a type that implements map and obeys some laws
+
+Typically, we use pointed function which contains a `of` function for instantiating a functor.
+
+```typescript
+  Container.of(3)
+  // Container(3)
+
+  Container.of(3).map(x => x + 1)
+  // Container(4)
+```
+
+### Applicative Functor
+
+"Applicative functor" is a kind of "pointed functor" which implements `ap` function.
+
+Function `ap` should apply the value of a functor to the value of another functor. 
+
+It means: `F.of(x).map(f) == F.of(f).ap(F.of(x))`
+
+
+
+```typescript
+  Container.of(add(2)).ap(Container.of(3))
+  // Container(5)
+
+  Container.of(2).map(add).ap(Container.of(3))
+```
+
+Use applicative functor will make a curried function in functor being used like a a normal function call:
+
+```typescript
+  Maybe.of(add).ap(Maybe.of(2)).ap(Maybe.of(3))
+  // Maybe(5)
+
+  Task.of(add).ap(Task.of(2)).ap(Task.of(3));
+  // Task(5)
+
+```
+
+
+## Reference
+
+[Mostly adequate guide to FP (in javascript)](https://mostly-adequate.gitbooks.io/mostly-adequate-guide/)
+
+[Mostly adequate guide to FP - 中文](https://llh911001.gitbooks.io/mostly-adequate-guide-chinese/content/)
+
+[Denofun](https://github.com/galkowskit/denofun)
