@@ -13,7 +13,7 @@ const siteMetadata = {
   email: 'garfield.bupt@gmail.com',
   github: 'https://github.com/GarfieldZHU',
   twitter: 'https://twitter.com/_AlohaYo_',
-  linkedin: 'https://www.linkedin.com/in/jiahui-zhu-26ba6898/',
+  linkedin: 'https://www.linkedin.com/in/alohayo/',
   locale: 'en-US',
   analytics: {
     // If you want to use an analytics provider you have to add it to the
