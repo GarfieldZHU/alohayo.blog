@@ -55,7 +55,7 @@ const DOMAIN_BANNER = String.raw`
                                                                                                                                                                                                                                                                                                                                                                                
 `
 
-const welcomeStyle = 
+const welcomeStyle =
   'background-color: hotpink; color: white; font-style: w3-cursive; border: 2px solid; font-size: 3em;'
 
 /**
