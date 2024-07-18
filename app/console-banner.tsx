@@ -66,7 +66,7 @@ export function AlohaYoConsoleBanner() {
   useEffect(() => {
     console.log(CUSTOM_PAINITING)
     console.log(DOMAIN_BANNER)
-    console.log("%cWelcome to https://alohyo.me ~~~", style)
+    console.log("%cWelcome to https://alohyo.me ~~~", welcomeStyle)
   }, [])
 
   return <div className="alohayo_banner" />
