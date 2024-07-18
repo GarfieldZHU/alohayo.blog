@@ -9,6 +9,7 @@ import SectionContainer from '@/components/SectionContainer'
 import Footer from '@/components/Footer'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
+import { AlohaYoConsoleBanner } from './console-banner'
 import { Metadata } from 'next'
 
 const space_grotesk = Space_Grotesk({
@@ -88,6 +89,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProviders>
         {/* Live2D component */}
         <script src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js" />
+        {/* console banner */}
+        <AlohaYoConsoleBanner />
       </body>
     </html>
   )
