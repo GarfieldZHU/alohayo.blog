@@ -55,7 +55,8 @@ const DOMAIN_BANNER = String.raw`
                                                                                                                                                                                                                                                                                                                                                                                
 `
 
-const welcomeStyle = 'background-color: hotpink; color: white; font-style: w3-cursive; border: 2px solid; font-size: 3em;'
+const welcomeStyle = 
+  'background-color: hotpink; color: white; font-style: w3-cursive; border: 2px solid; font-size: 3em;'
 
 /**
  * My custom banner printed to the console.
