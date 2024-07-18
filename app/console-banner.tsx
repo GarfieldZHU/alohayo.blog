@@ -66,7 +66,7 @@ export function AlohaYoConsoleBanner() {
     console.log(CUSTOM_PAINITING)
     console.log(DOMAIN_BANNER)
     console.log(
-      '%c                                Welcome to https://alohyo.me ~~~                                ',
+      '%c                                Welcome to https://alohayo.me ~~~                                ',
       welcomeStyle
     )
   }, [])
