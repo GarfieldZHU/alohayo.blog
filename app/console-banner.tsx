@@ -29,5 +29,5 @@ export function AlohaYoConsoleBanner() {
     console.log(CUSTOM_PAINITING)
   }, [])
 
-  return (<div className="alohayo_banner" />
+  return <div className="alohayo_banner" />
 }
