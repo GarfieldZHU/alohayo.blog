@@ -11,21 +11,84 @@ summary: A series of articles about some keypoints of authentication in Web serv
 
 Typically in Web world, the authentication is very first step for the user to access the resources and the crutial point for guarding the data and the site security.
 
-To highlight the keypoints to be considered when implementing auth in web server, I'll talk about in a series of articles. 
+To highlight the keypoints to be considered when implementing auth in web server, I'll talk about in a series of articles.
 
 At the very beginning, let's start from the most well known and basic point: token and session.
-
-
-## Token
-
-### JWT
 
 
 ## Session
 
 
 
+## Token
+
+
+
+### JWT
+
+As we discussed in the session secion, the session is generally persisted in DB or a persistent layer. It is stateful and makes the authentication relies on the persistency.
+
+To have a stateless and decentralized authentication token, we have JWT, AKA JSON Web Tokens.
+
+JSON Web Tokens are an open, industry standard [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519) method for representing claims securely between two parties.
+
+#### JWT Data Structure
+
+This is what is JWT token looks:
+![jwt sample](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-sample.png?raw=true)
+
+It actually has 3 parts, and separated by a dot `.`. Thus, its pattern is like `{Header}.{Payload}.{Signature}`.
+Each part is encoded by [Base64URL](https://wiki.tcl-lang.org/page/base64url), which is a little bit different from typical **Base64**, for supporting use the JWT in HTTP request query parameters.
+
+- First part is **Header**
+  ![header](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-header.png?raw=true)
+  The header part includes:
+  - `alg`: The algorithm for signature. By default `HS256` (HMAC SHA256).
+  - `typ`: The type of the token. Always be `JWT` as a JWT.
+
+- Middle part is **Payload**
+  ![header](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-payload.png?raw=true)
+  Put the real payload with necessary information, which is equivalent to the session persistented on the server.
+  Using JWT, the server does not need to query the session data from DB but just decoded them from the JWT passed by the client.
+
+  In [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1), it claims 7 registerd claim names in JWT payload. They are not mandatory to be used.
+  Any custom fields can be used in the payload, but **the names should be short** because a core goal of JWTs is for the representation to be compact.
+
+- Last part is **Signature**
+  ![header](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-sig.png?raw=true)
+  The signature part actually signs the above 2 parts. The server maintains a secret key for signature and never exposes the any external points.
+  Once a user signs in, the server generates the JWT and use the secret key for signing the token by the `alg`.
+  When processing every requests with JWT, the server will validate the payload by the signature to avoid any malicious tampering in the payload.
+
+#### Pros and cons
+- 👍 Stateless. Reduce the IO cost for getting session info on server.
+- 👍 Immutable payload. No one can write or modify the data to JWT expcept the server.
+- 👍 Can be encrypted again for higher security.
+- 👎 Hard to abort or revoke a signed JWT postively before it reaches it expiration.
+- 👎 Authorities info could leak once the JWT is leaked.
+
+#### Usage and scenarios
+JWTs are generally used in Web and Mobile application, because it's lightweight and stateless.
+- Auth login
+  Within the auth login APIs, the server should generate the JWT and typically send it in response body.
+- Request with JWT
+  For each requests need a authorized user, the client is recommended to carry the JWT in the header:
+  `Auhtorization: Bearer <token>`
+  This is the most common practice. Also, a special customized header like `X-Authorization-Token` is also a deal.
+  Though cookie can make it being carried automatically, it is not recommended for JWT considering CORS.
+- Expiration and protocol
+  - Recommend to use a short expiration. And use a refresh token together.
+  - Always use HTTPS.
+
+
+#### References
+- [JWT encode/decode online: jwt.io](https://jwt.io/)
+
+### CSRF token
+
+
+
+
 ## Reference
 - Ref to [OWASP Top 10 Vulnerabilities](https://owasp.org/www-project-top-ten/) for the goal of Web security.
 - Read [OWASP Cheetsheet](https://cheatsheetseries.owasp.org/index.html) for more tips.
-
