@@ -18,17 +18,83 @@ At the very beginning, let's start from the most well known and basic point: tok
 
 ## Session
 
+### How Sessions Work
+
+User Logs In: The client sends login credentials (e.g., username and password) to the server.
+
+Session Creation: If authentication is successful, the server generates a unique session identifier (Session ID) and associates it with the user information in memory or a persistent store (e.g., database, Redis).
+
+Session Tracking: The server sends the session ID back to the client, typically stored in a cookie.
+
+Subsequent Requests: The client includes the session ID in each request. The server verifies the session ID to retrieve the user’s state.
+
+### Cookie
+
+Cookies are the primary method to store session identifiers on the client side. These small data packets are automatically sent with each HTTP request to the server.
+
+Setting a Cookie Example (HTTP Response Header):
+
+> Set-Cookie: session_id=abc123; HttpOnly; Secure; SameSite=Strict
+
+- [HttpOnly](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#httponly): Prevents JavaScript from accessing the cookie, mitigating [XSS attacks](https://developer.mozilla.org/en-US/docs/Glossary/Cross-site_scripting).
+
+- [Secure](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#secure): Ensures the cookie is only sent over HTTPS.
+
+- [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value): Controls whether the cookie is sent with cross-site requests ("Strict" prevents cross-site transmission).
+
+### Session Storage
+
+Sessions need to be stored on the server side for validation. Common storage approaches include:
+
+1. **In-Memory**: Fast but volatile; best for small-scale applications (e.g., using HttpSession in Spring Boot).
+
+2. **Database**: Persistent and reliable across service restarts, ideal for larger systems.
+
+3. **Distributed Cache**: For horizontally scaled applications, use Redis or Memcached to store sessions.
+
+
+### Session Expiration and Security
+
+1. **Expiration**: Set a reasonable expiration time (e.g., 30 minutes of inactivity) and periodically clear expired sessions.
+
+2. **Regenerate IDs**: Refresh the session ID on sensitive operations (e.g., after login) to prevent session fixation.
+
+3. **Secure Cookies**: Always use HttpOnly, Secure, and SameSite attributes to reduce the risk of attacks.
 
 
 ## Token
 
+The tokens is any long, random string representing some unique things, stored on the server and 
+- The tokens should be generally long and unique, 128~256 bits should be good. e.g. [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier). 
+- Usually used for authentication and verification. e.g. session ID, access token.
+- Tokens must be generated using a cryptographically secure random generator. 
+  Standard Math libraries, like `Math.random` methods in Java and JS are bad for security. Use crypto methods instead. e.g. "crypto/rand" in golang, `Crypto.randomUUID()` in JS.
+- Tokens should be stored after a hash, like SHA-256. 
+  It makes that the token will not be really exposed from storage, but just be verified by hashed values. 
+
+
+For example, the DB table for storing the tokens of user sessions should:
+1. make the hased token as a non-null unique string;
+2. each token represents a user session, which refers to the user as a foreign, to query the user privilege/access.
+3. each token has an expiration time for extra security;
+
+```SQL
+CREATE TABLE token (
+	token_key STRING NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+	expires_at INTEGER NOT NULL,
+
+  PRIMARY KEY (token_key),
+	FOREIGN KEY (user_id) REFERENCES user(id)
+)
+```
 
 
 ### JWT
 
 As we discussed in the session secion, the session is generally persisted in DB or a persistent layer. It is stateful and makes the authentication relies on the persistency.
 
-To have a stateless and decentralized authentication token, we have JWT, AKA JSON Web Tokens.
+To have a stateless and decentralized authentication token, we have JWT, AKA JSON Web Tokens, which is also a token, but contains information.
 
 JSON Web Tokens are an open, industry standard [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519) method for representing claims securely between two parties.
 
