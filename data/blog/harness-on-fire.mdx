@@ -1,0 +1,159 @@
+---
+title: 'Harness is on fire — My simple take on oh-my-openagent'
+date: '2026-04-05'
+tags: ['AI', 'Agent', 'Harness', 'LLM', 'oh-my-openagent', 'OpenCode']
+draft: false
+summary: 'The model is the moat. The harness is the bridge. And one format change moved Grok from 6.7% to 68.3% without touching the model. Let me explain why that is either exciting or terrifying depending on your mood.'
+---
+
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+_Posted in my personal space because nobody asked me to. I'm just excited and slightly anxious._
+
+---
+
+## The thing I didn't know I was missing
+
+A few months back I started using Claude Code and OpenCode heavily. Model goes brr, code writes itself, life is good.
+
+Then I hit a wall. The agent would understand _exactly_ what needed to change — I could tell from its explanations — and then fail to apply the edit. Again. And again. "String to replace not found." Wrong indentation. Phantom whitespace. I started wondering if I was doing something wrong.
+
+I wasn't. The **model** wasn't the problem. The **harness** was.
+
+This concept clicked for me when I read [Can Bölük's benchmark research](https://blog.can.ac/2026/02/12/the-harness-problem/). He changed _nothing_ about the model — same weights, same prompt, same task. He just changed the **edit format**. Grok Code Fast 1 went from **6.7% → 68.3%** success rate. That's not a rounding error. That's a different product.
+
+The harness isn't the model. It's everything around the model: edit formats, tool schemas, state management, how tasks get broken down, how errors get caught. The model is the moat. The harness is the bridge.
+
+And most of us don't think about the bridge at all.
+
+---
+
+## Why edit format matters so much
+
+Quick tour of the three main formats, because this genuinely surprised me:
+
+**`str_replace`** (what Claude Code uses) — you give it the old text, it finds and replaces. Sounds simple. The failure mode: you have to reproduce the original text _exactly_. Whitespace, indentation, trailing spaces. If the model misremembers one character, "String to replace not found." I've seen this failure mode more times than I care to admit.
+
+**`patch`** (what Codex uses) — fine-tuned for OpenAI models. Grok had a 50.7% patch failure rate with it. Not because Grok is bad. Because the format wasn't designed for Grok.
+
+**`hashline`** — this is the one that blew my mind. Instead of reproducing content, the model references a 2-3 character content tag:
+
+```
+11:a3|function hello() {
+22:f1|  return "world";
+33:0e|}
+```
+
+The model edits by tag, not by content reproduction. Format failures basically disappear. Output tokens drop 61% (no retry loops). The model stops fighting the format and starts doing the actual work.
+
+This shit is elegant.
+
+---
+
+## oh-my-openagent: 11 agents walk into a bar
+
+Once I understood harness theory, I started digging into [oh-my-openagent](https://github.com/can1357/oh-my-pi). It's an OpenCode plugin that turns your single AI session into a structured 11-agent development team. Here's the architecture:
+
+```
+Planning Layer:   Metis → Prometheus → Momus
+                             ↓
+Execution Layer:           Atlas
+                             ↓
+Worker Layer:  Sisyphus-Junior | Oracle | Explore | Librarian | ...
+```
+
+**Planning layer** — three agents whose only job is to think before acting. Metis finds the gaps in your request. Prometheus builds the actual plan. Momus reviews the plan and kills bad ideas before any code gets written. Thinking and executing are structurally separated. Same reason CI/CD separates build from deploy.
+
+**Execution layer** — Atlas reads the plan, dispatches to workers. No write access. No re-delegation. Just coordination.
+
+**Worker layer** — the ones who actually do stuff. Sisyphus-Junior runs the code. Oracle (expensive, GPT-5.4) is the read-only architecture consultant. Explore searches your codebase. Librarian searches external docs. Each has specific constraints. Oracle can't write. Workers can't re-delegate.
+
+Each agent runs on a model tuned to its role. Gemini for frontend. GPT-5.4 for hard logic. Grok for cheap fast searches. Mismatched category = measurably worse output. That's not hand-waving — it's measured.
+
+| Agent           | Model                   | Role                              |
+| --------------- | ----------------------- | --------------------------------- |
+| Sisyphus        | claude-opus / kimi-k2.5 | Main orchestrator, intent gate    |
+| Prometheus      | claude-opus             | Strategic planner                 |
+| Momus           | gpt-5.4                 | Plan reviewer (hard QA gate)      |
+| Oracle          | gpt-5.4                 | Read-only architecture consultant |
+| Explore         | grok-code-fast-1        | Internal codebase search          |
+| Librarian       | minimax-m2.7            | External docs search              |
+| Sisyphus-Junior | category-dynamic        | Actual code execution             |
+
+---
+
+## The Intent Gate: my favorite idea in here
+
+Every message gets classified before anything happens:
+
+| You say       | True intent    | What actually happens      |
+| ------------- | -------------- | -------------------------- |
+| "Explain X"   | Research       | explore → answer only      |
+| "Implement X" | Implementation | plan → execute             |
+| "Look into X" | Investigation  | explore → report, **wait** |
+| "Refactor"    | Open-ended     | assess first → propose     |
+
+Why does this matter? Because "look at this file and tell me what you think" should not silently become "I rewrote your whole authentication layer." I've had that happen. It's not fun.
+
+The Intent Gate makes this structural, not aspirational. You need an explicit implementation verb to trigger actual code changes. "Look into X" will research and wait. That's the right behavior.
+
+---
+
+## Memory across sessions
+
+Two systems I want to highlight:
+
+**Wisdom System** — cross-session memory in `.sisyphus/notepads/`. Four files: `learnings.md` (what worked), `decisions.md` (don't re-litigate these), `problems.md` (don't try this again), `issues.md` (known gotchas). Engineering institutional memory that survives context windows.
+
+**Boulder System** — `.sisyphus/boulder.json` tracks task state across sessions. `/start-work` resumes from exactly where you left off. No re-deriving state from scratch every time you open a new chat.
+
+These feel small. They're not. Context windows are 200k tokens but they reset. The Wisdom system is your agent's actual long-term memory.
+
+---
+
+## The part that makes me anxious 😅
+
+Here's the thing about all of this: it's learnable. Seriously. The core concepts — harness vs model, edit format, multi-layer architecture, intent classification — you can understand all of it in an afternoon. It's not magic.
+
+What _is_ genuinely hard is that this field moves faster than I can keep up. When I started writing this, the benchmark numbers were current. By the time you're reading this, there are probably two new edit formats, a new category system, and a model that changed everything again.
+
+The Hashline format is brilliant today. In six months it might be table stakes. Oh-my-openagent's architecture might be superseded by something better. The specific numbers I quoted might be outdated.
+
+This is the anxiety. Not "this is too hard to learn." It's "I'm learning the right things for right now, and right now keeps moving."
+
+The principles feel more durable than the specifics:
+
+- The harness matters as much as the model.
+- Structured constraints prevent whole classes of failures.
+- Thinking and executing should be separated.
+- Right tool per context > general-purpose everything.
+
+Those will still be true when the specific implementations change.
+
+---
+
+## The mental model I keep coming back to
+
+```
+Raw agent:    User → [Model] → Tools → Result
+              (model quality is the only lever)
+
+With harness: User → [IntentGate] → [Planner] → [Reviewer] → [Executor pool] → [Verifier] → Result
+              (each layer adds structure, each constraint prevents a class of failure)
+```
+
+The harness doesn't make the model smarter. It makes the model's intelligence _expressible_.
+
+Stable edit anchors. Clear task boundaries. Right tools per context. Structural constraints that prevent recoverable-sounding mistakes from becoming unrecoverable disasters.
+
+A brilliant model running through a bad harness will fail on trivial edits. An adequate model running through a good harness will outperform it on real tasks. That benchmark result — 6.7% to 68.3% — is proof.
+
+We've been arguing about models. We should've been arguing about bridges.
+
+---
+
+_References:_
+_- [Can Bölük: The Harness Problem](https://blog.can.ac/2026/02/12/the-harness-problem/)_
+_- [oh-my-openagent GitHub](https://github.com/can1357/oh-my-pi)_
+
+Long may the sun shine. ☀️
