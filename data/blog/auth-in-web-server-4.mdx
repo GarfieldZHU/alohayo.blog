@@ -1,23 +1,149 @@
 ---
 title: Authentication in Web 4 - CSRF
-date: '2024-06-01'
+date: '2025-02-03'
 tags: ['Web Server', 'CSRF', 'security', 'Web', 'token', 'auth', 'Learning']
-draft: true
+draft: false
 summary: A series of articles about some keypoints of authentication in Web server. This article is focusing on CSRF.
 ---
+
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
 # Web Application Authentication (4) - CSRF
 
-I did not plan to have this page and it was just a section in [the first article of this series](https://alohayo.me/blog/auth-in-web-server-1). 
+I did not plan to have this page and it was just a section in [the first article of this series](https://alohayo.me/blog/auth-in-web-server-1).
 But when I have more practices about it, I found it misses too many (maybe not best, but necessary) practices to make a web site secure.
 
 Thus, I'd like to expand the topic and talk about the CSRF specifically.
 
 ---
 
+## What is CSRF
 
+CSRF stands for Cross-Site Request Forgery. The name describes the attack pretty directly: a malicious site triggers a request to your site, forging it as if the user intended to make it.
+
+The key thing that makes CSRF possible is how browsers handle cookies. When a user is logged into your site, their session cookie is stored in the browser. When any request goes to your domain — even one initiated from a completely different site — the browser automatically attaches that cookie. The server sees a valid session and accepts the request.
+
+The attacker doesn't need the user's credentials. They just need the user to visit their page while logged in somewhere.
+
+## How the Attack Works
+
+Here's a concrete example. Say your banking site has an endpoint:
+
+```
+POST /transfer
+Body: { to: "account_id", amount: 1000 }
+```
+
+And authentication is handled by a session cookie that the browser sends automatically.
+
+The attacker creates a page with this hidden form:
+
+```html
+<form action="https://yourbank.com/transfer" method="POST" id="evil">
+  <input type="hidden" name="to" value="attacker_account" />
+  <input type="hidden" name="amount" value="10000" />
+</form>
+<script>document.getElementById("evil").submit()</script>
+```
+
+If you visit that page while logged into your bank, the form auto-submits. The browser sends your session cookie with it. The server sees a legitimate request from an authenticated user and processes the transfer.
+
+The attacker never touched your credentials. They didn't need to.
+
+This works for GET requests too — something like `<img src="https://yourbank.com/transfer?to=attacker&amount=10000" />` can trigger a GET endpoint just by loading an image tag.
+
+## Defense 1: CSRF Tokens
+
+The classic defense. The server generates a random unpredictable token and embeds it in forms (or makes it available to JavaScript). On each state-changing request, the server requires this token to be present in the request body or a custom header — not in a cookie.
+
+Since the attacker's page is a different origin, it can't read your page's content (same-origin policy blocks it), so it can't know what token value to put in the forged request.
+
+The token needs to be:
+
+- Random and unpredictable (use a cryptographically secure generator)
+- Tied to the user's session
+- Different per session, ideally per request
+
+For traditional server-rendered forms, you embed it as a hidden field:
+
+```html
+<form method="POST" action="/transfer">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+  <!-- rest of form -->
+</form>
+```
+
+For APIs consumed by JavaScript, you typically put the token in a cookie that JavaScript can read (so no `HttpOnly`), and have the JS read it and include it in the request as a header like `X-CSRF-Token`. The server then checks that the header value matches the cookie value.
+
+This is the Double Submit Cookie pattern — more on that in a second.
+
+## Defense 2: SameSite Cookie Attribute
+
+The [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value) cookie attribute is probably the cleanest modern defense against CSRF. It tells the browser not to send the cookie on cross-site requests.
+
+```
+Set-Cookie: session_id=abc123; SameSite=Strict; HttpOnly; Secure
+```
+
+There are three values:
+
+- **`Strict`**: The cookie is never sent on any cross-site request. This includes even navigating to your site by clicking a link from another site — so if someone links to your app from somewhere external, the user won't be logged in when they arrive. A bit heavy-handed for most apps.
+
+- **`Lax`**: The cookie is not sent on cross-site sub-requests (images, iframes, AJAX), but is sent when the user directly navigates to your site via a link. This is the browser default as of a few years ago and is a reasonable choice for most session cookies.
+
+- **`None`**: Sends the cookie on all cross-site requests. Requires `Secure`. This is the old default behavior — you only use it when you explicitly need cross-site cookies (e.g., embedded widgets, cross-domain authentication flows).
+
+For most apps, `Lax` is a good default for session cookies. It protects against the CSRF attack scenario above while not breaking normal link-based navigation.
+
+`Strict` is worth using for cookies tied to very sensitive operations (e.g., a separate cookie checked for bank transfers), even if your main session cookie uses `Lax`.
+
+## Defense 3: Double Submit Cookie
+
+This is the pattern I mentioned above. The idea:
+
+1. Set a random CSRF token in a cookie (readable by JavaScript, so no `HttpOnly`)
+2. For each state-changing request, JavaScript reads the cookie and includes the token as a request header
+3. The server checks that the header value matches the cookie value
+
+```javascript
+// On the client side
+const csrfToken = getCookie('csrf_token')
+fetch('/api/transfer', {
+  method: 'POST',
+  headers: {
+    'X-CSRF-Token': csrfToken,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ to: 'account', amount: 100 }),
+})
+```
+
+The reason this works: an attacker from a different origin can cause a request to be sent with the cookie (the browser sends it), but they can't read the cookie value (same-origin policy), so they can't set the matching header.
+
+One caveat: if your app has an XSS vulnerability, an attacker could read the cookie via JavaScript and bypass this entirely. The CSRF token is not a substitute for fixing XSS.
+
+## Relationship with CORS
+
+[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS) (Cross-Origin Resource Sharing) and CSRF are related but distinct problems.
+
+CORS controls whether the browser allows a cross-origin script to read the response. It does not prevent the request from being sent. A misconfigured CORS policy that allows arbitrary origins doesn't cause CSRF by itself, but it does mean malicious scripts can read responses from your server — which can be bad for different reasons.
+
+An overly permissive CORS setup like `Access-Control-Allow-Origin: *` with `Access-Control-Allow-Credentials: true` is actually invalid (browsers reject it), but attempting something like allowing credentials from arbitrary origins breaks the assumption underlying the Double Submit Cookie pattern.
+
+A tight CORS policy is important but doesn't replace CSRF defenses. Both should be in place.
+
+## Practical Checklist
+
+- Use `SameSite=Lax` or `SameSite=Strict` on session cookies
+- For state-changing endpoints (POST, PUT, DELETE): require a CSRF token in the request or verify the `Origin`/`Referer` header
+- For traditional server-rendered forms: embed CSRF tokens as hidden fields
+- For API endpoints consumed by JavaScript: use the Double Submit Cookie pattern or sync tokens
+- Don't rely on the `Content-Type` check alone — `application/x-www-form-urlencoded` and `multipart/form-data` are simple requests and bypass CORS preflight
+- Check the `Origin` header server-side as an extra sanity check — reject requests where `Origin` doesn't match your domain
 
 ## Reference
+
 - Ref to [OWASP Top 10 Vulnerabilities](https://owasp.org/www-project-top-ten/) for the goal of Web security.
 - Read [OWASP Cheetsheet](https://cheatsheetseries.owasp.org/index.html) for more tips.
+- [OWASP CSRF Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [MDN - SameSite cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value)
