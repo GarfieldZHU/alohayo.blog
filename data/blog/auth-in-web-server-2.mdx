@@ -1,15 +1,136 @@
 ---
-title: Authentication in Web 4 - Password authentication
+title: Authentication in Web 2 - Password authentication
 date: '2025-01-23'
 tags: ['Web Server', 'auth', 'Web', 'password', 'security', 'Learning']
-draft: true
+draft: false
 summary: A series of articles about some keypoints of authentication in Web server. This article is focusing on the problems about the passwords.
 ---
+
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
 # Web Application Authentication (2) - Password authentication
 
+Passwords are probably the most common form of authentication we deal with, and also the most commonly screwed up. It sounds simple — user types a password, server checks it — but there are a lot of ways to get it wrong, and the consequences of getting it wrong are really bad.
+
+Let's go through the key things you need to think about when dealing with passwords on the server side.
+
+## Never Store Plaintext Passwords
+
+This sounds obvious, but it's still happening out there. If you store passwords in plaintext and your database gets leaked, every single user's password is exposed immediately. No forensics needed for the attacker.
+
+And because people reuse passwords, a leak from your site can compromise their accounts on other sites too. The damage scales well beyond you.
+
+The rule is simple: never store what the user actually typed. Store a derivative that lets you verify the password without recovering it.
+
+## Hashing
+
+The basic idea is to run the password through a one-way function before storing it. When the user logs in, you hash what they typed and compare it with the stored hash.
+
+```
+stored: hash(password)
+verification: hash(input) == stored
+```
+
+The problem with using generic hash functions like SHA-256 or MD5 is that they're designed to be fast. Very fast. An attacker with a GPU can compute billions of SHA-256 hashes per second. That makes brute-force attacks very practical if they get your hash database.
+
+Also, MD5 and SHA-1 are cryptographically broken at this point — don't use them for anything security-sensitive.
+
+## Salting
+
+Even with a strong hash function, there's still a problem: if two users have the same password, they'll have the same hash. An attacker can precompute a table of common passwords and their hashes (called a rainbow table) and look up any matching hash instantly.
+
+The fix is to add a random value — a salt — to each password before hashing:
+
+```
+stored: salt + hash(salt + password)
+```
+
+The salt is unique per user, stored alongside the hash (it's not a secret, just a random differentiator). Now even two users with the same password will have completely different stored values, and precomputed rainbow tables become useless.
+
+## Modern Password Hashing Algorithms
+
+The right solution is to use a hash function purpose-built for passwords, not a general-purpose hash. These are designed to be slow and memory-intensive, which directly raises the cost of brute-force attacks.
+
+### bcrypt
+
+[bcrypt](https://en.wikipedia.org/wiki/Bcrypt) is the classic choice. It incorporates salting automatically and has a configurable cost factor that controls how slow it is. As hardware gets faster, you raise the cost factor to compensate.
+
+```
+$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewYpfuA
+^  ^  ^                                           ^
+|  |  salt (22 chars)                             hash (31 chars)
+|  cost factor (2^12 = 4096 iterations)
+algorithm
+```
+
+A cost factor of 12 is a reasonable starting point today. A single bcrypt with cost 12 takes roughly 250ms, which is fine for a login but terrible for an attacker trying millions of guesses.
+
+### scrypt and Argon2
+
+[scrypt](https://www.tarsnap.com/scrypt.html) adds memory hardness on top of bcrypt's time cost. An attacker can't just throw more GPU cores at it — they also need proportionally more RAM, which is a much harder constraint to scale.
+
+[Argon2](https://github.com/P-H-C/phc-winner-argon2) won the Password Hashing Competition in 2015 and is the current recommendation if you're starting fresh. It has three variants:
+
+- `Argon2d` — maximizes resistance to GPU attacks
+- `Argon2i` — resistant to side-channel attacks
+- `Argon2id` — hybrid, the recommended choice for most cases
+
+Most modern crypto libraries will have Argon2id support. Use it if you can.
+
+## Password Policies
+
+The goal of a password policy is to raise the minimum cost of guessing a user's password. A few things that actually matter:
+
+**Length over complexity.** A 20-character passphrase is much stronger than an 8-character mix of letters, numbers, and symbols. The entropy from length grows exponentially. Minimum 12 characters is a reasonable floor; 8 characters is too short now.
+
+**Check against known breached passwords.** [Have I Been Pwned](https://haveibeenpwned.com/Passwords) maintains a list of billions of passwords from known breaches. Blocking these specifically is more effective than arbitrary complexity rules, because attackers use these lists directly.
+
+**Don't force frequent rotation.** Regular forced password rotation doesn't actually improve security — it just makes users pick weaker passwords like `Password1!` → `Password2!`. [NIST SP 800-63B](https://pages.nist.gov/800-63-3/sp800-63b.html) dropped the rotation recommendation.
+
+**Do require rotation on known compromise.** If you detect a breach or suspicious activity on an account, force a password change then.
+
+## Brute Force Protection
+
+Even with a slow hash function, you still need to defend against online brute force — where an attacker directly hits your login endpoint.
+
+### Rate Limiting
+
+The simplest defense. Limit how many login attempts can come from a single IP or for a single account within a time window. Something like 5 failed attempts per minute per account is a reasonable starting point.
+
+Be careful with IP-based limiting alone though — attackers use distributed botnets, and overly aggressive IP limits can lock out legitimate users behind NAT or proxies.
+
+### Account Lockout
+
+Lock an account after N consecutive failed attempts, requiring a reset to unlock. This completely blocks brute force but creates a denial-of-service opportunity — an attacker can lock any account they know the username for.
+
+A softer alternative is adding progressive delays after failed attempts:
+
+- 1-3 failed: no extra delay
+- 4-5 failed: 5 second wait
+- 6+ failed: 30 second wait, CAPTCHA required
+
+This slows down attackers without locking out real users.
+
+### CAPTCHA
+
+For high-value endpoints, adding a CAPTCHA after a few failed attempts is a reasonable extra layer. It's annoying to legitimate users though, so don't put it on the first attempt.
+
+## Multi-factor Authentication
+
+Passwords alone aren't great — they get phished, leaked, and reused. Adding a second factor means a stolen password isn't enough to compromise the account.
+
+A few common second factors:
+
+- **TOTP** (Time-based One-Time Passwords) — the typical authenticator app flow, defined in [RFC 6238](https://datatracker.ietf.org/doc/html/rfc6238). The server and the user's device share a secret, and both compute a time-windowed code from it. No network call required for verification.
+- **SMS codes** — easier to onboard users but weaker than TOTP, since SMS can be intercepted via SIM swap attacks.
+- **Hardware keys** (FIDO2/WebAuthn) — strongest option, phishing-resistant by design.
+
+MFA is worth supporting even if you don't require it — at minimum, offer TOTP as an option.
 
 ## Reference
+
 - Ref to [OWASP Top 10 Vulnerabilities](https://owasp.org/www-project-top-ten/) for the goal of Web security.
 - Read [OWASP Cheetsheet](https://cheatsheetseries.owasp.org/index.html) for more tips.
+- [NIST SP 800-63B - Digital Identity Guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html)
+- [Have I Been Pwned Password API](https://haveibeenpwned.com/API/v3#PwnedPasswords)
+- [Argon2 reference implementation](https://github.com/P-H-C/phc-winner-argon2)
