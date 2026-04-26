@@ -8,23 +8,27 @@ summary: 'The model is the moat. The harness is the bridge. And one format chang
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
-_Posted in my personal space because nobody asked me to. I'm just excited and slightly anxious._
+_Posted in my blog though I did not like to write something in this big Agent era. I'm just excited and anxious._
 
 ---
 
 ## The thing I didn't know I was missing
 
-A few months back I started using Claude Code and OpenCode heavily. Model goes brr, code writes itself, life is good.
+The concept of Harness is something I didn't understand at all until recently it is on fire.
 
-Then I hit a wall. The agent would understand _exactly_ what needed to change — I could tell from its explanations — and then fail to apply the edit. Again. And again. "String to replace not found." Wrong indentation. Phantom whitespace. I started wondering if I was doing something wrong.
+Anyway I have read to [Can Bölük's benchmark research](https://blog.can.ac/2026/02/12/the-harness-problem/). He changed _nothing_ about the model — same weights, same prompt, same task. He just changed the **edit format**. Grok Code Fast 1 went from **6.7% → 68.3%** success rate. That's not a rounding error. That's a different product.
 
-I wasn't. The **model** wasn't the problem. The **harness** was.
+I'm a dumb and still guy and still struggle with the RAG and MCP, Agent Skills things. But I do understand this: the harness is as important as the model. The edit format is as important as the model. The tools and constraints you put around the model are as important as the model.
 
-This concept clicked for me when I read [Can Bölük's benchmark research](https://blog.can.ac/2026/02/12/the-harness-problem/). He changed _nothing_ about the model — same weights, same prompt, same task. He just changed the **edit format**. Grok Code Fast 1 went from **6.7% → 68.3%** success rate. That's not a rounding error. That's a different product.
+Claude Code is good but Anthropic hates Chinese so much so I have to no choice but switch to OpenCode heavily with the Github Copilot subscription.
+
+It's far away from the Clause Code, so I always hit a wall. The agent would understand _exactly_ what needed to change — I could tell from its explanations — and then fail to apply the edit. Again. And again. "String to replace not found." Wrong indentation. Phantom whitespace. I started wondering if I was doing something wrong.
+
+But until the oh-my-openagent is installed, which Model goes brr, code writes itself, life is as good as the Claude Code makes. I start to be curious about why Harness matters so much. I'm not writing the bad prompts. The **model** wasn't the problem. The **harness** was.
 
 The harness isn't the model. It's everything around the model: edit formats, tool schemas, state management, how tasks get broken down, how errors get caught. The model is the moat. The harness is the bridge.
 
-And most of us don't think about the bridge at all.
+And most of us don't think that the bridge matters that much.
 
 ---
 
@@ -153,7 +157,8 @@ We've been arguing about models. We should've been arguing about bridges.
 ---
 
 _References:_
-_- [Can Bölük: The Harness Problem](https://blog.can.ac/2026/02/12/the-harness-problem/)_
-_- [oh-my-openagent GitHub](https://github.com/can1357/oh-my-pi)_
+
+- [Can Bölük: The Harness Problem](https://blog.can.ac/2026/02/12/the-harness-problem/)
+- [oh-my-openagent GitHub](https://github.com/code-yeongyu/oh-my-openagent)
 
 Long may the sun shine. ☀️
