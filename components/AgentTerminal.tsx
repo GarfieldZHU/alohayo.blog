@@ -59,7 +59,7 @@ const themes = {
     bg: 'bg-[#212121]',
     text: 'text-[#e0e0e0]',
     titleBar: 'bg-[#2a2a2a]',
-    titleText: '~/.opencode/session',
+    titleText: 'Open Code- Sisyphus',
     titleColor: 'text-[#7b7f87]',
     userMsg: 'border-l-4 border-[#5c9cf5] pl-3 py-1',
     userBg: '',
@@ -78,7 +78,7 @@ const themes = {
     bg: 'bg-[#1a1a2e]',
     text: 'text-[#e0e0e0]',
     titleBar: 'bg-[#16162a]',
-    titleText: 'claude-code session',
+    titleText: 'Claude-Code',
     titleColor: 'text-[#7b7f87]',
     userMsg: 'py-1',
     userBg: '',
@@ -97,7 +97,7 @@ const themes = {
     bg: 'bg-[#1e1e2e]',
     text: 'text-[#E8E3D5]',
     titleBar: 'bg-[#181825]',
-    titleText: 'openclaw session',
+    titleText: 'OpenClaw',
     titleColor: 'text-[#7B7F87]',
     userMsg: 'p-2 rounded mt-1 mb-2',
     userBg: 'bg-[#2B2F36]',
@@ -239,13 +239,13 @@ export default function AgentTerminal() {
           className={`border border-gray-600 px-4 py-1 transition-colors ${activeTab === 'session' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
           onClick={() => handleTabSwitch('session')}
         >
-          Session
+          Agent TUI
         </button>
         <button
           className={`border border-gray-600 px-4 py-1 transition-colors ${activeTab === 'identity' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
           onClick={() => handleTabSwitch('identity')}
         >
-          Identity
+          Identity.md
         </button>
       </div>
 

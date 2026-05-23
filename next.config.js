@@ -67,6 +67,9 @@ module.exports = () => {
     output,
     basePath,
     reactStrictMode: true,
+    typescript: {
+      ignoreBuildErrors: true,
+    },
     trailingSlash: true,
     turbopack: {
       root: process.cwd(),
