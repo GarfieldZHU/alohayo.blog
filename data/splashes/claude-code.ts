@@ -1,0 +1,22 @@
+export const claudeCodeSplash = {
+  cmd: '$ claude',
+  lines: [
+    { text: '', color: '' },
+    { text: '  ╭─────────────────────────────────────────────────╮', color: 'text-gray-600' },
+    { text: '  │                                                 │', color: 'text-gray-600' },
+    { text: '  │   Claude Code  v1.0.12                          │', color: 'text-white' },
+    { text: '  │                                                 │', color: 'text-gray-600' },
+    { text: '  │   Tips:                                         │', color: 'text-gray-400' },
+    { text: '  │   • /help for available commands                │', color: 'text-gray-500' },
+    { text: '  │   • /plan for read-only mode                   │', color: 'text-gray-500' },
+    { text: '  │   • Ask Claude to explain complex code          │', color: 'text-gray-500' },
+    { text: '  │                                                 │', color: 'text-gray-600' },
+    { text: '  │   cwd: ~/Dev/alohayo.blog                      │', color: 'text-gray-500' },
+    { text: '  │   model: claude-sonnet-4-20250514              │', color: 'text-gray-500' },
+    { text: '  │                                                 │', color: 'text-gray-600' },
+    { text: '  ╰─────────────────────────────────────────────────╯', color: 'text-gray-600' },
+    { text: '', color: '' },
+    { text: '  >', color: 'text-gray-400' },
+    { text: '', color: '' },
+  ],
+}

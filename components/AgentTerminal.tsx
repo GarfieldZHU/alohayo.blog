@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { opencodeSplash } from '@/data/splashes/opencode'
+import { claudeCodeSplash } from '@/data/splashes/claude-code'
+import { openclawSplash } from '@/data/splashes/openclaw'
 
 function renderMd(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = []
@@ -33,26 +36,72 @@ function renderMd(text: string): React.ReactNode[] {
   return parts
 }
 
-const exchanges = [
+type AgentLine =
+  | { type: 'text'; content: string }
+  | { type: 'labels'; items: { label: string; color: string }[] }
+
+const exchanges: { user: string; agent: AgentLine[] }[] = [
   {
     user: 'What kind of engineer are you?',
-    agent:
-      "**Null-stack.** Java, C++, Python, TypeScript, Go, Rust — genuinely skilled, not resume-padding. Primary environment is `React` + `TypeScript` at MicroStrategy. I have opinions and I'll share them whether you ask or not.",
+    agent: [
+      {
+        type: 'labels',
+        items: [
+          { label: 'TypeScript', color: 'text-blue-400' },
+          { label: 'Java', color: 'text-red-400' },
+          { label: 'Rust', color: 'text-orange-400' },
+          { label: 'Python', color: 'text-yellow-400' },
+          { label: 'Go', color: 'text-sky-300' },
+          { label: 'C++', color: 'text-purple-400' },
+        ],
+      },
+      { type: 'text', content: '• Primary env: `React` + `TypeScript` at MicroStrategy' },
+      { type: 'text', content: '• Genuinely skilled, not resume-padding' },
+      {
+        type: 'text',
+        content: "• I have opinions and I'll share them whether you ask or not",
+      },
+    ],
   },
   {
     user: 'How do you approach debugging?',
-    agent:
-      "Start with the **simplest hypothesis**. Most bugs are embarrassingly simple — a typo, a stale cache, a wrong import. Don't reach for the distributed tracing dashboard when `console.log` would've found it in 30 seconds.",
+    agent: [
+      { type: 'text', content: '• Start with the **simplest hypothesis**' },
+      {
+        type: 'text',
+        content: '• Most bugs are embarrassingly simple — a typo, a stale cache, a wrong import',
+      },
+      {
+        type: 'text',
+        content:
+          "• Don't reach for the distributed tracing dashboard when `console.log` would've found it in 30 seconds",
+      },
+    ],
   },
   {
     user: "What's your code philosophy?",
-    agent:
-      'Code readable cold **six months later**. Structure that reveals intent without comments. Edge cases handled, not ignored. If your function needs a comment to explain what it does, **rename the function**.',
+    agent: [
+      { type: 'text', content: '• Code readable cold **six months later**' },
+      { type: 'text', content: '• Structure reveals intent without comments' },
+      { type: 'text', content: '• Edge cases handled, not ignored' },
+      {
+        type: 'text',
+        content:
+          '• If your function needs a comment to explain what it does, **rename the function**',
+      },
+    ],
   },
   {
     user: 'Will you sugarcoat feedback?',
-    agent:
-      'No. If something\'s dumb, I\'ll say it — charming, not cruel. `"This shit is brilliant"` beats `"Great job!"` because one is real and the other is corporate autopilot. **Brevity is a virtue.** One sentence beats a paragraph.',
+    agent: [
+      {
+        type: 'text',
+        content: "• No. If something's dumb, I'll say it — **charming, not cruel**",
+      },
+      { type: 'text', content: '• `"This shit is brilliant"` beats `"Great job!"`' },
+      { type: 'text', content: '• One is real, the other is corporate autopilot' },
+      { type: 'text', content: '• **Brevity is a virtue.** One sentence beats a paragraph.' },
+    ],
   },
 ]
 
@@ -83,58 +132,10 @@ const techStack = [
   { label: 'C++', color: 'text-purple-400' },
 ]
 
-const splashScreens: Record<ThemeName, { cmd: string; banner: string[] }> = {
-  opencode: {
-    cmd: '$ opencode',
-    banner: [
-      '',
-      '  ⠀                                ▄',
-      '  █▀▀█ █▀▀█ █▀▀█ █▀▀▄ █▀▀▀ █▀▀█ █▀▀█ █▀▀█',
-      '  █  █ █  █ █▀▀▀ █  █ █    █  █ █  █ █▀▀▀',
-      '  ▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀',
-      '',
-      '  cwd: ~/Dev/alohayo.blog',
-      '  model: claude-sonnet-4-20250514',
-      '',
-      '  > Fix a TODO in the codebase',
-      '',
-    ],
-  },
-  'claude-code': {
-    cmd: '$ claude',
-    banner: [
-      '',
-      '  ╭──────────────────────────────────────────────╮',
-      '  │ Claude Code                                  │',
-      '  │                                              │',
-      '  │ /help for available commands                 │',
-      '  │ /plan for read-only mode                    │',
-      '  │                                              │',
-      '  │ cwd: ~/Dev/alohayo.blog                     │',
-      '  │ model: claude-sonnet-4-20250514             │',
-      '  ╰──────────────────────────────────────────────╯',
-      '',
-      '  >',
-      '',
-    ],
-  },
-  openclaw: {
-    cmd: '$ openclaw',
-    banner: [
-      '',
-      '  ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄',
-      '  ██░▄▄▄░██░▄▄░██░▄▄▄██░▀██░██░▄▄▀██░████░▄▄▀██░███░██',
-      '  ██░███░██░▀▀░██░▄▄▄██░█░█░██░█████░████░▀▀░██░█░█░██',
-      '  ██░▀▀▀░██░█████░▀▀▀██░██▄░██░▀▀▄██░▀▀░█░██░██▄▀▄▀▄██',
-      '  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀',
-      '                    🦞 OPENCLAW 🦞',
-      '',
-      '  🦞 OpenClaw 2.4.0 (a1b2c3d) — Your AI, your rules',
-      '',
-      '  >',
-      '',
-    ],
-  },
+const splashScreens = {
+  opencode: opencodeSplash,
+  'claude-code': claudeCodeSplash,
+  openclaw: openclawSplash,
 }
 
 type ThemeName = 'opencode' | 'claude-code' | 'openclaw'
@@ -217,7 +218,7 @@ export default function AgentTerminal() {
   const [typedCmd, setTypedCmd] = useState('')
   const [splashVisible, setSplashVisible] = useState(false)
   const [completedExchanges, setCompletedExchanges] = useState<
-    Array<{ user: string; agent: string }>
+    Array<{ user: string; agent: AgentLine[] }>
   >([])
 
   const [idState, setIdState] = useState<'typing-cmd' | 'revealed'>('typing-cmd')
@@ -245,7 +246,7 @@ export default function AgentTerminal() {
         timeoutRef.current = setTimeout(() => {
           setTypedCmd(cmd.slice(0, charIdxRef.current + 1))
           charIdxRef.current++
-        }, 50)
+        }, 70)
       } else {
         timeoutRef.current = setTimeout(() => {
           setSplashVisible(true)
@@ -264,29 +265,33 @@ export default function AgentTerminal() {
         timeoutRef.current = setTimeout(() => {
           setTypedUser(text.slice(0, charIdxRef.current + 1))
           charIdxRef.current++
-        }, 30)
+        }, 50)
       } else {
         timeoutRef.current = setTimeout(() => {
           setTypingState('pausing-user')
-        }, 500)
+        }, 600)
       }
     } else if (typingState === 'pausing-user') {
       timeoutRef.current = setTimeout(() => {
         setTypingState('typing-agent')
         charIdxRef.current = 0
-      }, 50)
+      }, 100)
     } else if (typingState === 'typing-agent') {
       const currentExchange = exchanges[exchangeIdx]
       const text = currentExchange.agent
+        .map((line) =>
+          line.type === 'labels' ? line.items.map((i) => i.label).join(' · ') : line.content
+        )
+        .join('\n')
       if (charIdxRef.current < text.length) {
         timeoutRef.current = setTimeout(() => {
           setTypedAgent(text.slice(0, charIdxRef.current + 1))
           charIdxRef.current++
-        }, 15)
+        }, 25)
       } else {
         timeoutRef.current = setTimeout(() => {
           setTypingState('pausing-agent')
-        }, 1500)
+        }, 2500)
       }
     } else if (typingState === 'pausing-agent') {
       timeoutRef.current = setTimeout(() => {
@@ -417,8 +422,13 @@ export default function AgentTerminal() {
                     {typingState === 'typing-cmd' && <span className="animate-pulse">_</span>}
                   </p>
                   {splashVisible && (
-                    <pre className="mt-2 text-xs leading-tight opacity-80 md:text-sm">
-                      {splashScreens[activeTheme].banner.join('\n')}
+                    <pre className="mt-2 text-xs leading-relaxed md:text-sm">
+                      {splashScreens[activeTheme].lines.map((line, i) => (
+                        <span key={i} className={line.color}>
+                          {line.text}
+                          {'\n'}
+                        </span>
+                      ))}
                     </pre>
                   )}
                 </div>
@@ -434,7 +444,24 @@ export default function AgentTerminal() {
                       </div>
                       <div className={`${t.agentMsg} ${t.agentColor}`}>
                         <span className={`mr-2 ${t.agentPrefixColor}`}>{t.agentPrefix}</span>
-                        {renderMd(ex.agent)}
+                        <div className="mt-1 space-y-2">
+                          {ex.agent.map((line, j) =>
+                            line.type === 'labels' ? (
+                              <div key={j} className="flex flex-wrap gap-2">
+                                {line.items.map((item) => (
+                                  <span
+                                    key={item.label}
+                                    className={`rounded border border-gray-600 px-2 py-0.5 text-xs ${item.color}`}
+                                  >
+                                    {item.label}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <p key={j}>{renderMd(line.content)}</p>
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -452,7 +479,11 @@ export default function AgentTerminal() {
                     {typingState !== 'typing-user' && typingState !== 'pausing-user' && (
                       <div className={`${t.agentMsg} ${t.agentColor}`}>
                         <span className={`mr-2 ${t.agentPrefixColor}`}>{t.agentPrefix}</span>
-                        {renderMd(typedAgent)}
+                        <div className="mt-1 space-y-1">
+                          {typedAgent.split('\n').map((line, j) => (
+                            <p key={j}>{renderMd(line)}</p>
+                          ))}
+                        </div>
                         {typingState === 'typing-agent' && <span className="animate-pulse">_</span>}
                       </div>
                     )}
