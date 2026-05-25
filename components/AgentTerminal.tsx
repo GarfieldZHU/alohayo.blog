@@ -370,13 +370,13 @@ export default function AgentTerminal() {
     <div className="mx-auto w-full max-w-4xl font-mono text-sm md:text-base">
       <div className="mb-4 flex gap-2 font-mono text-sm">
         <button
-          className={`border border-gray-600 px-4 py-1 transition-colors ${activeTab === 'session' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
+          className={`border px-4 py-1 transition-colors ${activeTab === 'session' ? 'border-gray-300 bg-gray-200 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-white'}`}
           onClick={() => handleTabSwitch('session')}
         >
           Agent TUI
         </button>
         <button
-          className={`border border-gray-600 px-4 py-1 transition-colors ${activeTab === 'identity' ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white'}`}
+          className={`border px-4 py-1 transition-colors ${activeTab === 'identity' ? 'border-gray-300 bg-gray-200 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-white'}`}
           onClick={() => handleTabSwitch('identity')}
         >
           Identity.md
