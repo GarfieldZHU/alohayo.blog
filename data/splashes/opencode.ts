@@ -1,5 +1,5 @@
 export const opencodeSplash = {
-  cmd: '$ opencode',
+  cmd: '$ opencode --skill alohayo',
   lines: [
     { text: '', color: '' },
     { text: '  ⠀                                ▄', color: 'text-gray-500' },

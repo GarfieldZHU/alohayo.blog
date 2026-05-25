@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { opencodeSplash } from '@/data/splashes/opencode'
+import { quotes } from '@/data/quotes'
 
 // --- Data ---
 
@@ -11,56 +12,6 @@ const introLines = [
   'I build things with TypeScript, Java, Rust, and whatever else gets the job done.',
   'I have opinions about code, and I share them whether you ask or not.',
   "This blog is where I document the good, the bad, and the 'why did I think that was a good idea'.",
-]
-
-const quotes = [
-  {
-    text: 'Simplicity is prerequisite for reliability.',
-    author: 'Edsger W. Dijkstra',
-    explanation:
-      'Complex systems break in complex ways. The fewer moving parts, the fewer things can go wrong.',
-  },
-  {
-    text: 'Programs must be written for people to read, and only incidentally for machines to execute.',
-    author: 'Harold Abelson',
-    explanation:
-      'Code is communication. If your teammates cannot understand it, its cleverness is worthless.',
-  },
-  {
-    text: 'There are only two hard things in Computer Science: cache invalidation and naming things.',
-    author: 'Phil Karlton',
-    explanation:
-      'Naming reveals understanding. If you struggle to name something, you probably do not fully understand what it does.',
-  },
-  {
-    text: 'Make it work, make it right, make it fast.',
-    author: 'Kent Beck',
-    explanation:
-      'Premature optimization is the root of all evil. Get correctness first, then measure before optimizing.',
-  },
-  {
-    text: 'The best code is no code at all.',
-    author: 'Jeff Atwood',
-    explanation:
-      'Every line of code is a liability. Delete code fearlessly — the version control remembers.',
-  },
-  {
-    text: 'Talk is cheap. Show me the code.',
-    author: 'Linus Torvalds',
-    explanation: 'Architecture astronauts talk in abstractions. Ship something and iterate.',
-  },
-  {
-    text: 'First, solve the problem. Then, write the code.',
-    author: 'John Johnson',
-    explanation:
-      'Jumping to implementation without understanding the problem guarantees you will solve the wrong thing.',
-  },
-  {
-    text: 'Any fool can write code that a computer can understand. Good programmers write code that humans can understand.',
-    author: 'Martin Fowler',
-    explanation:
-      'Readability is not a luxury — it is the single biggest factor in long-term maintainability.',
-  },
 ]
 
 type MenuOption = { id: string; label: string; description: string; hidden?: boolean }
@@ -636,14 +587,26 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                     {splashStage === 'typing-cmd' && <span className="animate-pulse">_</span>}
                   </p>
                   {splashStage !== 'typing-cmd' && (
-                    <pre className="mt-2 text-xs leading-relaxed md:text-sm">
-                      {opencodeSplash.lines.map((line, i) => (
-                        <span key={i} className={line.color}>
-                          {line.text}
-                          {'\n'}
+                    <>
+                      <pre className="mt-2 text-xs leading-relaxed md:text-sm">
+                        {opencodeSplash.lines.map((line, i) => (
+                          <span key={i} className={line.color}>
+                            {line.text}
+                            {'\n'}
+                          </span>
+                        ))}
+                      </pre>
+                      <div className="mt-4 flex items-center gap-3">
+                        <span className="inline-flex gap-1">
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:0ms]" />
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:150ms]" />
+                          <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:300ms]" />
                         </span>
-                      ))}
-                    </pre>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Loading skill alohayo...
+                        </span>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
