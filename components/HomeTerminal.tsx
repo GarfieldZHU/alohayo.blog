@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { opencodeSplash } from '@/data/splashes/opencode'
 import { quotes } from '@/data/quotes'
 
@@ -67,7 +68,7 @@ const menuOptions: MenuOption[] = [
   { id: 'recommend', label: 'Recommend the blog', description: 'click to discover random posts' },
   { id: 'quotes', label: 'Roll a quotes', description: 'click to get a quote' },
   { id: 'pokemon', label: 'Roll a Pokemon today', description: 'click to catch a random Pokemon' },
-  // TODO: "play AlohaYo game" — links to /projects game page
+  { id: 'game', label: 'Play AlohaYo game', description: 'click to explore my game projects' },
 ]
 
 const CAROUSEL_INTERVAL = 3000
@@ -458,6 +459,7 @@ interface HomeTerminalProps {
 }
 
 export default function HomeTerminal({ posts }: HomeTerminalProps) {
+  const router = useRouter()
   const [appState, setAppState] = useState<AppState>('splash')
   const [splashStage, setSplashStage] = useState<'typing-cmd' | 'showing' | 'done'>('typing-cmd')
   const [typedCmd, setTypedCmd] = useState('')
@@ -596,9 +598,11 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       } else if (id === 'pokemon') {
         setPokemonModalOpen(true)
         fetchRandomPokemon()
+      } else if (id === 'game') {
+        router.push('/projects')
       }
     },
-    [pickRandomPosts, pickRandomQuote, fetchRandomPokemon]
+    [pickRandomPosts, pickRandomQuote, fetchRandomPokemon, router]
   )
 
   const goBack = useCallback(() => {
