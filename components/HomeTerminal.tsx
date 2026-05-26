@@ -6,6 +6,47 @@ import { useRouter } from 'next/navigation'
 import { opencodeSplash } from '@/data/splashes/opencode'
 import { quotes } from '@/data/quotes'
 
+// --- Live2D interaction helper ---
+function showWaifuMessage(text: string, duration = 6000) {
+  const tips = document.getElementById('waifu-tips')
+  if (!tips) return
+  tips.innerHTML = text
+  tips.classList.add('waifu-tips-active')
+  setTimeout(() => {
+    tips.classList.remove('waifu-tips-active')
+  }, duration)
+}
+
+const waifuMenuMessages: Record<string, string[]> = {
+  introduce: [
+    '想了解主人吗？点这里可以看到他的身份、技术栈和人生哲学哦！',
+    '这里有主人的自我介绍～从工程师到 Gamer，什么都有！',
+    '快去看看主人是个什么样的人吧～保证有趣！',
+  ],
+  recommend: [
+    '想看看主人推荐的文章吗？每次都是随机的惊喜哦！',
+    '让命运来决定你今天读什么博客吧～✨',
+    '主人的文章可都是精心写的，随便看都不会踩雷！',
+  ],
+  quotes: [
+    '想听一句主人收藏的金句吗？有技术的、有哲学的、还有游戏的！',
+    '名言名句时间到！主人收集了好多有趣的语录呢～',
+    '每次刷新都是不同的句子，就像扭蛋一样有趣！',
+  ],
+  pokemon: [
+    '要抽宝可梦了吗！！好激动！希望能抽到传说中的神兽！✨',
+    '宝可梦时间！主人最喜欢龙系和火系了～你呢？',
+    '快来试试手气吧！据说主人抽到过闪光 Charizard 呢！🔥',
+    '我也想要一只伊布！快帮我抽一只吧～',
+  ],
+}
+
+function showWaifuMenuHint(menuId: string) {
+  const msgs = waifuMenuMessages[menuId]
+  if (!msgs) return
+  showWaifuMessage(msgs[Math.floor(Math.random() * msgs.length)], 4000)
+}
+
 // --- Data ---
 
 type IntroTopic = { id: string; label: string; lines: string[] }
@@ -68,7 +109,7 @@ const menuOptions: MenuOption[] = [
   { id: 'recommend', label: 'Recommend the blog', description: 'click to discover random posts' },
   { id: 'quotes', label: 'Roll a quotes', description: 'click to get a quote' },
   { id: 'pokemon', label: 'Roll a Pokemon today', description: 'click to catch a random Pokemon' },
-  { id: 'game', label: 'Play AlohaYo game', description: 'click to explore my game projects' },
+  // { id: 'game', label: 'Play AlohaYo game', description: 'click to explore my game projects' },
 ]
 
 const CAROUSEL_INTERVAL = 3000
@@ -150,7 +191,7 @@ function PokemonModal({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose()
@@ -159,6 +200,7 @@ function PokemonModal({
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
       <div
         role="document"
+        id="pokemon-modal"
         className="relative mx-4 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-[#1e1e2e]"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
@@ -526,7 +568,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       }
     }
     if (splashStage === 'showing') {
-      const t = setTimeout(() => setSplashStage('done'), 3500)
+      const t = setTimeout(() => setSplashStage('done'), 2500)
       return () => clearTimeout(t)
     }
     if (splashStage === 'done') {
@@ -578,6 +620,15 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
         weight: data.weight,
         abilities: data.abilities.map((a: { ability: { name: string } }) => a.ability.name),
       })
+      const pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1)
+      const typeStr = data.types.map((t: { type: { name: string } }) => t.type.name).join('/')
+      const pokeMsgs = [
+        `哇！抽到了 <span>${pokeName}</span>！${typeStr} 属性的哦～`,
+        `是 <span>${pokeName}</span> 呢！看起来好强的样子！`,
+        `<span>${pokeName}</span> 出现了！快用宝可梦球收服它！`,
+        `好可爱的 <span>${pokeName}</span>！主人一定很想要这只！`,
+      ]
+      showWaifuMessage(pokeMsgs[Math.floor(Math.random() * pokeMsgs.length)])
     } catch {
       setPokemonData(null)
     } finally {
@@ -639,7 +690,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
 
   return (
     <>
-      <div ref={wrapperRef} className="mb-8 scroll-mt-24">
+      <div ref={wrapperRef} className="my-12 scroll-mt-24">
         <div
           ref={containerRef}
           role="toolbar"
@@ -710,6 +761,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                       {menuOptions.map((opt, i) => (
                         <button
                           key={opt.id}
+                          data-menu-id={opt.id}
                           ref={(el) => {
                             optionRefs.current[i] = el
                           }}
@@ -722,6 +774,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                             carouselPaused.current = true
                             setCarouselProgress(0)
                             setActiveOption(i)
+                            showWaifuMenuHint(opt.id)
                           }}
                           onMouseLeave={() => {
                             carouselPaused.current = false

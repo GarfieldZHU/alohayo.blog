@@ -173,3 +173,11 @@ input:-webkit-autofill:focus {
   display: inline-block;
   vertical-align: middle;
 }
+
+#waifu-tool {
+  display: none !important;
+}
+
+#waifu {
+  z-index: 60 !important;
+}

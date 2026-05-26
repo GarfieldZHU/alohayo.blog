@@ -2,6 +2,7 @@ import 'css/tailwind.css'
 import 'pliny/search/algolia.css'
 
 import { Space_Grotesk } from 'next/font/google'
+import Script from 'next/script'
 import { Analytics, AnalyticsConfig } from 'pliny/analytics'
 import { SearchProvider, SearchConfig } from 'pliny/search'
 import Header from '@/components/Header'
@@ -87,8 +88,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </SectionContainer>
         </ThemeProviders>
-        {/* Live2D component */}
-        <script src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js" />
+        <Script
+          src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js"
+          strategy="afterInteractive"
+        />
         {/* console banner */}
         <AlohaYoConsoleBanner />
       </body>
