@@ -61,7 +61,7 @@ const introTopics: IntroTopic[] = [
       "I'm an ordinary yet laid-back software engineer at MSTR.",
       'My drive stems from the thrill of crafting fresh and engaging code, fueled by daily lattes.',
       'I find joy in basking in the afternoon sun, exploring video games, and animation.',
-      'Life is a balance of coding adventures and the simple pleasures of existence.',
+      'Nowadays, summoning agents to building stuffs is part of my work and life. But in my heart, I\'d love more to summon a Pokemon.',
     ],
   },
   {
@@ -77,8 +77,20 @@ const introTopics: IntroTopic[] = [
     ],
   },
   {
+    id: 'stack',
+    label: 'As a Developer',
+    lines: [
+      'TypeScript, Java, Python, Go, Rust, C++ — whatever gets the job done.',
+      'Primary env: React + TypeScript, Spring + Java, Kubernetes + k9s',
+      'Was passionate about debating which stack is superior...',
+      'Now I realize my stack is surprisingly NULL.',
+      'In the LLM age, crafting software feels less like engineering and more like art.',
+      'Agents are 3D printers — I draw a blueprints, they craft stuffs. Still, my chisel is useful to carve and polish the artifacts.',
+    ],
+  },
+    {
     id: 'attitude',
-    label: 'Attitude & Philosophy',
+    label: 'As a Skill',
     lines: [
       'Have opinions, and be firm. Admit when wrong — but only when actually wrong.',
       'Answer directly, no preamble. Brevity is a virtue.',
@@ -86,18 +98,6 @@ const introTopics: IntroTopic[] = [
       'Structure reveals intent without comments. Edge cases handled, not ignored.',
       'Start with the simplest hypothesis — most bugs are embarrassingly simple.',
       'Humor is allowed. Call out problems — charming, not cruel.',
-    ],
-  },
-  {
-    id: 'stack',
-    label: 'Tech Stack',
-    lines: [
-      'TypeScript, Java, Rust, Python, Go, C++ — whatever gets the job done.',
-      'Primary env: React + TypeScript, Spring + Java.',
-      'Was passionate about debating which stack is superior...',
-      'Now I realize my stack is surprisingly NULL.',
-      'In the LLM age, crafting software feels less like engineering and more like art.',
-      'Agents are 3D printers — sometimes a blueprint, sometimes a rough template is enough.',
     ],
   },
 ]
@@ -578,7 +578,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   }, [appState, splashStage, typedCmd])
 
   // --- Menu prompt typing ---
-  const menuPrompt = "I'm AlohaYo skill, what would you like me to do?"
+  const menuPrompt = "HI, I'm AlohaYo. What would you like me to do?"
   useEffect(() => {
     if (appState !== 'menu') return
     if (menuPromptTyped.length < menuPrompt.length) {
