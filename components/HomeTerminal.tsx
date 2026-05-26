@@ -84,7 +84,7 @@ const introTopics: IntroTopic[] = [
       "I'm an ordinary yet laid-back software engineer at MSTR.",
       'My drive stems from the thrill of crafting fresh and engaging code, fueled by daily lattes.',
       'I find joy in basking in the afternoon sun, exploring video games, and animation.',
-      'Nowadays, summoning agents to building stuffs is part of my work and life. But in my heart, I\'d love more to summon a Pokemon.',
+      "Nowadays, summoning agents to building stuffs is part of my work and life. But in my heart, I'd love more to summon a Pokemon.",
     ],
   },
   {
@@ -111,7 +111,7 @@ const introTopics: IntroTopic[] = [
       'Agents are 3D printers — I draw a blueprints, they craft stuffs. Still, my chisel is useful to carve and polish the artifacts.',
     ],
   },
-    {
+  {
     id: 'attitude',
     label: 'As a Skill',
     lines: [
