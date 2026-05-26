@@ -7,11 +7,57 @@ import { quotes } from '@/data/quotes'
 
 // --- Data ---
 
-const introLines = [
-  "Hey, I'm AlohaYo — a full-stack engineer based in the Hangzhou.",
-  'I build things with TypeScript, Java, Rust, and whatever else gets the job done.',
-  'I have opinions about code, and I share them whether you ask or not.',
-  "This blog is where I document the good, the bad, and the 'why did I think that was a good idea'.",
+type IntroTopic = { id: string; label: string; lines: string[] }
+
+const introGreeting = "Hey, I'm AlohaYo (Garfield Zhu) — a null-stack engineer based in Hangzhou."
+
+const introTopics: IntroTopic[] = [
+  {
+    id: 'identity',
+    label: 'Identity',
+    lines: [
+      "I'm an ordinary yet laid-back software engineer at MSTR.",
+      'My drive stems from the thrill of crafting fresh and engaging code, fueled by daily lattes.',
+      'I find joy in basking in the afternoon sun, exploring video games, and animation.',
+      'Life is a balance of coding adventures and the simple pleasures of existence.',
+    ],
+  },
+  {
+    id: 'gamer',
+    label: 'As a Gamer',
+    lines: [
+      "I'm a full-stack gamer and huge fan of Hidetaka Miyazaki.",
+      "I've traveled from Boletaria to the Lands Between, linked the fire from Lordran to Lothric.",
+      'Strolled through the alleys of Yharnam to beneath the walls of Ashina Castle.',
+      "If you conquer a Souls-like game, you'll embrace every moment of life differently.",
+      'Long may the sun shine! ☀️',
+      '"If you can\'t find me on GitHub or Teams, explore my footsteps in the gaming world."',
+    ],
+  },
+  {
+    id: 'attitude',
+    label: 'Attitude & Philosophy',
+    lines: [
+      'Have opinions, and be firm. Admit when wrong — but only when actually wrong.',
+      'Answer directly, no preamble. Brevity is a virtue.',
+      'Code should be readable cold six months later.',
+      'Structure reveals intent without comments. Edge cases handled, not ignored.',
+      'Start with the simplest hypothesis — most bugs are embarrassingly simple.',
+      'Humor is allowed. Call out problems — charming, not cruel.',
+    ],
+  },
+  {
+    id: 'stack',
+    label: 'Tech Stack',
+    lines: [
+      'TypeScript, Java, Rust, Python, Go, C++ — whatever gets the job done.',
+      'Primary env: React + TypeScript, Spring + Java.',
+      'Was passionate about debating which stack is superior...',
+      'Now I realize my stack is surprisingly NULL.',
+      'In the LLM age, crafting software feels less like engineering and more like art.',
+      'Agents are 3D printers — sometimes a blueprint, sometimes a rough template is enough.',
+    ],
+  },
 ]
 
 type MenuOption = { id: string; label: string; description: string; hidden?: boolean }
@@ -214,40 +260,105 @@ function PokemonModal({
 
 // --- Feature Views ---
 
-function IntroduceView({
-  introLines,
-  introLineIdx,
-  introCharIdx,
-  introComplete,
-  goBack,
-}: {
-  introLines: string[]
-  introLineIdx: number
-  introCharIdx: number
-  introComplete: boolean
-  goBack: () => void
-}) {
+function IntroduceView({ goBack }: { goBack: () => void }) {
+  const [subState, setSubState] = useState<'menu' | 'detail'>('menu')
+  const [activeTopic, setActiveTopic] = useState(0)
+  const [selectedTopic, setSelectedTopic] = useState<IntroTopic | null>(null)
+  const [lineIdx, setLineIdx] = useState(0)
+  const [charIdx, setCharIdx] = useState(0)
+  const [typingDone, setTypingDone] = useState(false)
+
+  useEffect(() => {
+    if (subState !== 'detail' || !selectedTopic || typingDone) return
+    const line = selectedTopic.lines[lineIdx]
+    if (!line) {
+      setTypingDone(true)
+      return
+    }
+    if (charIdx < line.length) {
+      const t = setTimeout(() => setCharIdx((c) => c + 1), 20)
+      return () => clearTimeout(t)
+    } else if (lineIdx < selectedTopic.lines.length - 1) {
+      const t = setTimeout(() => {
+        setLineIdx((i) => i + 1)
+        setCharIdx(0)
+      }, 300)
+      return () => clearTimeout(t)
+    } else {
+      setTypingDone(true)
+    }
+  }, [subState, selectedTopic, lineIdx, charIdx, typingDone])
+
+  const selectTopic = (topic: IntroTopic) => {
+    setSelectedTopic(topic)
+    setLineIdx(0)
+    setCharIdx(0)
+    setTypingDone(false)
+    setSubState('detail')
+  }
+
+  const backToMenu = () => {
+    setSubState('menu')
+    setSelectedTopic(null)
+  }
+
   return (
     <div className="space-y-3">
       <p className="mb-4 text-gray-500">
         <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>Introduce AlohaYo
       </p>
-      <div className="space-y-2 border-l-4 border-orange-400 pl-3 dark:border-[#fab283]">
-        {introLines.slice(0, introLineIdx + 1).map((line, i) => (
-          <p key={i} className="text-gray-800 dark:text-[#e0e0e0]">
-            <span className="mr-2 text-orange-500 dark:text-[#fab283]">•</span>
-            {i < introLineIdx ? line : i === introLineIdx ? line.slice(0, introCharIdx) : ''}
-            {i === introLineIdx && !introComplete && <span className="animate-pulse">_</span>}
+
+      {subState === 'menu' && (
+        <>
+          <p className="mb-3 text-gray-700 dark:text-gray-300">{introGreeting}</p>
+          <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+            What would you like to know?
           </p>
-        ))}
-      </div>
-      {introComplete && (
-        <button
-          onClick={goBack}
-          className="mt-4 cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
-        >
-          ← back
-        </button>
+          <div className="space-y-1">
+            {introTopics.map((topic, i) => (
+              <button
+                key={topic.id}
+                className="relative block w-full cursor-pointer text-left text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
+                onMouseEnter={() => setActiveTopic(i)}
+                onClick={() => selectTopic(topic)}
+              >
+                <span className="mr-2">{i === activeTopic ? '👉' : '  '}</span>
+                {topic.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={goBack}
+            className="mt-4 cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
+          >
+            ← back
+          </button>
+        </>
+      )}
+
+      {subState === 'detail' && selectedTopic && (
+        <>
+          <p className="mb-2 text-sm text-blue-500 dark:text-[#5c9cf5]">
+            {'>'} {selectedTopic.label}
+          </p>
+          <div className="space-y-2 border-l-4 border-orange-400 pl-3 dark:border-[#fab283]">
+            {selectedTopic.lines.slice(0, lineIdx + 1).map((line, i) => (
+              <p key={i} className="text-gray-800 dark:text-[#e0e0e0]">
+                <span className="mr-2 text-orange-500 dark:text-[#fab283]">•</span>
+                {i < lineIdx ? line : line.slice(0, charIdx)}
+                {i === lineIdx && !typingDone && <span className="animate-pulse">_</span>}
+              </p>
+            ))}
+          </div>
+          {typingDone && (
+            <button
+              onClick={backToMenu}
+              className="mt-4 cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
+            >
+              ← back
+            </button>
+          )}
+        </>
       )}
     </div>
   )
@@ -353,10 +464,6 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   const [activeOption, setActiveOption] = useState(0)
   const [menuPromptTyped, setMenuPromptTyped] = useState('')
 
-  const [introLineIdx, setIntroLineIdx] = useState(0)
-  const [introCharIdx, setIntroCharIdx] = useState(0)
-  const [introComplete, setIntroComplete] = useState(false)
-
   const [recommendedPosts, setRecommendedPosts] = useState<typeof posts>([])
   const [currentQuote, setCurrentQuote] = useState(quotes[0])
 
@@ -439,30 +546,6 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
     }
   }, [appState, menuPromptTyped])
 
-  // --- Introduce typing ---
-  useEffect(() => {
-    if (appState !== 'introduce' || introComplete) return
-    const line = introLines[introLineIdx]
-    if (!line) {
-      setIntroComplete(true)
-      return
-    }
-    if (introCharIdx < line.length) {
-      const t = setTimeout(() => setIntroCharIdx((c) => c + 1), 25)
-      return () => clearTimeout(t)
-    } else {
-      if (introLineIdx < introLines.length - 1) {
-        const t = setTimeout(() => {
-          setIntroLineIdx((i) => i + 1)
-          setIntroCharIdx(0)
-        }, 400)
-        return () => clearTimeout(t)
-      } else {
-        setIntroComplete(true)
-      }
-    }
-  }, [appState, introLineIdx, introCharIdx, introComplete])
-
   // --- Handlers ---
   const pickRandomPosts = useCallback(() => {
     const shuffled = [...posts].sort(() => Math.random() - 0.5)
@@ -503,9 +586,6 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   const selectOption = useCallback(
     (id: string) => {
       if (id === 'introduce') {
-        setIntroLineIdx(0)
-        setIntroCharIdx(0)
-        setIntroComplete(false)
         setAppState('introduce')
       } else if (id === 'recommend') {
         pickRandomPosts()
@@ -555,7 +635,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
 
   return (
     <>
-      <div ref={wrapperRef} className="mb-8">
+      <div ref={wrapperRef} className="mb-8 scroll-mt-24">
         <div
           ref={containerRef}
           role="toolbar"
@@ -564,7 +644,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
           style={{
             maxHeight: collapsed ? '0px' : '600px',
             opacity: collapsed ? 0 : 1,
-            marginBottom: collapsed ? 0 : undefined,
+            marginBottom: collapsed ? '0px' : '2rem',
           }}
           className="mx-auto w-full max-w-4xl overflow-hidden font-mono text-sm transition-all duration-500 ease-in-out outline-none md:text-base"
         >
@@ -665,15 +745,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
               )}
 
               {/* Introduce */}
-              {appState === 'introduce' && (
-                <IntroduceView
-                  introLines={introLines}
-                  introLineIdx={introLineIdx}
-                  introCharIdx={introCharIdx}
-                  introComplete={introComplete}
-                  goBack={goBack}
-                />
-              )}
+              {appState === 'introduce' && <IntroduceView goBack={goBack} />}
 
               {/* Recommend */}
               {appState === 'recommend' && (
