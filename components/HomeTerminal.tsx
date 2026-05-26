@@ -22,22 +22,43 @@ const waifuMenuMessages: Record<string, string[]> = {
     '想了解主人吗？点这里可以看到他的身份、技术栈和人生哲学哦！',
     '这里有主人的自我介绍～从工程师到 Gamer，什么都有！',
     '快去看看主人是个什么样的人吧～保证有趣！',
+    '主人说他是 null-stack 工程师…到底是谦虚还是摆烂呢？🤔',
+    '嘿嘿，主人的人生可精彩了，拿铁、代码、魂系游戏三件套！☕',
+    '点进去看看吧～主人的故事比他写的 bug 还多呢！',
+    '主人平时很低调的，但是这里藏了好多秘密哦～',
+    '想知道主人为什么叫 AlohaYo 吗？点进来就知道啦！🌺',
   ],
   recommend: [
     '想看看主人推荐的文章吗？每次都是随机的惊喜哦！',
     '让命运来决定你今天读什么博客吧～✨',
     '主人的文章可都是精心写的，随便看都不会踩雷！',
+    '随机推荐！像开盲盒一样刺激～会抽到什么呢？📦',
+    '每篇文章都是主人的心血结晶，随便点一篇都很棒的！',
+    '要不要试试手气？说不定今天推荐的文章正好是你需要的！🎯',
+    '主人写博客的时候可认真了，边喝拿铁边写的那种～',
+    '随机推荐功能上线！点一下就能发现宝藏文章✨',
   ],
   quotes: [
     '想听一句主人收藏的金句吗？有技术的、有哲学的、还有游戏的！',
     '名言名句时间到！主人收集了好多有趣的语录呢～',
     '每次刷新都是不同的句子，就像扭蛋一样有趣！',
+    '来一句灵魂拷问？还是来一句心灵鸡汤？全看运气！🎲',
+    '主人的语录收藏夹可是跨越了编程、哲学和游戏三界的！',
+    '据说看完这些语录会突然想写代码…或者想打游戏 😂',
+    '有些句子是主人自己说的，有些是他崇拜的人说的～猜猜看？',
+    '点一下就能获得今日份的精神力量！💪',
   ],
   pokemon: [
     '要抽宝可梦了吗！！好激动！希望能抽到传说中的神兽！✨',
     '宝可梦时间！主人最喜欢龙系和火系了～你呢？',
     '快来试试手气吧！据说主人抽到过闪光 Charizard 呢！🔥',
     '我也想要一只伊布！快帮我抽一只吧～',
+    '宝可梦大师球准备好了吗？要用力扔哦！⚡',
+    '希望今天能遇到稀有宝可梦！闪光的那种！✨✨✨',
+    '主人说如果抽到喷火龙就请我吃冰淇淋…快点吧！🍦',
+    '据说第一世代的宝可梦最经典！你觉得呢？',
+    '如果能在现实中养宝可梦的话，我想养一只六尾～🦊',
+    '今天的幸运宝可梦会是谁呢？好期待好期待！',
   ],
 }
 
@@ -47,11 +68,13 @@ function showWaifuMenuHint(menuId: string) {
   showWaifuMessage(msgs[Math.floor(Math.random() * msgs.length)], 4000)
 }
 
+import { renderNeonText } from './NeonFlicker'
+
 // --- Data ---
 
 type IntroTopic = { id: string; label: string; lines: string[] }
 
-const introGreeting = "Hey, I'm AlohaYo (Garfield Zhu) — a null-stack engineer based in Hangzhou."
+const introGreeting = "Hey, I'm AlohaYo (Garfield Zhu) — a full-stack engineer based in Hangzhou."
 
 const introTopics: IntroTopic[] = [
   {
@@ -83,7 +106,7 @@ const introTopics: IntroTopic[] = [
       'TypeScript, Java, Python, Go, Rust, C++ — whatever gets the job done.',
       'Primary env: React + TypeScript, Spring + Java, Kubernetes + k9s',
       'Was passionate about debating which stack is superior...',
-      'Now I realize my stack is surprisingly NULL.',
+      'Now I realize my stack is surprisingly FULL.',
       'In the LLM age, crafting software feels less like engineering and more like art.',
       'Agents are 3D printers — I draw a blueprints, they craft stuffs. Still, my chisel is useful to carve and polish the artifacts.',
     ],
@@ -353,7 +376,7 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
 
       {subState === 'menu' && (
         <>
-          <p className="mb-3 text-gray-700 dark:text-gray-300">{introGreeting}</p>
+          <p className="mb-3 text-gray-700 dark:text-gray-300">{renderNeonText(introGreeting)}</p>
           <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
             What would you like to know?
           </p>
@@ -388,7 +411,7 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
             {selectedTopic.lines.slice(0, lineIdx + 1).map((line, i) => (
               <p key={i} className="text-gray-800 dark:text-[#e0e0e0]">
                 <span className="mr-2 text-orange-500 dark:text-[#fab283]">•</span>
-                {i < lineIdx ? line : line.slice(0, charIdx)}
+                {i < lineIdx ? renderNeonText(line) : line.slice(0, charIdx)}
                 {i === lineIdx && !typingDone && <span className="animate-pulse">_</span>}
               </p>
             ))}
