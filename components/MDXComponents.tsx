@@ -5,6 +5,7 @@ import type { MDXComponents } from 'mdx/types'
 import Image from './Image'
 import CustomLink from './Link'
 import { NeonFlicker } from './NeonFlicker'
+import { HoverImageTooltip } from './HoverImageTooltip'
 
 export const components: MDXComponents = {
   Image,
@@ -13,4 +14,5 @@ export const components: MDXComponents = {
   pre: Pre,
   BlogNewsletterForm,
   NeonFlicker,
+  HoverImageTooltip,
 }

@@ -68,7 +68,7 @@ function showWaifuMenuHint(menuId: string) {
   showWaifuMessage(msgs[Math.floor(Math.random() * msgs.length)], 4000)
 }
 
-import { renderNeonText } from './NeonFlicker'
+import { renderNeonText, renderGamerText } from './NeonFlicker'
 
 // --- Data ---
 
@@ -411,7 +411,11 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
             {selectedTopic.lines.slice(0, lineIdx + 1).map((line, i) => (
               <p key={i} className="text-gray-800 dark:text-[#e0e0e0]">
                 <span className="mr-2 text-orange-500 dark:text-[#fab283]">•</span>
-                {i < lineIdx ? renderNeonText(line) : line.slice(0, charIdx)}
+                {i < lineIdx
+                  ? selectedTopic.id === 'gamer'
+                    ? renderGamerText(line)
+                    : renderNeonText(line)
+                  : line.slice(0, charIdx)}
                 {i === lineIdx && !typingDone && <span className="animate-pulse">_</span>}
               </p>
             ))}
@@ -591,7 +595,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       }
     }
     if (splashStage === 'showing') {
-      const t = setTimeout(() => setSplashStage('done'), 2500)
+      const t = setTimeout(() => setSplashStage('done'), 2000)
       return () => clearTimeout(t)
     }
     if (splashStage === 'done') {
@@ -601,7 +605,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   }, [appState, splashStage, typedCmd])
 
   // --- Menu prompt typing ---
-  const menuPrompt = "HI, I'm AlohaYo. What would you like me to do?"
+  const menuPrompt = "Hi, I'm AlohaYo. What would you like me to do?"
   useEffect(() => {
     if (appState !== 'menu') return
     if (menuPromptTyped.length < menuPrompt.length) {
