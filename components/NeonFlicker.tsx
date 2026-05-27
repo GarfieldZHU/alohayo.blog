@@ -110,13 +110,16 @@ export function NeonFlicker({ primary, alternate }: { primary: string; alternate
     let activeZapTimeout: ReturnType<typeof setTimeout>
 
     const scheduleZap = () => {
-      zapTimeout = setTimeout(() => {
-        setIsZapping(true)
-        activeZapTimeout = setTimeout(() => {
-          setIsZapping(false)
-          scheduleZap()
-        }, 400) // Zap duration matches animation duration
-      }, Math.random() * 6000 + 3000) // Zap every 3-9 seconds
+      zapTimeout = setTimeout(
+        () => {
+          setIsZapping(true)
+          activeZapTimeout = setTimeout(() => {
+            setIsZapping(false)
+            scheduleZap()
+          }, 400) // Zap duration matches animation duration
+        },
+        Math.random() * 6000 + 3000
+      ) // Zap every 3-9 seconds
     }
 
     scheduleZap()
@@ -214,7 +217,7 @@ export function NeonFlicker({ primary, alternate }: { primary: string; alternate
         }
       `}</style>
       <span
-        className={`inline-block font-medium transition-opacity duration-50 electric-arc ${isZapping ? 'zap' : ''}`}
+        className={`electric-arc inline-block font-medium transition-opacity duration-50 ${isZapping ? 'zap' : ''}`}
         data-text={display}
         style={{
           opacity,

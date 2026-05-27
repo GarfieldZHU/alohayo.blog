@@ -52,9 +52,9 @@ export function HoverImageTooltip({
       <span
         className={`relative inline-block cursor-help border-b border-dotted transition-colors ${
           funny
-            ? 'font-bold border-gray-400 hover:border-gray-800 dark:border-gray-500 dark:hover:border-gray-200'
+            ? 'border-gray-400 font-bold hover:border-gray-800 dark:border-gray-500 dark:hover:border-gray-200'
             : glow
-              ? 'italic border-gray-400 hover:border-gray-800 dark:border-gray-500 dark:hover:border-gray-200'
+              ? 'border-gray-400 italic hover:border-gray-800 dark:border-gray-500 dark:hover:border-gray-200'
               : 'border-cyan-400 text-cyan-500 hover:border-cyan-600 hover:text-cyan-400 dark:border-cyan-500 dark:text-cyan-400 dark:hover:border-cyan-300 dark:hover:text-cyan-300'
         } ${className}`}
         onMouseEnter={() => setIsHovered(true)}
