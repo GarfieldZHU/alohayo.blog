@@ -542,6 +542,10 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   const [pokemonData, setPokemonData] = useState<PokemonData | null>(null)
   const [pokemonLoading, setPokemonLoading] = useState(false)
 
+  const [isClosed, setIsClosed] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
   const containerRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([])
@@ -717,142 +721,195 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
 
   return (
     <>
-      <div ref={wrapperRef} className="my-12 scroll-mt-24">
+      {!isClosed && (
         <div
-          ref={containerRef}
-          role="toolbar"
-          tabIndex={0}
-          onKeyDown={handleKeyDown}
-          style={{
-            maxHeight: collapsed ? '0px' : '600px',
-            opacity: collapsed ? 0 : 1,
-            marginBottom: collapsed ? '0px' : '2rem',
-          }}
-          className="mx-auto w-full max-w-4xl overflow-hidden font-mono text-sm transition-all duration-500 ease-in-out outline-none md:text-base"
+          ref={wrapperRef}
+          className={`my-12 scroll-mt-24 ${
+            isFullscreen
+              ? 'fixed inset-0 z-50 m-0 bg-white/50 backdrop-blur-sm dark:bg-black/50'
+              : ''
+          }`}
         >
-          <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-50 text-gray-800 shadow-lg dark:border-gray-700 dark:bg-[#212121] dark:text-[#e0e0e0] dark:shadow-2xl">
-            {/* Title bar */}
-            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-3 dark:border-gray-700 dark:bg-[#2a2a2a]">
-              <div className="h-3 w-3 rounded-full bg-red-500" />
-              <div className="h-3 w-3 rounded-full bg-yellow-500" />
-              <div className="h-3 w-3 rounded-full bg-green-500" />
-              <span className="ml-3 text-gray-500 dark:text-[#7b7f87]">AlohaYo Terminal</span>
-            </div>
-
-            {/* Content */}
-            <div className="min-h-[320px] p-6 md:min-h-[360px] md:p-8">
-              {/* Splash */}
-              {appState === 'splash' && (
-                <div className="text-green-600 dark:text-green-400">
-                  <p>
-                    {typedCmd}
-                    {splashStage === 'typing-cmd' && <span className="animate-pulse">_</span>}
-                  </p>
-                  {splashStage !== 'typing-cmd' && (
-                    <>
-                      <pre className="mt-2 text-xs leading-relaxed md:text-sm">
-                        {opencodeSplash.lines.map((line, i) => (
-                          <span key={i} className={line.color}>
-                            {line.text}
-                            {'\n'}
-                          </span>
-                        ))}
-                      </pre>
-                      <div className="mt-4 flex items-center gap-3">
-                        <span className="inline-flex gap-1">
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:0ms]" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:150ms]" />
-                          <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:300ms]" />
-                        </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          Loading skill alohayo...
-                        </span>
-                      </div>
-                    </>
-                  )}
+          <div
+            ref={containerRef}
+            role="toolbar"
+            tabIndex={0}
+            onKeyDown={handleKeyDown}
+            style={{
+              maxHeight: isFullscreen ? '100vh' : collapsed ? '0px' : '600px',
+              height: isFullscreen ? '100vh' : 'auto',
+              opacity: collapsed && !isFullscreen ? 0 : isMinimized ? 0 : 1,
+              marginBottom: collapsed && !isFullscreen ? '0px' : '2rem',
+              transform: isMinimized ? 'scale(0.15) translate(50vw, 50vh)' : 'none',
+              transformOrigin: 'bottom right',
+            }}
+            className={`mx-auto overflow-hidden font-mono text-sm transition-all duration-500 ease-in-out outline-none md:text-base ${
+              isFullscreen ? 'h-full w-full max-w-none' : 'w-full max-w-4xl'
+            } ${isMinimized ? 'pointer-events-none' : ''}`}
+          >
+            <div
+              className={`overflow-hidden border border-gray-200 bg-gray-50 text-gray-800 shadow-lg transition-all duration-500 dark:border-gray-700 dark:bg-[#212121] dark:text-[#e0e0e0] dark:shadow-2xl ${
+                isFullscreen ? 'flex h-full flex-col rounded-none' : 'rounded-lg'
+              }`}
+            >
+              {/* Title bar */}
+              <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-100 px-4 py-3 dark:border-gray-700 dark:bg-[#2a2a2a]">
+                <div className="group flex items-center gap-2">
+                  <button
+                    onClick={() => setIsClosed(true)}
+                    className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-red-500 transition-colors hover:bg-red-600"
+                  >
+                    <span className="text-[8px] leading-none font-bold text-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+                      ×
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setIsMinimized(true)}
+                    className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-yellow-500 transition-colors hover:bg-yellow-600"
+                  >
+                    <span className="text-[8px] leading-none font-bold text-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+                      −
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    className="flex h-3 w-3 cursor-pointer items-center justify-center rounded-full bg-green-500 transition-colors hover:bg-green-600"
+                  >
+                    <span className="text-[8px] leading-none font-bold text-black/60 opacity-0 transition-opacity group-hover:opacity-100">
+                      +
+                    </span>
+                  </button>
                 </div>
-              )}
+                <span className="ml-3 text-gray-500 dark:text-[#7b7f87]">AlohaYo Terminal</span>
+              </div>
 
-              {/* Menu */}
-              {appState === 'menu' && (
-                <div className="space-y-4">
-                  <p className="text-cyan-600 dark:text-cyan-400">
-                    <span className="mr-2 text-orange-500 dark:text-[#fab283]">⌬</span>
-                    {menuPromptTyped}
-                    {menuPromptTyped.length < menuPrompt.length && (
-                      <span className="animate-pulse">_</span>
-                    )}
-                  </p>
-                  {menuPromptTyped === menuPrompt && (
-                    <div className="mt-4 space-y-1">
-                      {menuOptions.map((opt, i) => (
-                        <button
-                          key={opt.id}
-                          data-menu-id={opt.id}
-                          ref={(el) => {
-                            optionRefs.current[i] = el
-                          }}
-                          className={`relative block w-full cursor-pointer rounded px-3 py-2 text-left transition-all ${
-                            i === activeOption
-                              ? 'bg-gray-200 text-blue-600 dark:bg-[#333] dark:text-[#5c9cf5]'
-                              : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
-                          }`}
-                          onMouseEnter={() => {
-                            carouselPaused.current = true
-                            setCarouselProgress(0)
-                            setActiveOption(i)
-                            showWaifuMenuHint(opt.id)
-                          }}
-                          onMouseLeave={() => {
-                            carouselPaused.current = false
-                          }}
-                          onClick={() => selectOption(opt.id)}
-                        >
-                          <span className="mr-2">{i === activeOption ? '👉' : '  '}</span>
-                          {opt.label}
-                          {i === activeOption && (
-                            <span className="ml-3 text-xs text-gray-400/70 italic dark:text-gray-500/70">
-                              {opt.description}
+              {/* Content */}
+              <div
+                className={`p-6 md:p-8 ${isFullscreen ? 'flex-1 overflow-y-auto' : 'min-h-[320px] md:min-h-[360px]'}`}
+              >
+                {/* Splash */}
+                {appState === 'splash' && (
+                  <div className="text-green-600 dark:text-green-400">
+                    <p>
+                      {typedCmd}
+                      {splashStage === 'typing-cmd' && <span className="animate-pulse">_</span>}
+                    </p>
+                    {splashStage !== 'typing-cmd' && (
+                      <>
+                        <pre className="mt-2 text-xs leading-relaxed md:text-sm">
+                          {opencodeSplash.lines.map((line, i) => (
+                            <span key={i} className={line.color}>
+                              {line.text}
+                              {'\n'}
                             </span>
-                          )}
-                          {i === activeOption && !carouselPaused.current && (
-                            <div
-                              className="absolute bottom-0 left-0 h-0.5 bg-blue-400/40 transition-all duration-75 dark:bg-[#5c9cf5]/40"
-                              style={{ width: `${carouselProgress}%` }}
-                            />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+                          ))}
+                        </pre>
+                        <div className="mt-4 flex items-center gap-3">
+                          <span className="inline-flex gap-1">
+                            <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:0ms]" />
+                            <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:150ms]" />
+                            <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:300ms]" />
+                          </span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            Loading skill alohayo...
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
-              {/* Introduce */}
-              {appState === 'introduce' && <IntroduceView goBack={goBack} />}
+                {/* Menu */}
+                {appState === 'menu' && (
+                  <div className="space-y-4">
+                    <p className="text-cyan-600 dark:text-cyan-400">
+                      <span className="mr-2 text-orange-500 dark:text-[#fab283]">⌬</span>
+                      {menuPromptTyped}
+                      {menuPromptTyped.length < menuPrompt.length && (
+                        <span className="animate-pulse">_</span>
+                      )}
+                    </p>
+                    {menuPromptTyped === menuPrompt && (
+                      <div className="mt-4 space-y-1">
+                        {menuOptions.map((opt, i) => (
+                          <button
+                            key={opt.id}
+                            data-menu-id={opt.id}
+                            ref={(el) => {
+                              optionRefs.current[i] = el
+                            }}
+                            className={`relative block w-full cursor-pointer rounded px-3 py-2 text-left transition-all ${
+                              i === activeOption
+                                ? 'bg-gray-200 text-blue-600 dark:bg-[#333] dark:text-[#5c9cf5]'
+                                : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
+                            }`}
+                            onMouseEnter={() => {
+                              carouselPaused.current = true
+                              setCarouselProgress(0)
+                              setActiveOption(i)
+                              showWaifuMenuHint(opt.id)
+                            }}
+                            onMouseLeave={() => {
+                              carouselPaused.current = false
+                            }}
+                            onClick={() => selectOption(opt.id)}
+                          >
+                            <span className="mr-2">{i === activeOption ? '👉' : '  '}</span>
+                            {opt.label}
+                            {i === activeOption && (
+                              <span className="ml-3 text-xs text-gray-400/70 italic dark:text-gray-500/70">
+                                {opt.description}
+                              </span>
+                            )}
+                            {i === activeOption && !carouselPaused.current && (
+                              <div
+                                className="absolute bottom-0 left-0 h-0.5 bg-blue-400/40 transition-all duration-75 dark:bg-[#5c9cf5]/40"
+                                style={{ width: `${carouselProgress}%` }}
+                              />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              {/* Recommend */}
-              {appState === 'recommend' && (
-                <RecommendView
-                  posts={recommendedPosts}
-                  onShuffle={pickRandomPosts}
-                  goBack={goBack}
-                />
-              )}
+                {/* Introduce */}
+                {appState === 'introduce' && <IntroduceView goBack={goBack} />}
 
-              {/* Quotes */}
-              {appState === 'quotes' && (
-                <QuotesView quote={currentQuote} onReroll={pickRandomQuote} goBack={goBack} />
-              )}
-            </div>
+                {/* Recommend */}
+                {appState === 'recommend' && (
+                  <RecommendView
+                    posts={recommendedPosts}
+                    onShuffle={pickRandomPosts}
+                    goBack={goBack}
+                  />
+                )}
 
-            {/* Footer */}
-            <div className="border-t border-gray-200 px-4 py-2 text-xs text-gray-400 dark:border-gray-700 dark:text-[#7b7f87]">
-              claude-sonnet-4-20250514
+                {/* Quotes */}
+                {appState === 'quotes' && (
+                  <QuotesView quote={currentQuote} onReroll={pickRandomQuote} goBack={goBack} />
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="border-t border-gray-200 px-4 py-2 text-xs text-gray-400 dark:border-gray-700 dark:text-[#7b7f87]">
+                claude-sonnet-4-20250514
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {isMinimized && !isClosed && (
+        <button
+          onClick={() => setIsMinimized(false)}
+          className="fixed right-6 bottom-6 z-50 flex cursor-pointer items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-xl transition-transform hover:scale-105 dark:border-gray-700 dark:bg-[#212121] dark:text-[#e0e0e0]"
+        >
+          <span className="text-orange-500 dark:text-[#fab283]">⌬</span>
+          Terminal
+        </button>
+      )}
 
       {pokemonModalOpen && (
         <PokemonModal
