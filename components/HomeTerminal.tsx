@@ -60,6 +60,12 @@ const waifuMenuMessages: Record<string, string[]> = {
     '如果能在现实中养宝可梦的话，我想养一只六尾～🦊',
     '今天的幸运宝可梦会是谁呢？好期待好期待！',
   ],
+  game: [
+    '一整个世界正等着从种子里醒来。进去看看今天的大陆长什么样吧！',
+    '这是主人新造的地图世界～山脉、森林、海岸都由一个种子生成！',
+    '准备好探索了吗？游戏资源只会在你按下开始之后加载哦。',
+    '每一个种子都是一张不同的世界地图。今天会遇见怎样的岛屿呢？',
+  ],
 }
 
 function showWaifuMenuHint(menuId: string) {
@@ -132,7 +138,7 @@ const menuOptions: MenuOption[] = [
   { id: 'recommend', label: 'Recommend the blog', description: 'click to discover random posts' },
   { id: 'quotes', label: 'Roll a quotes', description: 'click to get a quote' },
   { id: 'pokemon', label: 'Roll a Pokemon today', description: 'click to catch a random Pokemon' },
-  // { id: 'game', label: 'Play AlohaYo game', description: 'click to explore my game projects' },
+  { id: 'game', label: 'Enter the World', description: 'click to generate a world' },
 ]
 
 const CAROUSEL_INTERVAL = 3000
@@ -681,7 +687,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
         setPokemonModalOpen(true)
         fetchRandomPokemon()
       } else if (id === 'game') {
-        router.push('/projects')
+        router.push('/game')
       }
     },
     [pickRandomPosts, pickRandomQuote, fetchRandomPokemon, router]
