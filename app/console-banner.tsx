@@ -63,6 +63,8 @@ const welcomeStyle =
  */
 export function AlohaYoConsoleBanner() {
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
+
     console.log(CUSTOM_PAINITING)
     console.log(DOMAIN_BANNER)
     console.log(

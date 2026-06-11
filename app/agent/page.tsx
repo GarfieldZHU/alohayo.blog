@@ -1,7 +1,11 @@
 import { genPageMetadata } from 'app/seo'
 import AgentTerminal from '@/components/AgentTerminal'
 
-export const metadata = genPageMetadata({ title: 'Agent' })
+export const metadata = genPageMetadata({
+  title: 'Agent',
+  path: '/agent/',
+  description: 'Meet the AlohaYo agent experience and interactive terminal experiments.',
+})
 
 export default function AgentPage() {
   return (

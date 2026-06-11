@@ -27,22 +27,51 @@ const jetbrains_mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),
+  applicationName: siteMetadata.title,
   title: {
     default: siteMetadata.title,
     template: `%s | ${siteMetadata.title}`,
   },
   description: siteMetadata.description,
+  keywords: siteMetadata.keywords,
+  category: siteMetadata.category,
+  authors: [{ name: siteMetadata.author, url: siteMetadata.siteUrl }],
+  creator: siteMetadata.author,
+  publisher: siteMetadata.author,
+  referrer: 'strict-origin-when-cross-origin',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: '/static/favicons/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/static/favicons/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/static/favicons/favicon.ico' },
+    ],
+    apple: [{ url: '/static/favicons/apple-touch-icon.png', sizes: '180x180' }],
+    other: [{ rel: 'mask-icon', url: '/static/favicons/safari-pinned-tab.svg', color: '#5bbad5' }],
+  },
+  manifest: '/static/favicons/site.webmanifest',
   openGraph: {
     title: siteMetadata.title,
     description: siteMetadata.description,
-    url: './',
+    url: siteMetadata.siteUrl,
     siteName: siteMetadata.title,
-    images: [siteMetadata.socialBanner],
+    images: [
+      {
+        url: siteMetadata.socialBanner,
+        width: 1200,
+        height: 630,
+        alt: `${siteMetadata.title} social banner`,
+      },
+    ],
     locale: 'en_US',
     type: 'website',
   },
   alternates: {
-    canonical: './',
+    canonical: siteMetadata.siteUrl,
     types: {
       'application/rss+xml': `${siteMetadata.siteUrl}/feed.xml`,
     },
@@ -60,7 +89,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     title: siteMetadata.title,
+    description: siteMetadata.description,
     card: 'summary_large_image',
+    creator: siteMetadata.twitterHandle,
     images: [siteMetadata.socialBanner],
   },
 }
@@ -72,15 +103,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${space_grotesk.variable} ${jetbrains_mono.variable} scroll-smooth`}
       suppressHydrationWarning
     >
-      <link rel="apple-touch-icon" sizes="76x76" href="/static/favicons/my-favicon.jpeg" />
-      <link rel="icon" type="image/jpeg" sizes="32x32" href="/static/favicons/my-favicon.jpeg" />
-      <link rel="icon" type="image/jpeg" sizes="16x16" href="/static/favicons/my-favicon.jpeg" />
-      <link rel="manifest" href="/static/favicons/site.webmanifest" />
-      <link rel="mask-icon" href="/static/favicons/safari-pinned-tab.svg" color="#5bbad5" />
-      <meta name="msapplication-TileColor" content="#000000" />
-      <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />
-      <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
-      <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
       <body className="bg-white text-black antialiased dark:bg-gray-950 dark:text-white">
         <ThemeProviders>
           <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
@@ -96,7 +118,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </ThemeProviders>
         <Script
           src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js"
-          strategy="afterInteractive"
+          strategy="lazyOnload"
         />
         {/* console banner */}
         <AlohaYoConsoleBanner />

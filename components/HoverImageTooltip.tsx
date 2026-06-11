@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import Image from '@/components/Image'
 import { createPortal } from 'react-dom'
 
 interface HoverImageTooltipProps {
@@ -110,13 +111,13 @@ export function HoverImageTooltip({
                 }}
               />
 
-              <img
+              <Image
                 src={imageSrc}
                 alt={typeof text === 'string' ? text : 'tooltip image'}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none'
-                }}
+                fill
+                sizes={`${tooltipWidth}px`}
+                className="object-cover"
+                unoptimized
               />
             </div>
           </div>,

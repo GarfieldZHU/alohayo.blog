@@ -1,8 +1,19 @@
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
+import { genPageMetadata } from 'app/seo'
 
 const POSTS_PER_PAGE = 5
+
+export async function generateMetadata(props: { params: Promise<{ page: string }> }) {
+  const params = await props.params
+  const page = params.page
+  return genPageMetadata({
+    title: `Blog - Page ${page}`,
+    path: `/blog/page/${page}/`,
+    description: `Page ${page} of the AlohaYo Blog archive.`,
+  })
+}
 
 export const generateStaticParams = async () => {
   const totalPages = Math.ceil(allBlogs.length / POSTS_PER_PAGE)

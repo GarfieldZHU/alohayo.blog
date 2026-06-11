@@ -3,18 +3,35 @@ const siteMetadata = {
   title: 'AlohaYo Blog',
   author: 'Garfield Zhu',
   headerTitle: 'Aloha, Ohayo!',
-  description: 'A grocery blog by Garfield',
+  description:
+    'Personal blog of Garfield Zhu on software engineering, AI agents, web development, graphics, and thoughtful technical notes.',
+  keywords: [
+    'Garfield Zhu',
+    'AlohaYo',
+    'software engineering',
+    'AI agents',
+    'web development',
+    'TypeScript',
+    'React',
+    'Next.js',
+    'Java',
+    'graphics',
+    'GPU',
+    'programming blog',
+  ],
+  category: 'Technology',
   language: 'en-us',
   theme: 'system', // system, dark or light
   siteUrl: 'https://alohayo.me',
   siteRepo: 'https://github.com/GarfieldZHU/alohayo.blog',
   siteLogo: '/static/images/logo.png',
   socialBanner: '/static/images/twitter-card.png',
+  locale: 'en-US',
+  twitterHandle: '@_AlohaYo_',
   email: 'garfield.bupt@gmail.com',
   github: 'https://github.com/GarfieldZHU',
   twitter: 'https://twitter.com/_AlohaYo_',
   linkedin: 'https://www.linkedin.com/in/alohayo/',
-  locale: 'en-US',
   analytics: {
     // If you want to use an analytics provider you have to add it to the
     // content security policy in the `next.config.js` file.

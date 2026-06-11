@@ -5,26 +5,49 @@ interface PageSEOProps {
   title: string
   description?: string
   image?: string
+  path?: string
+  keywords?: string[]
+  type?: 'website' | 'article'
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any
 }
 
-export function genPageMetadata({ title, description, image, ...rest }: PageSEOProps): Metadata {
+export function genPageMetadata({
+  title,
+  description,
+  image,
+  path = '/',
+  keywords,
+  type = 'website',
+  ...rest
+}: PageSEOProps): Metadata {
+  const url = path.startsWith('http') ? path : new URL(path, siteMetadata.siteUrl).toString()
+  const images = [image || siteMetadata.socialBanner].map((img) =>
+    img.startsWith('http') ? img : new URL(img, siteMetadata.siteUrl).toString()
+  )
+
   return {
     title,
+    description: description || siteMetadata.description,
+    keywords: keywords || siteMetadata.keywords,
+    alternates: {
+      canonical: url,
+    },
     openGraph: {
       title: `${title} | ${siteMetadata.title}`,
       description: description || siteMetadata.description,
-      url: './',
+      url,
       siteName: siteMetadata.title,
-      images: image ? [image] : [siteMetadata.socialBanner],
+      images,
       locale: 'en_US',
-      type: 'website',
+      type,
     },
     twitter: {
       title: `${title} | ${siteMetadata.title}`,
+      description: description || siteMetadata.description,
       card: 'summary_large_image',
-      images: image ? [image] : [siteMetadata.socialBanner],
+      creator: siteMetadata.twitterHandle,
+      images,
     },
     ...rest,
   }

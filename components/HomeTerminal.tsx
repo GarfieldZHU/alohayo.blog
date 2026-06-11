@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Image from '@/components/Image'
 import { opencodeSplash } from '@/data/splashes/opencode'
 import { quotes } from '@/data/quotes'
 
@@ -243,9 +244,13 @@ function PokemonModal({
 
         {!loading && pokemon && (
           <div className="text-center">
-            <img
+            <Image
               src={pokemon.sprite}
               alt={pokemon.name}
+              width={128}
+              height={128}
+              sizes="128px"
+              unoptimized
               className="pixelated mx-auto h-32 w-32"
               style={{ imageRendering: 'pixelated' }}
             />

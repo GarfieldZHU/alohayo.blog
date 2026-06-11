@@ -52,6 +52,10 @@ export async function generateMetadata(props: {
   return {
     title: post.title,
     description: post.summary,
+    keywords: post.tags,
+    alternates: {
+      canonical: `/${post.path}`,
+    },
     openGraph: {
       title: post.title,
       description: post.summary,
@@ -60,7 +64,7 @@ export async function generateMetadata(props: {
       type: 'article',
       publishedTime: publishedAt,
       modifiedTime: modifiedAt,
-      url: './',
+      url: `/${post.path}`,
       images: ogImages,
       authors: authors.length > 0 ? authors : [siteMetadata.author],
     },
@@ -68,6 +72,7 @@ export async function generateMetadata(props: {
       card: 'summary_large_image',
       title: post.title,
       description: post.summary,
+      creator: siteMetadata.twitterHandle,
       images: imageList,
     },
   }
