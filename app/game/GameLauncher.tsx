@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=9203279'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=354b7c0'
 
 interface GameHandle {
   pause(): void
@@ -14,7 +14,7 @@ interface GameModule {
   mountGame(options: {
     container: HTMLElement
     assetBaseUrl?: string
-    initialWorld?: { seed?: string }
+    initialWorld?: { seed?: string; width?: number; height?: number }
   }): Promise<GameHandle>
 }
 
@@ -23,6 +23,11 @@ const importRemoteModule = new Function('url', 'return import(url)') as (
 ) => Promise<GameModule>
 
 type LauncherState = 'idle' | 'loading' | 'running' | 'error'
+const sizePresets = [
+  { name: 'Large', width: 256, height: 192 },
+  { name: 'Huge', width: 320, height: 240 },
+  { name: 'Continental', width: 384, height: 288 },
+] as const
 
 export default function GameLauncher() {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -31,6 +36,7 @@ export default function GameLauncher() {
   const [state, setState] = useState<LauncherState>('idle')
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
+  const [sizeIndex, setSizeIndex] = useState(0)
 
   useEffect(() => {
     setSeed(window.localStorage.getItem('alohayo-world:last-seed') || 'alohayo')
@@ -57,7 +63,11 @@ export default function GameLauncher() {
       gameRef.current = await gameModule.mountGame({
         container: containerRef.current,
         assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
-        initialWorld: { seed: seed.trim() || 'alohayo' },
+        initialWorld: {
+          seed: seed.trim() || 'alohayo',
+          width: sizePresets[sizeIndex].width,
+          height: sizePresets[sizeIndex].height,
+        },
       })
       setState('running')
     } catch (reason) {
@@ -95,6 +105,16 @@ export default function GameLauncher() {
             className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 font-mono text-gray-900 outline-none focus:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
           />
           <button
+            type="button"
+            onClick={() => setSizeIndex((current) => Math.min(current + 1, sizePresets.length - 1))}
+            disabled={sizeIndex === sizePresets.length - 1 || state === 'loading'}
+            className="cursor-pointer rounded-lg border border-cyan-800 bg-cyan-950 px-5 py-3 font-mono text-sm font-bold text-cyan-100 transition hover:bg-cyan-900 disabled:cursor-default disabled:opacity-60"
+          >
+            {sizePresets[sizeIndex].name} · {sizePresets[sizeIndex].width}×
+            {sizePresets[sizeIndex].height}
+            {sizeIndex < sizePresets.length - 1 ? ' / Enlarge' : ' / Maximum'}
+          </button>
+          <button
             type="submit"
             disabled={state === 'loading'}
             className="cursor-pointer rounded-lg bg-cyan-700 px-6 py-3 font-bold text-white transition hover:bg-cyan-600 disabled:cursor-wait disabled:opacity-60"
@@ -118,6 +138,7 @@ export default function GameLauncher() {
         </span>
         <span>Local-only data</span>
         <span>On-demand loading</span>
+        <span>Ocean, lakes, mainland, islands, and highlands</span>
       </div>
 
       {state === 'error' && (
@@ -143,7 +164,8 @@ export default function GameLauncher() {
       </div>
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
-        Drag to pan. Scroll to zoom. Hover to inspect. WASD and arrow keys also move the map.
+        Drag to pan. Scroll to zoom toward the pointer and reveal terrain detail. Hover to inspect.
+        WASD and arrow keys also move the map.
       </p>
     </div>
   )
