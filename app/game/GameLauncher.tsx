@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=c8f4e2d'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=eb563dd'
 
 interface GameHandle {
   pause(): void
@@ -164,8 +164,8 @@ export default function GameLauncher() {
       </div>
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
-        Drag to pan. Scroll to zoom toward the pointer and reveal terrain detail. Hover to inspect.
-        WASD and arrow keys also move the map.
+        WASD or arrows walk. Hold Shift to run. E or Space acts. Drag pans the camera; scroll zooms
+        toward the pointer.
       </p>
     </div>
   )
