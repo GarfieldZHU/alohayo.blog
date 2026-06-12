@@ -71,7 +71,7 @@ const waifuMenuMessages: Record<string, string[]> = {
 function showWaifuMenuHint(menuId: string) {
   const msgs = waifuMenuMessages[menuId]
   if (!msgs) return
-  showWaifuMessage(msgs[Math.floor(Math.random() * msgs.length)], 4000)
+  showWaifuMessage(msgs[Math.floor(Math.random() * msgs.length)], 6000)
 }
 
 import { renderNeonText, renderGamerText } from './NeonFlicker'
