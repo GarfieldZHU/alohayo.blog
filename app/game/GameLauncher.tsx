@@ -3,8 +3,9 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
 const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=eb563dd'
+const GAME_WAIFU_MESSAGE_DURATION = 8000
 
-function showGameWaifuMessage(text: string, duration = 6000) {
+function showGameWaifuMessage(text: string, duration = GAME_WAIFU_MESSAGE_DURATION) {
   const tips = document.getElementById('waifu-tips')
   if (!tips) return
   tips.innerHTML = text
@@ -17,17 +18,17 @@ function showGameWaifuMessage(text: string, duration = 6000) {
 const gameWaifuMessages = {
   worldMode: [
     '世界模式已经准备好了～先输入种子，再把大陆和海岸线生成出来吧！',
-    '先在 World Mode 里造世界，再决定哪些区域值得变成真正的冒险舞台哦。',
+    '先在 World Mode 里生成世界，再决定哪些区域值得变成真正的冒险舞台哦。',
     '想看今天的大陆长什么样？先生成世界，坐标、海岸、高地都会慢慢清晰起来。',
     'World Mode 更像造物台：你负责种子，我来陪你看这片土地苏醒。',
-    '先生成地图吧～地貌、湖泊、森林和雪线都会告诉你这个世界适不适合冒险。',
+    '先点 Generate a world 吧～地貌、湖泊、森林和雪线都会告诉你这个世界适不适合冒险。',
   ],
   gameMode: [
-    'Game Mode 的目标是固定镜头跟随主角，让探索更像真正的旅程，而不是纯地图检视。',
-    '等 Game Mode 落地后，你会从“看世界”变成“走进世界”。',
-    'Game Mode 会把人物状态、动作栏、小地图和地点信息都放进 HUD 里。',
-    '未来进入 Game Mode 时，你会以主角视角出发，而不是用自由镜头俯瞰整张图。',
-    '这里先把世界造出来，下一步就是在 Game Mode 里真正踏上路途啦。',
+    'Game Mode 会引导你正式开始旅程：固定镜头跟随主角，从世界里真正出发。',
+    '先在 World Mode 生成地图，再按 Game Mode 的指引准备开始真正的冒险。',
+    'Game Mode 会把人物状态、动作栏、小地图和地点信息都放进 HUD 里，帮助你开局。',
+    '未来进入 Game Mode 时，你会以主角视角开始游戏，而不是用自由镜头俯瞰整张图。',
+    '这里先把世界造出来，下一步就是跟着 Game Mode 的引导真正踏上路途啦。',
   ],
   desert: [
     '沙漠里的生命比看上去更顽强：深根植物会追逐地下水，许多动物则把白天让给高温，把夜晚留给自己。',
@@ -54,12 +55,25 @@ const gameWaifuMessages = {
 
 function showRandomGameWaifuMessage(
   key: keyof typeof gameWaifuMessages,
-  duration = 6000,
+  duration = GAME_WAIFU_MESSAGE_DURATION,
   prefix?: string
 ) {
   const messages = gameWaifuMessages[key]
   const text = messages[Math.floor(Math.random() * messages.length)]
   showGameWaifuMessage(prefix ? `${prefix}${text}` : text, duration)
+}
+
+function resolveBiomeMessageKey(
+  snapshot: ActiveBiomeSnapshot
+): keyof typeof gameWaifuMessages | null {
+  const lookup = `${snapshot.biomeId} ${snapshot.biomeName} ${snapshot.region}`.toLowerCase()
+
+  if (lookup.includes('desert')) return 'desert'
+  if (lookup.includes('snow') || lookup.includes('tundra') || lookup.includes('ice')) return 'snow'
+  if (lookup.includes('forest') || lookup.includes('woodland') || lookup.includes('grove'))
+    return 'forest'
+
+  return null
 }
 
 interface GameHandle {
@@ -116,7 +130,7 @@ const modeCards = [
     title: 'Game Mode',
     status: 'Planned next',
     description:
-      'Then start the journey in Game Mode: fixed-camera exploration with a main character, HUD, settlements, roads, and seeded sites.',
+      'Then follow the Game Mode start guide: fixed-camera exploration with a main character, HUD, settlements, roads, and seeded sites.',
     bullets: [
       'Fixed follow camera',
       'Start from a main-character viewpoint',
@@ -196,7 +210,7 @@ export default function GameLauncher() {
     setSeed(window.localStorage.getItem('alohayo-world:last-seed') || 'alohayo')
     const canvas = document.createElement('canvas')
     setHasWebGL2(Boolean(canvas.getContext('webgl2')))
-    showRandomGameWaifuMessage('worldMode', 6000)
+    showRandomGameWaifuMessage('worldMode')
 
     return () => {
       void gameRef.current?.destroy()
@@ -205,8 +219,8 @@ export default function GameLauncher() {
   }, [])
 
   const handleBiomeChange = (snapshot: ActiveBiomeSnapshot) => {
-    const biomeKey = snapshot.biomeId.split(':')[1] as keyof typeof gameWaifuMessages
-    if (!(biomeKey in gameWaifuMessages)) return
+    const biomeKey = resolveBiomeMessageKey(snapshot)
+    if (!biomeKey) return
     const now = Date.now()
     const signature = `${snapshot.biomeId}:${snapshot.x}:${snapshot.y}`
     if (lastBiomeMessageRef.current === signature || now - lastBiomeMessageAtRef.current < 8000) {
@@ -216,7 +230,7 @@ export default function GameLauncher() {
     lastBiomeMessageAtRef.current = now
     showRandomGameWaifuMessage(
       biomeKey,
-      7000,
+      GAME_WAIFU_MESSAGE_DURATION + 1000,
       `<span class="font-mono">[${snapshot.biomeName} @ ${snapshot.x},${snapshot.y} | z:${snapshot.elevation}]</span> `
     )
   }
@@ -242,7 +256,7 @@ export default function GameLauncher() {
         },
         onBiomeChange: handleBiomeChange,
       })
-      showRandomGameWaifuMessage('worldMode', 7000)
+      showRandomGameWaifuMessage('worldMode', GAME_WAIFU_MESSAGE_DURATION + 1000)
       setState('running')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The world could not be started.')
@@ -262,8 +276,8 @@ export default function GameLauncher() {
         <p className="mt-5 text-lg leading-8 text-gray-600 dark:text-gray-300">
           World Mode is the current live geography explorer: generate a seeded atlas, inspect
           terrain, and study the shape of the land. Game Mode is the next layer: a fixed-camera,
-          character-driven experience with HUD, settlements, roads, and site-based exploration built
-          on the same generated world.
+          character-driven experience that guides how the real journey starts, with HUD,
+          settlements, roads, and site-based exploration built on the same generated world.
         </p>
       </div>
 
@@ -273,10 +287,7 @@ export default function GameLauncher() {
             key={mode.title}
             className="rounded-2xl border border-gray-200 bg-white/80 p-6 shadow-sm dark:border-gray-800 dark:bg-gray-900/70"
             onMouseEnter={() =>
-              showRandomGameWaifuMessage(
-                mode.title === 'World Mode' ? 'worldMode' : 'gameMode',
-                6000
-              )
+              showRandomGameWaifuMessage(mode.title === 'World Mode' ? 'worldMode' : 'gameMode')
             }
           >
             <div className="flex items-center justify-between gap-4">
@@ -299,7 +310,11 @@ export default function GameLauncher() {
                   type="button"
                   onClick={() => {
                     worldModeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    showRandomGameWaifuMessage('worldMode', 6000)
+                    showRandomGameWaifuMessage(
+                      'worldMode',
+                      GAME_WAIFU_MESSAGE_DURATION,
+                      'World Mode 指引：先输入种子，再生成世界。 '
+                    )
                   }}
                   className="cursor-pointer rounded-lg bg-cyan-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-cyan-600"
                 >
@@ -310,11 +325,15 @@ export default function GameLauncher() {
                   type="button"
                   onClick={() => {
                     gameModePlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                    showRandomGameWaifuMessage('gameMode', 6000)
+                    showRandomGameWaifuMessage(
+                      'gameMode',
+                      GAME_WAIFU_MESSAGE_DURATION,
+                      'Game Mode 指引：先看主角与 HUD 规划，再准备开始游戏。 '
+                    )
                   }}
                   className="cursor-pointer rounded-lg border border-cyan-800 bg-cyan-950 px-4 py-2 text-sm font-bold text-cyan-100 transition hover:bg-cyan-900"
                 >
-                  Start with the Game Mode plan
+                  Follow the Game Mode guide
                 </button>
               )}
             </div>
@@ -347,7 +366,9 @@ export default function GameLauncher() {
           <button
             type="submit"
             disabled={state === 'loading'}
-            onMouseEnter={() => showRandomGameWaifuMessage('worldMode', 6000)}
+            onMouseEnter={() =>
+              showRandomGameWaifuMessage('worldMode', GAME_WAIFU_MESSAGE_DURATION, '先生成世界：')
+            }
             className="cursor-pointer rounded-lg bg-cyan-700 px-6 py-3 font-bold text-white transition hover:bg-cyan-600 disabled:cursor-wait disabled:opacity-60"
           >
             {state === 'loading'
@@ -398,8 +419,8 @@ export default function GameLauncher() {
       </div>
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
-        WASD or arrows walk. Hold Shift to run. E or Space acts. Drag pans the camera; scroll zooms
-        toward the pointer.
+        World Mode controls: WASD or arrows walk. Hold Shift to run. E or Space acts. Drag pans the
+        camera; scroll zooms toward the pointer.
       </p>
 
       <div className="mt-10 grid gap-6 xl:grid-cols-2">
