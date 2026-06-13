@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=eb563dd'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=fb61011'
 
 interface GameHandle {
   pause(): void
@@ -14,7 +14,14 @@ interface GameModule {
   mountGame(options: {
     container: HTMLElement
     assetBaseUrl?: string
-    initialWorld?: { seed?: string; width?: number; height?: number }
+    initialWorld?: {
+      seed?: string
+      width?: number
+      height?: number
+      chunkRadius?: number
+      retainChunkRadius?: number
+      minimapChunkRadius?: number
+    }
   }): Promise<GameHandle>
 }
 
@@ -24,9 +31,30 @@ const importRemoteModule = new Function('url', 'return import(url)') as (
 
 type LauncherState = 'idle' | 'loading' | 'running' | 'error'
 const sizePresets = [
-  { name: 'Large', width: 256, height: 192 },
-  { name: 'Huge', width: 320, height: 240 },
-  { name: 'Continental', width: 384, height: 288 },
+  {
+    name: 'Frontier',
+    width: 512,
+    height: 384,
+    chunkRadius: 2,
+    retainChunkRadius: 3,
+    minimapChunkRadius: 6,
+  },
+  {
+    name: 'Expanse',
+    width: 768,
+    height: 576,
+    chunkRadius: 3,
+    retainChunkRadius: 4,
+    minimapChunkRadius: 8,
+  },
+  {
+    name: 'Horizon',
+    width: 1024,
+    height: 768,
+    chunkRadius: 4,
+    retainChunkRadius: 5,
+    minimapChunkRadius: 10,
+  },
 ] as const
 
 export default function GameLauncher() {
@@ -49,8 +77,7 @@ export default function GameLauncher() {
     }
   }, [])
 
-  const startGame = async (event: FormEvent) => {
-    event.preventDefault()
+  const mountWithPreset = async (presetIndex: number) => {
     if (!containerRef.current) return
 
     setState('loading')
@@ -60,13 +87,17 @@ export default function GameLauncher() {
 
     try {
       const gameModule = await importRemoteModule(GAME_MODULE_URL)
+      const preset = sizePresets[presetIndex]
       gameRef.current = await gameModule.mountGame({
         container: containerRef.current,
         assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
         initialWorld: {
           seed: seed.trim() || 'alohayo',
-          width: sizePresets[sizeIndex].width,
-          height: sizePresets[sizeIndex].height,
+          width: preset.width,
+          height: preset.height,
+          chunkRadius: preset.chunkRadius,
+          retainChunkRadius: preset.retainChunkRadius,
+          minimapChunkRadius: preset.minimapChunkRadius,
         },
       })
       setState('running')
@@ -74,6 +105,11 @@ export default function GameLauncher() {
       setError(reason instanceof Error ? reason.message : 'The world could not be started.')
       setState('error')
     }
+  }
+
+  const startGame = async (event: FormEvent) => {
+    event.preventDefault()
+    await mountWithPreset(sizeIndex)
   }
 
   return (
@@ -87,8 +123,8 @@ export default function GameLauncher() {
         </h1>
         <p className="mt-5 text-lg leading-8 text-gray-600 dark:text-gray-300">
           Generate a geography atlas, explore its biomes, and inspect the climate beneath every
-          cell. The game is single-player, stores preferences locally, and loads no engine or map
-          resources until you enter.
+          cell. The world streams in chunk by chunk, stores preferences locally, and loads no engine
+          or map resources until you enter.
         </p>
       </div>
 
@@ -106,7 +142,11 @@ export default function GameLauncher() {
           />
           <button
             type="button"
-            onClick={() => setSizeIndex((current) => Math.min(current + 1, sizePresets.length - 1))}
+            onClick={async () => {
+              const nextIndex = Math.min(sizeIndex + 1, sizePresets.length - 1)
+              setSizeIndex(nextIndex)
+              if (state === 'running') await mountWithPreset(nextIndex)
+            }}
             disabled={sizeIndex === sizePresets.length - 1 || state === 'loading'}
             className="cursor-pointer rounded-lg border border-cyan-800 bg-cyan-950 px-5 py-3 font-mono text-sm font-bold text-cyan-100 transition hover:bg-cyan-900 disabled:cursor-default disabled:opacity-60"
           >
@@ -120,9 +160,9 @@ export default function GameLauncher() {
             className="cursor-pointer rounded-lg bg-cyan-700 px-6 py-3 font-bold text-white transition hover:bg-cyan-600 disabled:cursor-wait disabled:opacity-60"
           >
             {state === 'loading'
-              ? 'Generating...'
+              ? 'Surveying...'
               : state === 'running'
-                ? 'Regenerate'
+                ? 'Resurvey'
                 : 'Enter the world'}
           </button>
         </div>
@@ -138,7 +178,7 @@ export default function GameLauncher() {
         </span>
         <span>Local-only data</span>
         <span>On-demand loading</span>
-        <span>Ocean, lakes, mainland, islands, and highlands</span>
+        <span>Infinite chunks, minimap, and discovery</span>
       </div>
 
       {state === 'error' && (
@@ -165,7 +205,7 @@ export default function GameLauncher() {
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
         WASD or arrows walk. Hold Shift to run. E or Space acts. Drag pans the camera; scroll zooms
-        toward the pointer.
+        toward the pointer. The minimap fills as you discover the world.
       </p>
     </div>
   )
