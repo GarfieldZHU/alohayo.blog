@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from 'react'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=fb61011'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=ff3d298'
 
 interface GameHandle {
   pause(): void
@@ -14,6 +14,7 @@ interface GameModule {
   mountGame(options: {
     container: HTMLElement
     assetBaseUrl?: string
+    devMode?: boolean
     initialWorld?: {
       seed?: string
       width?: number
@@ -61,6 +62,7 @@ export default function GameLauncher() {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<GameHandle | null>(null)
   const [seed, setSeed] = useState('alohayo')
+  const [devMode, setDevMode] = useState(false)
   const [state, setState] = useState<LauncherState>('idle')
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
@@ -91,6 +93,7 @@ export default function GameLauncher() {
       gameRef.current = await gameModule.mountGame({
         container: containerRef.current,
         assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
+        devMode,
         initialWorld: {
           seed: seed.trim() || 'alohayo',
           width: preset.width,
@@ -166,6 +169,22 @@ export default function GameLauncher() {
                 : 'Enter the world'}
           </button>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
+          <label className="inline-flex items-center gap-2 rounded-lg border border-cyan-800/30 bg-cyan-950/40 px-3 py-2 text-cyan-100">
+            <input
+              type="checkbox"
+              checked={devMode}
+              onChange={(event) => setDevMode(event.target.checked)}
+              className="h-4 w-4 accent-cyan-500"
+            />
+            Dev mode
+          </label>
+          {devMode && (
+            <span>
+              Battle shadow, fast move, shift-click teleport, and equipment testing are enabled.
+            </span>
+          )}
+        </div>
       </form>
 
       <div className="mb-3 flex flex-wrap gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
@@ -179,6 +198,7 @@ export default function GameLauncher() {
         <span>Local-only data</span>
         <span>On-demand loading</span>
         <span>Infinite chunks, minimap, and discovery</span>
+        {devMode && <span>Developer tooling enabled</span>}
       </div>
 
       {state === 'error' && (
@@ -206,6 +226,8 @@ export default function GameLauncher() {
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
         WASD or arrows walk. Hold Shift to run. E or Space acts. Drag pans the camera; scroll zooms
         toward the pointer. The minimap fills as you discover the world.
+        {devMode &&
+          ' In dev mode, press F for fast move, shift-click to teleport, and use the in-game panel for equipment overrides.'}
       </p>
     </div>
   )
