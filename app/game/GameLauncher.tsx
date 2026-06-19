@@ -2,12 +2,107 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=9c53af5'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=8fc5277'
+const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
+
+type LocaleCode = 'en' | 'zh-CN'
+type LauncherState = 'idle' | 'loading' | 'running' | 'error'
+
+const LANGUAGE_OPTIONS: Array<{ code: LocaleCode; label: string }> = [
+  { code: 'en', label: 'English' },
+  { code: 'zh-CN', label: '中文' },
+]
+
+const MESSAGES = {
+  en: {
+    eyebrow: 'Alohayo World / v0.1.0-demo',
+    title: 'A vivid world from one small seed.',
+    description:
+      'Generate a geography atlas, explore its biomes, and inspect the climate beneath every cell. The world streams in chunk by chunk, stores preferences locally, and loads no engine or map resources until you enter. Game mode keeps the camera centered on the explorer; dev mode unlocks survey controls.',
+    seedLabel: 'World seed',
+    enterWorld: 'Enter the world',
+    resurvey: 'Resurvey',
+    surveying: 'Surveying...',
+    enlarge: 'Enlarge',
+    maximum: 'Maximum',
+    devMode: 'Dev mode',
+    devModeEnabled:
+      'Battle shadow, fast move, shift-click teleport, free camera, zoom, and equipment testing are enabled.',
+    rendererChecking: 'Checking renderer...',
+    rendererReady: 'WebGL2 ready',
+    rendererFallback: 'Canvas fallback',
+    localOnly: 'Local-only data',
+    onDemandLoading: 'On-demand loading',
+    infiniteWorld: 'Infinite chunks, minimap, and discovery',
+    developerToolingEnabled: 'Developer tooling enabled',
+    startError: 'The world could not be started.',
+    placeholder:
+      'PixiJS, the generation worker, content definitions, and terrain resources are waiting behind the button.',
+    footer:
+      'WASD or arrows walk. Hold Shift to run. E or Space acts. In game mode, the camera follows the explorer and zoom stays locked. The minimap fills as you discover the world.',
+    footerDev:
+      'In dev mode, drag pans the camera, scroll zooms, press F for fast move, shift-click teleports, and the in-game panel exposes equipment overrides.',
+    language: 'Language',
+    sizeNames: {
+      Frontier: 'Frontier',
+      Expanse: 'Expanse',
+      Horizon: 'Horizon',
+    },
+  },
+  'zh-CN': {
+    eyebrow: 'Alohayo World / v0.1.0-demo',
+    title: '一枚小小种子，展开一整个鲜活世界。',
+    description:
+      '生成一张地理世界图谱，探索不同生态地貌，并查看每个地格背后的气候数据。世界会按区块持续流式生成，偏好仅保存在本地，而且在你真正进入之前不会加载引擎或地图资源。游戏模式会让镜头跟随主角；开发模式则解锁调试控制。',
+    seedLabel: '世界种子',
+    enterWorld: '进入世界',
+    resurvey: '重新勘测',
+    surveying: '勘测中...',
+    enlarge: '扩大',
+    maximum: '最大',
+    devMode: '开发模式',
+    devModeEnabled: '已启用战斗阴影、快速移动、Shift 点击传送、自由镜头、缩放与装备测试。',
+    rendererChecking: '正在检查渲染器...',
+    rendererReady: 'WebGL2 已就绪',
+    rendererFallback: '使用 Canvas 回退',
+    localOnly: '数据仅保存在本地',
+    onDemandLoading: '按需加载',
+    infiniteWorld: '无限区块、小地图与探索迷雾',
+    developerToolingEnabled: '开发工具已启用',
+    startError: '世界启动失败。',
+    placeholder: 'PixiJS、生成 Worker、内容定义和地形资源都在按钮后按需等待加载。',
+    footer:
+      'WASD 或方向键移动，按住 Shift 奔跑，E 或空格执行动作。游戏模式下镜头会跟随主角且缩放锁定。随着探索推进，小地图会逐步点亮。',
+    footerDev:
+      '开发模式下可拖拽平移镜头、滚轮缩放、按 F 切换快速移动、Shift 点击传送，并通过游戏内面板覆盖装备。',
+    language: '语言',
+    sizeNames: {
+      Frontier: '边疆',
+      Expanse: '辽原',
+      Horizon: '天际',
+    },
+  },
+} as const
+
+function normalizeLocale(input?: string | null): LocaleCode {
+  if (!input) return 'en'
+  const normalized = input.trim().toLowerCase()
+  if (
+    normalized === 'zh' ||
+    normalized === 'zh-cn' ||
+    normalized === 'zh-hans' ||
+    normalized.startsWith('zh-')
+  ) {
+    return 'zh-CN'
+  }
+  return 'en'
+}
 
 interface GameHandle {
   pause(): void
   resume(): void
   setDevMode?(enabled: boolean): void
+  setLocale?(locale: LocaleCode): void
   destroy(): Promise<void>
 }
 
@@ -16,6 +111,7 @@ interface GameModule {
     container: HTMLElement
     assetBaseUrl?: string
     devMode?: boolean
+    locale?: LocaleCode
     initialWorld?: {
       seed?: string
       width?: number
@@ -31,7 +127,6 @@ const importRemoteModule = new Function('url', 'return import(url)') as (
   url: string
 ) => Promise<GameModule>
 
-type LauncherState = 'idle' | 'loading' | 'running' | 'error'
 const sizePresets = [
   {
     name: 'Frontier',
@@ -63,15 +158,21 @@ export default function GameLauncher() {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<GameHandle | null>(null)
   const mountedDevModeRef = useRef<boolean | null>(null)
+  const mountedLocaleRef = useRef<LocaleCode | null>(null)
   const [seed, setSeed] = useState('alohayo')
   const [devMode, setDevMode] = useState(false)
+  const [locale, setLocale] = useState<LocaleCode>('en')
   const [state, setState] = useState<LauncherState>('idle')
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
   const [sizeIndex, setSizeIndex] = useState(0)
+  const messages = MESSAGES[locale]
 
   useEffect(() => {
     setSeed(window.localStorage.getItem('alohayo-world:last-seed') || 'alohayo')
+    setLocale(
+      normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY) || navigator.language)
+    )
     const canvas = document.createElement('canvas')
     setHasWebGL2(Boolean(canvas.getContext('webgl2')))
 
@@ -80,6 +181,10 @@ export default function GameLauncher() {
       gameRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+  }, [locale])
 
   const mountWithPreset = useCallback(
     async (presetIndex: number) => {
@@ -97,6 +202,7 @@ export default function GameLauncher() {
           container: containerRef.current,
           assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
           devMode,
+          locale,
           initialWorld: {
             seed: seed.trim() || 'alohayo',
             width: preset.width,
@@ -107,13 +213,14 @@ export default function GameLauncher() {
           },
         })
         mountedDevModeRef.current = devMode
+        mountedLocaleRef.current = locale
         setState('running')
       } catch (reason) {
-        setError(reason instanceof Error ? reason.message : 'The world could not be started.')
+        setError(reason instanceof Error ? reason.message : messages.startError)
         setState('error')
       }
     },
-    [devMode, seed]
+    [devMode, locale, messages.startError, seed]
   )
 
   const startGame = async (event: FormEvent) => {
@@ -156,26 +263,52 @@ export default function GameLauncher() {
     void mountWithPreset(sizeIndex)
   }, [devMode, mountWithPreset, sizeIndex, state])
 
+  useEffect(() => {
+    if (state !== 'running' || !gameRef.current) return
+    if (mountedLocaleRef.current === locale) return
+
+    const handle = gameRef.current
+    if (typeof handle.setLocale === 'function') {
+      handle.setLocale(locale)
+      mountedLocaleRef.current = locale
+      return
+    }
+
+    void mountWithPreset(sizeIndex)
+  }, [locale, mountWithPreset, sizeIndex, state])
+
   return (
     <div className="py-8 sm:py-12">
       <div className="mb-8 max-w-3xl">
         <p className="font-mono text-sm tracking-[0.18em] text-cyan-600 uppercase dark:text-cyan-400">
-          Alohayo World / v0.1.0-demo
+          {messages.eyebrow}
         </p>
         <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl dark:text-gray-100">
-          A vivid world from one small seed.
+          {messages.title}
         </h1>
         <p className="mt-5 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          Generate a geography atlas, explore its biomes, and inspect the climate beneath every
-          cell. The world streams in chunk by chunk, stores preferences locally, and loads no engine
-          or map resources until you enter. Game mode keeps the camera centered on the explorer; dev
-          mode unlocks survey controls.
+          {messages.description}
         </p>
       </div>
 
       <form onSubmit={startGame} className="mb-5">
+        <div className="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
+          <span>{messages.language}</span>
+          {LANGUAGE_OPTIONS.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              onClick={() => setLocale(option.code)}
+              disabled={locale === option.code}
+              className="cursor-pointer rounded-lg border border-cyan-800/30 bg-cyan-950/40 px-3 py-2 text-cyan-100 disabled:cursor-default disabled:opacity-60"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         <label htmlFor="world-seed" className="mb-2 block font-mono text-sm font-medium">
-          World seed
+          {messages.seedLabel}
         </label>
         <div className="flex flex-col gap-3 sm:flex-row">
           <input
@@ -195,9 +328,11 @@ export default function GameLauncher() {
             disabled={sizeIndex === sizePresets.length - 1 || state === 'loading'}
             className="cursor-pointer rounded-lg border border-cyan-800 bg-cyan-950 px-5 py-3 font-mono text-sm font-bold text-cyan-100 transition hover:bg-cyan-900 disabled:cursor-default disabled:opacity-60"
           >
-            {sizePresets[sizeIndex].name} · {sizePresets[sizeIndex].width}×
+            {messages.sizeNames[sizePresets[sizeIndex].name]} · {sizePresets[sizeIndex].width}×
             {sizePresets[sizeIndex].height}
-            {sizeIndex < sizePresets.length - 1 ? ' / Enlarge' : ' / Maximum'}
+            {sizeIndex < sizePresets.length - 1
+              ? ` / ${messages.enlarge}`
+              : ` / ${messages.maximum}`}
           </button>
           <button
             type="submit"
@@ -205,10 +340,10 @@ export default function GameLauncher() {
             className="cursor-pointer rounded-lg bg-cyan-700 px-6 py-3 font-bold text-white transition hover:bg-cyan-600 disabled:cursor-wait disabled:opacity-60"
           >
             {state === 'loading'
-              ? 'Surveying...'
+              ? messages.surveying
               : state === 'running'
-                ? 'Resurvey'
-                : 'Enter the world'}
+                ? messages.resurvey
+                : messages.enterWorld}
           </button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
@@ -219,29 +354,24 @@ export default function GameLauncher() {
               onChange={(event) => setDevMode(event.target.checked)}
               className="h-4 w-4 accent-cyan-500"
             />
-            Dev mode
+            {messages.devMode}
           </label>
-          {devMode && (
-            <span>
-              Battle shadow, fast move, shift-click teleport, free camera, zoom, and equipment
-              testing are enabled.
-            </span>
-          )}
+          {devMode && <span>{messages.devModeEnabled}</span>}
         </div>
       </form>
 
       <div className="mb-3 flex flex-wrap gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
         <span>
           {hasWebGL2 === null
-            ? 'Checking renderer...'
+            ? messages.rendererChecking
             : hasWebGL2
-              ? 'WebGL2 ready'
-              : 'Canvas fallback'}
+              ? messages.rendererReady
+              : messages.rendererFallback}
         </span>
-        <span>Local-only data</span>
-        <span>On-demand loading</span>
-        <span>Infinite chunks, minimap, and discovery</span>
-        {devMode && <span>Developer tooling enabled</span>}
+        <span>{messages.localOnly}</span>
+        <span>{messages.onDemandLoading}</span>
+        <span>{messages.infiniteWorld}</span>
+        {devMode && <span>{messages.developerToolingEnabled}</span>}
       </div>
 
       {state === 'error' && (
@@ -260,17 +390,14 @@ export default function GameLauncher() {
       >
         {state === 'idle' && (
           <div className="grid h-full place-items-center p-8 text-center font-mono text-sm text-slate-400">
-            PixiJS, the generation worker, content definitions, and terrain resources are waiting
-            behind the button.
+            {messages.placeholder}
           </div>
         )}
       </div>
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
-        WASD or arrows walk. Hold Shift to run. E or Space acts. In game mode, the camera follows
-        the explorer and zoom stays locked. The minimap fills as you discover the world.
-        {devMode &&
-          ' In dev mode, drag pans the camera, scroll zooms, press F for fast move, shift-click teleports, and the in-game panel exposes equipment overrides.'}
+        {messages.footer}
+        {devMode && ` ${messages.footerDev}`}
       </p>
     </div>
   )
