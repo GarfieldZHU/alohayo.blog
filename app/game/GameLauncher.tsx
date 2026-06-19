@@ -1,8 +1,9 @@
 'use client'
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=105e2bc'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=24a20b5'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -103,6 +104,7 @@ interface GameHandle {
   resume(): void
   setDevMode?(enabled: boolean): void
   setLocale?(locale: LocaleCode): void
+  setTheme?(theme: 'light' | 'dark'): void
   destroy(): Promise<void>
 }
 
@@ -155,10 +157,12 @@ const sizePresets = [
 ] as const
 
 export default function GameLauncher() {
+  const { resolvedTheme } = useTheme()
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<GameHandle | null>(null)
   const mountedDevModeRef = useRef<boolean | null>(null)
   const mountedLocaleRef = useRef<LocaleCode | null>(null)
+  const mountedThemeRef = useRef<'light' | 'dark' | null>(null)
   const [seed, setSeed] = useState('alohayo')
   const [devMode, setDevMode] = useState(false)
   const [locale, setLocale] = useState<LocaleCode>('en')
@@ -166,6 +170,7 @@ export default function GameLauncher() {
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
   const [sizeIndex, setSizeIndex] = useState(0)
+  const effectiveTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
   const messages = MESSAGES[locale]
 
   useEffect(() => {
@@ -203,6 +208,7 @@ export default function GameLauncher() {
           assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
           devMode,
           locale,
+          theme: effectiveTheme,
           initialWorld: {
             seed: seed.trim() || 'alohayo',
             width: preset.width,
@@ -214,13 +220,14 @@ export default function GameLauncher() {
         })
         mountedDevModeRef.current = devMode
         mountedLocaleRef.current = locale
+        mountedThemeRef.current = effectiveTheme
         setState('running')
       } catch (reason) {
         setError(reason instanceof Error ? reason.message : messages.startError)
         setState('error')
       }
     },
-    [devMode, locale, messages.startError, seed]
+    [devMode, effectiveTheme, locale, messages.startError, seed]
   )
 
   const startGame = async (event: FormEvent) => {
@@ -276,6 +283,20 @@ export default function GameLauncher() {
 
     void mountWithPreset(sizeIndex)
   }, [locale, mountWithPreset, sizeIndex, state])
+
+  useEffect(() => {
+    if (state !== 'running' || !gameRef.current) return
+    if (mountedThemeRef.current === effectiveTheme) return
+
+    const handle = gameRef.current
+    if (typeof handle.setTheme === 'function') {
+      handle.setTheme(effectiveTheme)
+      mountedThemeRef.current = effectiveTheme
+      return
+    }
+
+    void mountWithPreset(sizeIndex)
+  }, [effectiveTheme, mountWithPreset, sizeIndex, state])
 
   return (
     <div className="py-8 sm:py-12">
@@ -385,7 +406,7 @@ export default function GameLauncher() {
 
       <div
         ref={containerRef}
-        className="relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-[#07111f] shadow-2xl dark:border-gray-700"
+        className="relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]"
         aria-live="polite"
       >
         {state === 'idle' && (
