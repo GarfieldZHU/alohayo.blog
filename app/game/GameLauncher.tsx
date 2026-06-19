@@ -1,12 +1,13 @@
 'use client'
 
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=ff3d298'
 
 interface GameHandle {
   pause(): void
   resume(): void
+  setDevMode?(enabled: boolean): void
   destroy(): Promise<void>
 }
 
@@ -61,6 +62,7 @@ const sizePresets = [
 export default function GameLauncher() {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<GameHandle | null>(null)
+  const mountedDevModeRef = useRef<boolean | null>(null)
   const [seed, setSeed] = useState('alohayo')
   const [devMode, setDevMode] = useState(false)
   const [state, setState] = useState<LauncherState>('idle')
@@ -79,41 +81,80 @@ export default function GameLauncher() {
     }
   }, [])
 
-  const mountWithPreset = async (presetIndex: number) => {
-    if (!containerRef.current) return
+  const mountWithPreset = useCallback(
+    async (presetIndex: number) => {
+      if (!containerRef.current) return
 
-    setState('loading')
-    setError('')
-    await gameRef.current?.destroy()
-    gameRef.current = null
+      setState('loading')
+      setError('')
+      await gameRef.current?.destroy()
+      gameRef.current = null
 
-    try {
-      const gameModule = await importRemoteModule(GAME_MODULE_URL)
-      const preset = sizePresets[presetIndex]
-      gameRef.current = await gameModule.mountGame({
-        container: containerRef.current,
-        assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
-        devMode,
-        initialWorld: {
-          seed: seed.trim() || 'alohayo',
-          width: preset.width,
-          height: preset.height,
-          chunkRadius: preset.chunkRadius,
-          retainChunkRadius: preset.retainChunkRadius,
-          minimapChunkRadius: preset.minimapChunkRadius,
-        },
-      })
-      setState('running')
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The world could not be started.')
-      setState('error')
-    }
-  }
+      try {
+        const gameModule = await importRemoteModule(GAME_MODULE_URL)
+        const preset = sizePresets[presetIndex]
+        gameRef.current = await gameModule.mountGame({
+          container: containerRef.current,
+          assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
+          devMode,
+          initialWorld: {
+            seed: seed.trim() || 'alohayo',
+            width: preset.width,
+            height: preset.height,
+            chunkRadius: preset.chunkRadius,
+            retainChunkRadius: preset.retainChunkRadius,
+            minimapChunkRadius: preset.minimapChunkRadius,
+          },
+        })
+        mountedDevModeRef.current = devMode
+        setState('running')
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : 'The world could not be started.')
+        setState('error')
+      }
+    },
+    [devMode, seed]
+  )
 
   const startGame = async (event: FormEvent) => {
     event.preventDefault()
     await mountWithPreset(sizeIndex)
   }
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const blockCameraInput = (event: Event) => {
+      if (devMode) return
+      if (!(event.target instanceof HTMLCanvasElement)) return
+      event.preventDefault()
+      event.stopPropagation()
+      event.stopImmediatePropagation()
+    }
+
+    container.addEventListener('pointerdown', blockCameraInput, { capture: true })
+    container.addEventListener('wheel', blockCameraInput, { capture: true, passive: false })
+
+    return () => {
+      container.removeEventListener('pointerdown', blockCameraInput, { capture: true })
+      container.removeEventListener('wheel', blockCameraInput, { capture: true })
+    }
+  }, [devMode, state])
+
+  useEffect(() => {
+    if (state !== 'running' || !gameRef.current) return
+    if (mountedDevModeRef.current === devMode) return
+
+    const handle = gameRef.current
+    if (typeof handle.setDevMode === 'function') {
+      handle.setDevMode(devMode)
+      mountedDevModeRef.current = devMode
+      return
+    }
+
+    void mountWithPreset(sizeIndex)
+  }, [devMode, mountWithPreset, sizeIndex, state])
 
   return (
     <div className="py-8 sm:py-12">
@@ -127,7 +168,8 @@ export default function GameLauncher() {
         <p className="mt-5 text-lg leading-8 text-gray-600 dark:text-gray-300">
           Generate a geography atlas, explore its biomes, and inspect the climate beneath every
           cell. The world streams in chunk by chunk, stores preferences locally, and loads no engine
-          or map resources until you enter.
+          or map resources until you enter. Game mode keeps the camera centered on the explorer; dev
+          mode unlocks survey controls.
         </p>
       </div>
 
@@ -181,7 +223,8 @@ export default function GameLauncher() {
           </label>
           {devMode && (
             <span>
-              Battle shadow, fast move, shift-click teleport, and equipment testing are enabled.
+              Battle shadow, fast move, shift-click teleport, free camera, zoom, and equipment
+              testing are enabled.
             </span>
           )}
         </div>
@@ -224,10 +267,10 @@ export default function GameLauncher() {
       </div>
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
-        WASD or arrows walk. Hold Shift to run. E or Space acts. Drag pans the camera; scroll zooms
-        toward the pointer. The minimap fills as you discover the world.
+        WASD or arrows walk. Hold Shift to run. E or Space acts. In game mode, the camera follows
+        the explorer and zoom stays locked. The minimap fills as you discover the world.
         {devMode &&
-          ' In dev mode, press F for fast move, shift-click to teleport, and use the in-game panel for equipment overrides.'}
+          ' In dev mode, drag pans the camera, scroll zooms, press F for fast move, shift-click teleports, and the in-game panel exposes equipment overrides.'}
       </p>
     </div>
   )
