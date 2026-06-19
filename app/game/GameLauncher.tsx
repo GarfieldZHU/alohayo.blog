@@ -2,7 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=8fc5277'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=345ff02'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -27,7 +27,7 @@ const MESSAGES = {
     maximum: 'Maximum',
     devMode: 'Dev mode',
     devModeEnabled:
-      'Battle shadow, fast move, shift-click teleport, free camera, zoom, and equipment testing are enabled.',
+      'Battle shadow, fast move, flight, shift-click teleport, free camera, zoom, and equipment testing are enabled.',
     rendererChecking: 'Checking renderer...',
     rendererReady: 'WebGL2 ready',
     rendererFallback: 'Canvas fallback',
@@ -41,7 +41,7 @@ const MESSAGES = {
     footer:
       'WASD or arrows walk. Hold Shift to run. E or Space acts. In game mode, the camera follows the explorer and zoom stays locked. The minimap fills as you discover the world.',
     footerDev:
-      'In dev mode, drag pans the camera, scroll zooms, press F for fast move, shift-click teleports, and the in-game panel exposes equipment overrides.',
+      'In dev mode, drag pans the camera, scroll zooms, press F for fast move, press G for flight, shift-click teleports, and the collapsible in-game panel exposes equipment overrides.',
     language: 'Language',
     sizeNames: {
       Frontier: 'Frontier',
@@ -61,7 +61,7 @@ const MESSAGES = {
     enlarge: '扩大',
     maximum: '最大',
     devMode: '开发模式',
-    devModeEnabled: '已启用战斗阴影、快速移动、Shift 点击传送、自由镜头、缩放与装备测试。',
+    devModeEnabled: '已启用战斗阴影、快速移动、飞行、Shift 点击传送、自由镜头、缩放与装备测试。',
     rendererChecking: '正在检查渲染器...',
     rendererReady: 'WebGL2 已就绪',
     rendererFallback: '使用 Canvas 回退',
@@ -74,7 +74,7 @@ const MESSAGES = {
     footer:
       'WASD 或方向键移动，按住 Shift 奔跑，E 或空格执行动作。游戏模式下镜头会跟随主角且缩放锁定。随着探索推进，小地图会逐步点亮。',
     footerDev:
-      '开发模式下可拖拽平移镜头、滚轮缩放、按 F 切换快速移动、Shift 点击传送，并通过游戏内面板覆盖装备。',
+      '开发模式下可拖拽平移镜头、滚轮缩放、按 F 切换快速移动、按 G 切换飞行、Shift 点击传送，并通过可收起的游戏内面板覆盖装备。',
     language: '语言',
     sizeNames: {
       Frontier: '边疆',
