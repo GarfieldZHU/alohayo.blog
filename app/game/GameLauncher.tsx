@@ -43,7 +43,6 @@ const MESSAGES = {
       'WASD or arrows walk. Hold Shift to run. E or Space acts. In game mode, the camera follows the explorer and zoom stays locked. The minimap fills as you discover the world.',
     footerDev:
       'In dev mode, drag pans the camera, scroll zooms, press F for fast move, press G for flight, shift-click teleports, and the collapsible in-game panel exposes equipment overrides.',
-    language: 'Language',
     sizeNames: {
       Frontier: 'Frontier',
       Expanse: 'Expanse',
@@ -76,7 +75,6 @@ const MESSAGES = {
       'WASD 或方向键移动，按住 Shift 奔跑，E 或空格执行动作。游戏模式下镜头会跟随主角且缩放锁定。随着探索推进，小地图会逐步点亮。',
     footerDev:
       '开发模式下可拖拽平移镜头、滚轮缩放、按 F 切换快速移动、按 G 切换飞行、Shift 点击传送，并通过可收起的游戏内面板覆盖装备。',
-    language: '语言',
     sizeNames: {
       Frontier: '边疆',
       Expanse: '辽原',
@@ -314,7 +312,6 @@ export default function GameLauncher() {
 
       <form onSubmit={startGame} className="mb-5">
         <div className="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-          <span>{messages.language}</span>
           {LANGUAGE_OPTIONS.map((option) => (
             <button
               key={option.code}
