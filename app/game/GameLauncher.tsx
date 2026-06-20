@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=7e5b0cc'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=30b1926'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -38,6 +38,10 @@ const MESSAGES = {
     onDemandLoading: 'On-demand loading',
     infiniteWorld: 'Infinite chunks, minimap, and discovery',
     developerToolingEnabled: 'Developer tooling enabled',
+    fullWindow: 'Full window',
+    exitFullWindow: 'Exit window',
+    fullScreen: 'Full screen',
+    exitFullScreen: 'Exit full screen',
     startError: 'The world could not be started.',
     placeholder:
       'PixiJS, the generation worker, content definitions, and terrain resources are waiting behind the button.',
@@ -73,6 +77,10 @@ const MESSAGES = {
     onDemandLoading: '按需加载',
     infiniteWorld: '无限区块、小地图与探索迷雾',
     developerToolingEnabled: '开发工具已启用',
+    fullWindow: '全窗口',
+    exitFullWindow: '退出窗口',
+    fullScreen: '全屏',
+    exitFullScreen: '退出全屏',
     startError: '世界启动失败。',
     placeholder: 'PixiJS、生成 Worker、内容定义和地形资源都在按钮后按需等待加载。',
     footer:
@@ -162,6 +170,7 @@ const sizePresets = [
 
 export default function GameLauncher() {
   const { resolvedTheme } = useTheme()
+  const shellRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<GameHandle | null>(null)
   const mountedDevModeRef = useRef<boolean | null>(null)
@@ -176,9 +185,19 @@ export default function GameLauncher() {
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
   const [sizeIndex, setSizeIndex] = useState(0)
+  const [fullWindow, setFullWindow] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const effectiveTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
   const activeTerrainShowcase = devMode && terrainShowcase
   const messages = MESSAGES[locale]
+  const secondaryButtonClass =
+    'cursor-pointer rounded-xl border border-slate-300 bg-white/90 px-4 py-2.5 font-mono text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 disabled:cursor-default disabled:opacity-60 dark:border-cyan-800/50 dark:bg-cyan-950/60 dark:text-cyan-100 dark:hover:bg-cyan-900/70'
+  const toggleLabelClass =
+    'inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white/90 px-3 py-2.5 text-slate-700 shadow-sm transition hover:border-slate-400 hover:text-slate-900 dark:border-cyan-800/30 dark:bg-cyan-950/40 dark:text-cyan-100 dark:hover:border-cyan-700 dark:hover:bg-cyan-950/60'
+  const selectedLanguageClass =
+    'rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm dark:bg-cyan-300 dark:text-slate-950'
+  const idleLanguageClass =
+    'rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-cyan-950/60 dark:hover:text-cyan-100'
 
   useEffect(() => {
     setSeed(window.localStorage.getItem('alohayo-world:last-seed') || 'alohayo')
@@ -197,6 +216,25 @@ export default function GameLauncher() {
   useEffect(() => {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, locale)
   }, [locale])
+
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === shellRef.current)
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
+
+  useEffect(() => {
+    if (!fullWindow && !isFullscreen) {
+      document.body.style.overflow = ''
+      return
+    }
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [fullWindow, isFullscreen])
 
   const mountWithPreset = useCallback(
     async (presetIndex: number) => {
@@ -242,6 +280,21 @@ export default function GameLauncher() {
   const startGame = async (event: FormEvent) => {
     event.preventDefault()
     await mountWithPreset(sizeIndex)
+  }
+
+  const toggleFullWindow = () => {
+    setFullWindow((current) => !current)
+  }
+
+  const toggleFullscreen = async () => {
+    const shell = shellRef.current
+    if (!shell) return
+    if (document.fullscreenElement === shell) {
+      await document.exitFullscreen()
+      return
+    }
+    setFullWindow(true)
+    await shell.requestFullscreen()
   }
 
   useEffect(() => {
@@ -330,17 +383,22 @@ export default function GameLauncher() {
 
       <form onSubmit={startGame} className="mb-5">
         <div className="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-          {LANGUAGE_OPTIONS.map((option) => (
-            <button
-              key={option.code}
-              type="button"
-              onClick={() => setLocale(option.code)}
-              disabled={locale === option.code}
-              className="cursor-pointer rounded-lg border border-cyan-800/30 bg-cyan-950/40 px-3 py-2 text-cyan-100 disabled:cursor-default disabled:opacity-60"
-            >
-              {option.label}
-            </button>
-          ))}
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white/80 p-1 shadow-sm dark:border-cyan-800/30 dark:bg-slate-950/60">
+            {LANGUAGE_OPTIONS.map((option) => {
+              const selected = locale === option.code
+              return (
+                <button
+                  key={option.code}
+                  type="button"
+                  onClick={() => setLocale(option.code)}
+                  aria-pressed={selected}
+                  className={selected ? selectedLanguageClass : idleLanguageClass}
+                >
+                  {option.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <label htmlFor="world-seed" className="mb-2 block font-mono text-sm font-medium">
@@ -362,7 +420,7 @@ export default function GameLauncher() {
               if (state === 'running') await mountWithPreset(nextIndex)
             }}
             disabled={sizeIndex === sizePresets.length - 1 || state === 'loading'}
-            className="cursor-pointer rounded-lg border border-cyan-800 bg-cyan-950 px-5 py-3 font-mono text-sm font-bold text-cyan-100 transition hover:bg-cyan-900 disabled:cursor-default disabled:opacity-60"
+            className={secondaryButtonClass}
           >
             {messages.sizeNames[sizePresets[sizeIndex].name]} · {sizePresets[sizeIndex].width}×
             {sizePresets[sizeIndex].height}
@@ -373,7 +431,7 @@ export default function GameLauncher() {
           <button
             type="submit"
             disabled={state === 'loading'}
-            className="cursor-pointer rounded-lg bg-cyan-700 px-6 py-3 font-bold text-white transition hover:bg-cyan-600 disabled:cursor-wait disabled:opacity-60"
+            className="cursor-pointer rounded-xl bg-cyan-600 px-6 py-3 font-bold text-white shadow-sm transition hover:bg-cyan-500 disabled:cursor-wait disabled:opacity-60 dark:bg-cyan-700 dark:hover:bg-cyan-600"
           >
             {state === 'loading'
               ? messages.surveying
@@ -383,7 +441,7 @@ export default function GameLauncher() {
           </button>
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-          <label className="inline-flex items-center gap-2 rounded-lg border border-cyan-800/30 bg-cyan-950/40 px-3 py-2 text-cyan-100">
+          <label className={toggleLabelClass}>
             <input
               type="checkbox"
               checked={devMode}
@@ -394,7 +452,7 @@ export default function GameLauncher() {
           </label>
           {devMode && (
             <>
-              <label className="inline-flex items-center gap-2 rounded-lg border border-cyan-800/30 bg-cyan-950/40 px-3 py-2 text-cyan-100">
+              <label className={toggleLabelClass}>
                 <input
                   type="checkbox"
                   checked={terrainShowcase}
@@ -426,6 +484,19 @@ export default function GameLauncher() {
         {devMode && <span>{messages.developerToolingEnabled}</span>}
       </div>
 
+      <div className="mb-3 flex flex-wrap gap-3">
+        <button type="button" onClick={toggleFullWindow} className={secondaryButtonClass}>
+          {fullWindow ? messages.exitFullWindow : messages.fullWindow}
+        </button>
+        <button
+          type="button"
+          onClick={() => void toggleFullscreen()}
+          className={secondaryButtonClass}
+        >
+          {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+        </button>
+      </div>
+
       {state === 'error' && (
         <p
           role="alert"
@@ -436,15 +507,28 @@ export default function GameLauncher() {
       )}
 
       <div
-        ref={containerRef}
-        className="relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]"
-        aria-live="polite"
+        ref={shellRef}
+        className={
+          fullWindow
+            ? 'fixed inset-3 z-50 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-2xl backdrop-blur sm:inset-6 sm:p-5 dark:border-gray-700 dark:bg-slate-950/95'
+            : 'relative'
+        }
       >
-        {state === 'idle' && (
-          <div className="grid h-full place-items-center p-8 text-center font-mono text-sm text-slate-400">
-            {messages.placeholder}
-          </div>
-        )}
+        <div
+          ref={containerRef}
+          className={
+            fullWindow
+              ? 'relative h-[calc(100vh-2rem)] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl sm:h-[calc(100vh-4rem)] dark:border-gray-700 dark:bg-[#07111f]'
+              : 'relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]'
+          }
+          aria-live="polite"
+        >
+          {state === 'idle' && (
+            <div className="grid h-full place-items-center p-8 text-center font-mono text-sm text-slate-400">
+              {messages.placeholder}
+            </div>
+          )}
+        </div>
       </div>
 
       <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
