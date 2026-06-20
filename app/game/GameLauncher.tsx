@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=24a20b5'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=7e5b0cc'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -29,6 +29,8 @@ const MESSAGES = {
     devMode: 'Dev mode',
     devModeEnabled:
       'Battle shadow, fast move, flight, shift-click teleport, free camera, zoom, and equipment testing are enabled.',
+    terrainShowcase: 'Terrain showcase',
+    terrainShowcaseEnabled: 'Forces every core terrain type near the start for testing.',
     rendererChecking: 'Checking renderer...',
     rendererReady: 'WebGL2 ready',
     rendererFallback: 'Canvas fallback',
@@ -62,6 +64,8 @@ const MESSAGES = {
     maximum: '最大',
     devMode: '开发模式',
     devModeEnabled: '已启用战斗阴影、快速移动、飞行、Shift 点击传送、自由镜头、缩放与装备测试。',
+    terrainShowcase: '地形展示',
+    terrainShowcaseEnabled: '在起点附近强制生成全部核心地形，便于测试。',
     rendererChecking: '正在检查渲染器...',
     rendererReady: 'WebGL2 已就绪',
     rendererFallback: '使用 Canvas 回退',
@@ -112,6 +116,7 @@ interface GameModule {
     assetBaseUrl?: string
     devMode?: boolean
     locale?: LocaleCode
+    theme?: 'light' | 'dark'
     initialWorld?: {
       seed?: string
       width?: number
@@ -119,6 +124,7 @@ interface GameModule {
       chunkRadius?: number
       retainChunkRadius?: number
       minimapChunkRadius?: number
+      mapAreaIds?: string[]
     }
   }): Promise<GameHandle>
 }
@@ -159,16 +165,19 @@ export default function GameLauncher() {
   const containerRef = useRef<HTMLDivElement>(null)
   const gameRef = useRef<GameHandle | null>(null)
   const mountedDevModeRef = useRef<boolean | null>(null)
+  const mountedTerrainShowcaseRef = useRef<boolean | null>(null)
   const mountedLocaleRef = useRef<LocaleCode | null>(null)
   const mountedThemeRef = useRef<'light' | 'dark' | null>(null)
   const [seed, setSeed] = useState('alohayo')
   const [devMode, setDevMode] = useState(false)
+  const [terrainShowcase, setTerrainShowcase] = useState(false)
   const [locale, setLocale] = useState<LocaleCode>('en')
   const [state, setState] = useState<LauncherState>('idle')
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
   const [sizeIndex, setSizeIndex] = useState(0)
   const effectiveTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
+  const activeTerrainShowcase = devMode && terrainShowcase
   const messages = MESSAGES[locale]
 
   useEffect(() => {
@@ -214,9 +223,11 @@ export default function GameLauncher() {
             chunkRadius: preset.chunkRadius,
             retainChunkRadius: preset.retainChunkRadius,
             minimapChunkRadius: preset.minimapChunkRadius,
+            mapAreaIds: activeTerrainShowcase ? ['core:terrain-showcase'] : [],
           },
         })
         mountedDevModeRef.current = devMode
+        mountedTerrainShowcaseRef.current = activeTerrainShowcase
         mountedLocaleRef.current = locale
         mountedThemeRef.current = effectiveTheme
         setState('running')
@@ -225,7 +236,7 @@ export default function GameLauncher() {
         setState('error')
       }
     },
-    [devMode, effectiveTheme, locale, messages.startError, seed]
+    [activeTerrainShowcase, devMode, effectiveTheme, locale, messages.startError, seed]
   )
 
   const startGame = async (event: FormEvent) => {
@@ -267,6 +278,13 @@ export default function GameLauncher() {
 
     void mountWithPreset(sizeIndex)
   }, [devMode, mountWithPreset, sizeIndex, state])
+
+  useEffect(() => {
+    if (state !== 'running' || !gameRef.current) return
+    if (mountedTerrainShowcaseRef.current === activeTerrainShowcase) return
+
+    void mountWithPreset(sizeIndex)
+  }, [activeTerrainShowcase, mountWithPreset, sizeIndex, state])
 
   useEffect(() => {
     if (state !== 'running' || !gameRef.current) return
@@ -374,7 +392,23 @@ export default function GameLauncher() {
             />
             {messages.devMode}
           </label>
-          {devMode && <span>{messages.devModeEnabled}</span>}
+          {devMode && (
+            <>
+              <label className="inline-flex items-center gap-2 rounded-lg border border-cyan-800/30 bg-cyan-950/40 px-3 py-2 text-cyan-100">
+                <input
+                  type="checkbox"
+                  checked={terrainShowcase}
+                  onChange={(event) => setTerrainShowcase(event.target.checked)}
+                  className="h-4 w-4 accent-cyan-500"
+                />
+                {messages.terrainShowcase}
+              </label>
+              <span>
+                {messages.devModeEnabled}
+                {terrainShowcase ? ` ${messages.terrainShowcaseEnabled}` : ''}
+              </span>
+            </>
+          )}
         </div>
       </form>
 
