@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=30b1926'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=0353449'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -42,6 +42,8 @@ const MESSAGES = {
     exitFullWindow: 'Exit window',
     fullScreen: 'Full screen',
     exitFullScreen: 'Exit full screen',
+    returnToEmbed: 'Return to page',
+    escapeHint: 'Esc also exits full screen',
     startError: 'The world could not be started.',
     placeholder:
       'PixiJS, the generation worker, content definitions, and terrain resources are waiting behind the button.',
@@ -81,6 +83,8 @@ const MESSAGES = {
     exitFullWindow: '退出窗口',
     fullScreen: '全屏',
     exitFullScreen: '退出全屏',
+    returnToEmbed: '返回页面',
+    escapeHint: '也可以按 Esc 退出全屏',
     startError: '世界启动失败。',
     placeholder: 'PixiJS、生成 Worker、内容定义和地形资源都在按钮后按需等待加载。',
     footer:
@@ -219,7 +223,11 @@ export default function GameLauncher() {
 
   useEffect(() => {
     const onFullscreenChange = () => {
-      setIsFullscreen(document.fullscreenElement === shellRef.current)
+      const active = document.fullscreenElement === shellRef.current
+      setIsFullscreen(active)
+      if (!active) {
+        setFullWindow(false)
+      }
     }
     document.addEventListener('fullscreenchange', onFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
@@ -282,7 +290,13 @@ export default function GameLauncher() {
     await mountWithPreset(sizeIndex)
   }
 
-  const toggleFullWindow = () => {
+  const toggleFullWindow = async () => {
+    if (isFullscreen && document.fullscreenElement === shellRef.current) {
+      await document.exitFullscreen()
+      setIsFullscreen(false)
+      setFullWindow(false)
+      return
+    }
     setFullWindow((current) => !current)
   }
 
@@ -291,10 +305,20 @@ export default function GameLauncher() {
     if (!shell) return
     if (document.fullscreenElement === shell) {
       await document.exitFullscreen()
+      setIsFullscreen(false)
+      setFullWindow(false)
       return
     }
     setFullWindow(true)
     await shell.requestFullscreen()
+  }
+
+  const returnToEmbedded = async () => {
+    if (document.fullscreenElement === shellRef.current) {
+      await document.exitFullscreen()
+    }
+    setIsFullscreen(false)
+    setFullWindow(false)
   }
 
   useEffect(() => {
@@ -485,7 +509,11 @@ export default function GameLauncher() {
       </div>
 
       <div className="mb-3 flex flex-wrap gap-3">
-        <button type="button" onClick={toggleFullWindow} className={secondaryButtonClass}>
+        <button
+          type="button"
+          onClick={() => void toggleFullWindow()}
+          className={secondaryButtonClass}
+        >
           {fullWindow ? messages.exitFullWindow : messages.fullWindow}
         </button>
         <button
@@ -514,6 +542,31 @@ export default function GameLauncher() {
             : 'relative'
         }
       >
+        {(fullWindow || isFullscreen) && (
+          <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex justify-end sm:inset-x-5 sm:top-5">
+            <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur dark:border-cyan-800/40 dark:bg-slate-950/90">
+              <button
+                type="button"
+                onClick={() => void toggleFullscreen()}
+                className={secondaryButtonClass}
+              >
+                {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+              </button>
+              <button
+                type="button"
+                onClick={() => void returnToEmbedded()}
+                className={secondaryButtonClass}
+              >
+                {messages.returnToEmbed}
+              </button>
+              {isFullscreen && (
+                <span className="px-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                  {messages.escapeHint}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
         <div
           ref={containerRef}
           className={

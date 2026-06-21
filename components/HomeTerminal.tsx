@@ -183,6 +183,47 @@ function getStatColor(value: number): string {
   return colors[level]
 }
 
+function getPokemonTypeStyle(type?: string) {
+  switch (type) {
+    case 'fire':
+      return {
+        glow: 'from-orange-500/25 via-amber-400/10 to-transparent',
+        ring: 'ring-orange-300/40 dark:ring-orange-500/30',
+      }
+    case 'water':
+      return {
+        glow: 'from-sky-500/25 via-cyan-400/10 to-transparent',
+        ring: 'ring-sky-300/40 dark:ring-cyan-500/30',
+      }
+    case 'electric':
+      return {
+        glow: 'from-yellow-400/25 via-amber-300/10 to-transparent',
+        ring: 'ring-yellow-300/50 dark:ring-yellow-500/30',
+      }
+    case 'grass':
+      return {
+        glow: 'from-lime-500/25 via-emerald-400/10 to-transparent',
+        ring: 'ring-lime-300/40 dark:ring-emerald-500/30',
+      }
+    case 'psychic':
+      return {
+        glow: 'from-pink-500/25 via-fuchsia-400/10 to-transparent',
+        ring: 'ring-pink-300/40 dark:ring-fuchsia-500/30',
+      }
+    case 'ghost':
+    case 'dragon':
+      return {
+        glow: 'from-violet-500/25 via-indigo-400/10 to-transparent',
+        ring: 'ring-violet-300/40 dark:ring-violet-500/30',
+      }
+    default:
+      return {
+        glow: 'from-cyan-500/20 via-sky-400/10 to-transparent',
+        ring: 'ring-slate-300/60 dark:ring-cyan-500/20',
+      }
+  }
+}
+
 // --- Pokemon Modal ---
 
 interface PokemonData {
@@ -215,12 +256,16 @@ function PokemonModal({
     return () => document.removeEventListener('keydown', handleEsc)
   }, [onClose])
 
+  const primaryType = pokemon?.types[0]
+  const typeStyle = getPokemonTypeStyle(primaryType)
+
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      aria-labelledby="pokemon-modal-title"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 px-4 backdrop-blur-md"
       onClick={onClose}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose()
@@ -230,98 +275,157 @@ function PokemonModal({
       <div
         role="document"
         id="pokemon-modal"
-        className="relative mx-4 w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-[#1e1e2e]"
+        className={`relative w-full max-w-2xl overflow-hidden rounded-[28px] border border-white/70 bg-white/92 shadow-[0_30px_90px_rgba(15,23,42,0.24)] ring-1 ${typeStyle.ring} dark:border-white/10 dark:bg-slate-950/92`}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.stopPropagation()}
       >
+        <div
+          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${typeStyle.glow}`}
+        />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.65),transparent_70%)] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),transparent_70%)]" />
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-gray-200"
+          className="absolute top-4 right-4 z-10 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+          aria-label="Close Pokemon dialog"
         >
           ✕
         </button>
 
         {loading && (
-          <div className="flex h-64 items-center justify-center">
-            <div className="h-10 w-10 animate-spin rounded-full border-4 border-gray-300 border-t-blue-500" />
+          <div className="flex h-72 flex-col items-center justify-center gap-4">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-cyan-500 dark:border-slate-700 dark:border-t-cyan-300" />
+            <p className="font-mono text-sm text-slate-500 dark:text-slate-300">
+              Scanning tall grass…
+            </p>
           </div>
         )}
 
         {!loading && pokemon && (
-          <div className="text-center">
-            <img
-              src={pokemon.sprite}
-              alt={pokemon.name}
-              className="pixelated mx-auto h-32 w-32"
-              style={{ imageRendering: 'pixelated' }}
-            />
-            <h3 className="mt-2 text-xl font-bold text-gray-900 capitalize dark:text-white">
-              {pokemon.name}
-              <span className="ml-2 text-sm font-normal text-gray-400">#{pokemon.id}</span>
-            </h3>
-            <div className="mt-2 flex justify-center gap-2">
-              {pokemon.types.map((type) => (
-                <span
-                  key={type}
-                  className={`rounded-full px-3 py-0.5 text-xs font-medium capitalize ${typeColors[type] || 'bg-gray-400 text-white'}`}
-                >
-                  {type}
-                </span>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-left text-sm">
-              <div className="text-gray-500 dark:text-gray-400">
-                Height:{' '}
-                <span className="text-gray-900 dark:text-gray-200">{pokemon.height / 10}m</span>
+          <div className="relative grid gap-0 md:grid-cols-[0.95fr_1.05fr]">
+            <div className="relative flex min-h-[320px] flex-col items-center justify-center overflow-hidden px-6 py-8 md:px-8">
+              <div className="absolute top-6 left-6 rounded-full border border-white/70 bg-white/75 px-3 py-1 font-mono text-[11px] tracking-[0.28em] text-slate-500 uppercase shadow-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
+                Daily Catch
               </div>
-              <div className="text-gray-500 dark:text-gray-400">
-                Weight:{' '}
-                <span className="text-gray-900 dark:text-gray-200">{pokemon.weight / 10}kg</span>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8),transparent_58%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),transparent_58%)]" />
+              <div className="relative flex h-44 w-44 items-center justify-center rounded-full border border-white/70 bg-white/80 shadow-[0_18px_50px_rgba(15,23,42,0.15)] dark:border-white/10 dark:bg-slate-900/65">
+                <div className="absolute inset-5 rounded-full border border-dashed border-slate-200 dark:border-slate-700" />
+                <img
+                  src={pokemon.sprite}
+                  alt={pokemon.name}
+                  className="pixelated relative z-10 h-32 w-32 drop-shadow-[0_10px_20px_rgba(15,23,42,0.2)]"
+                  style={{ imageRendering: 'pixelated' }}
+                />
               </div>
-            </div>
-            <div className="mt-3 text-left">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Abilities</p>
-              <p className="text-sm text-gray-700 capitalize dark:text-gray-300">
-                {pokemon.abilities.join(', ')}
+              <p className="relative mt-5 font-mono text-xs tracking-[0.24em] text-slate-500 uppercase dark:text-slate-400">
+                A neat little companion wandered in
               </p>
             </div>
-            <div className="mt-3 space-y-1 text-left">
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Stats</p>
-              {pokemon.stats.map((stat) => (
-                <div key={stat.name} className="flex items-center gap-2">
-                  <span className="w-16 text-xs text-gray-500 capitalize dark:text-gray-400">
-                    {stat.name.replace('special-', 'sp.')}
-                  </span>
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${Math.min(100, (stat.value / 255) * 100)}%`,
-                        backgroundColor: getStatColor(stat.value),
-                      }}
-                    />
-                  </div>
-                  <span className="w-8 text-right text-xs text-gray-600 dark:text-gray-300">
-                    {stat.value}
-                  </span>
+
+            <div className="relative border-t border-slate-200/80 px-6 py-6 md:border-t-0 md:border-l md:px-8 dark:border-white/10">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <h3
+                    id="pokemon-modal-title"
+                    className="text-3xl font-black text-slate-900 capitalize dark:text-white"
+                  >
+                    {pokemon.name}
+                  </h3>
+                  <p className="mt-1 font-mono text-sm text-slate-400 dark:text-slate-500">
+                    #{pokemon.id.toString().padStart(4, '0')}
+                  </p>
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <button
-                onClick={onReroll}
-                className="cursor-pointer rounded-lg bg-blue-500 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-600"
-              >
-                🎲 Catch another!
-              </button>
-              <a
-                href={`https://wiki.52poke.com/wiki/${pokemon.name}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-              >
-                📖 Wiki
-              </a>
+                <div className="flex flex-wrap justify-end gap-2">
+                  {pokemon.types.map((type) => (
+                    <span
+                      key={type}
+                      className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase ${typeColors[type] || 'bg-gray-400 text-white'}`}
+                    >
+                      {type}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                  <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
+                    Height
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {pokemon.height / 10}m
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                  <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
+                    Weight
+                  </p>
+                  <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
+                    {pokemon.weight / 10}kg
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
+                <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
+                  Abilities
+                </p>
+                <p className="mt-2 text-sm leading-6 text-slate-700 capitalize dark:text-slate-300">
+                  {pokemon.abilities.join(', ')}
+                </p>
+              </div>
+
+              <div className="mt-5 space-y-2">
+                <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
+                  Battle Readout
+                </p>
+                {pokemon.stats.map((stat) => (
+                  <div
+                    key={stat.name}
+                    className="rounded-2xl border border-slate-200/70 bg-white/70 px-3 py-2.5 dark:border-white/10 dark:bg-white/5"
+                  >
+                    <div className="mb-1.5 flex items-center justify-between gap-3">
+                      <span className="text-xs font-medium text-slate-500 capitalize dark:text-slate-400">
+                        {stat.name.replace('special-', 'sp.')}
+                      </span>
+                      <span className="font-mono text-xs text-slate-600 dark:text-slate-300">
+                        {stat.value}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                      <div
+                        className="h-full rounded-full transition-[width]"
+                        style={{
+                          width: `${Math.min(100, (stat.value / 255) * 100)}%`,
+                          backgroundColor: getStatColor(stat.value),
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={onReroll}
+                  className="cursor-pointer rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:from-cyan-500 hover:to-blue-500"
+                >
+                  🎲 Catch another
+                </button>
+                <a
+                  href={`https://wiki.52poke.com/wiki/${pokemon.name}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-2xl border border-slate-300 bg-white/75 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
+                >
+                  📖 Open wiki
+                </a>
+                <button
+                  onClick={onClose}
+                  className="rounded-2xl px-2 py-2 text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                >
+                  Back to terminal
+                </button>
+              </div>
             </div>
           </div>
         )}
