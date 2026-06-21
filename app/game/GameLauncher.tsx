@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=0353449'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=4f900d6'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -241,6 +241,25 @@ export default function GameLauncher() {
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = ''
+    }
+  }, [fullWindow, isFullscreen])
+
+  useEffect(() => {
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>('#waifu, #waifu-tool, #live2d-widget, [id^="waifu-"]')
+    )
+    if (!nodes.length) return
+
+    const shouldHide = fullWindow || isFullscreen
+    const previousDisplays = nodes.map((node) => node.style.display)
+    for (const node of nodes) {
+      node.style.display = shouldHide ? 'none' : ''
+    }
+
+    return () => {
+      nodes.forEach((node, index) => {
+        node.style.display = previousDisplays[index] ?? ''
+      })
     }
   }, [fullWindow, isFullscreen])
 
