@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=fd67fb4'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=f9cc17a'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
