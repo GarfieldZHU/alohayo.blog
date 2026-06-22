@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=b9f80e1'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=26516e4'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -173,9 +173,12 @@ const sizePresets = [
 ] as const
 
 export default function GameLauncher() {
+  const TOP_RIGHT_HIDE_DELAY_MS = 3000
+  const TOP_RIGHT_CLEARANCE_PX = 64
   const { resolvedTheme } = useTheme()
   const shellRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const overlayHideTimerRef = useRef<number | null>(null)
   const gameRef = useRef<GameHandle | null>(null)
   const mountedDevModeRef = useRef<boolean | null>(null)
   const mountedTerrainShowcaseRef = useRef<boolean | null>(null)
@@ -191,6 +194,7 @@ export default function GameLauncher() {
   const [sizeIndex, setSizeIndex] = useState(0)
   const [fullWindow, setFullWindow] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [topRightControlsVisible, setTopRightControlsVisible] = useState(false)
   const effectiveTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
   const activeTerrainShowcase = devMode && terrainShowcase
   const messages = MESSAGES[locale]
@@ -243,6 +247,53 @@ export default function GameLauncher() {
       document.body.style.overflow = ''
     }
   }, [fullWindow, isFullscreen])
+
+  const clearOverlayHideTimer = useCallback(() => {
+    if (overlayHideTimerRef.current !== null) {
+      window.clearTimeout(overlayHideTimerRef.current)
+      overlayHideTimerRef.current = null
+    }
+  }, [])
+
+  const scheduleOverlayHide = useCallback(() => {
+    clearOverlayHideTimer()
+    overlayHideTimerRef.current = window.setTimeout(() => {
+      setTopRightControlsVisible(false)
+      overlayHideTimerRef.current = null
+    }, TOP_RIGHT_HIDE_DELAY_MS)
+  }, [clearOverlayHideTimer, TOP_RIGHT_HIDE_DELAY_MS])
+
+  const revealTopRightControls = useCallback(() => {
+    setTopRightControlsVisible(true)
+    scheduleOverlayHide()
+  }, [scheduleOverlayHide])
+
+  useEffect(() => {
+    if (!fullWindow && !isFullscreen) {
+      clearOverlayHideTimer()
+      setTopRightControlsVisible(false)
+      return
+    }
+
+    revealTopRightControls()
+    return () => {
+      clearOverlayHideTimer()
+    }
+  }, [clearOverlayHideTimer, fullWindow, isFullscreen, revealTopRightControls])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    container.style.setProperty(
+      '--alohayo-top-right-clearance',
+      topRightControlsVisible ? `${TOP_RIGHT_CLEARANCE_PX}px` : '0px'
+    )
+    container.style.setProperty('--alohayo-minimap-toolbar-top', '44px')
+    return () => {
+      container.style.removeProperty('--alohayo-top-right-clearance')
+      container.style.removeProperty('--alohayo-minimap-toolbar-top')
+    }
+  }, [TOP_RIGHT_CLEARANCE_PX, topRightControlsVisible])
 
   useEffect(() => {
     const nodes = Array.from(
@@ -562,29 +613,44 @@ export default function GameLauncher() {
         }
       >
         {(fullWindow || isFullscreen) && (
-          <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex justify-end sm:inset-x-5 sm:top-5">
-            <div className="pointer-events-auto flex max-w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur dark:border-cyan-800/40 dark:bg-slate-950/90">
-              <button
-                type="button"
-                onClick={() => void toggleFullscreen()}
-                className={secondaryButtonClass}
+          <>
+            <div
+              className="absolute top-3 right-3 z-20 h-16 w-[min(22rem,calc(100%-2rem))] sm:top-5 sm:right-5 sm:w-[22rem]"
+              onMouseEnter={revealTopRightControls}
+              aria-hidden="true"
+            />
+            <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex justify-end sm:inset-x-5 sm:top-5">
+              <div
+                className={`pointer-events-auto flex max-w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur transition-all duration-300 dark:border-cyan-800/40 dark:bg-slate-950/90 ${
+                  topRightControlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
+                }`}
+                onMouseEnter={revealTopRightControls}
+                onMouseLeave={scheduleOverlayHide}
+                onFocus={revealTopRightControls}
+                onBlur={scheduleOverlayHide}
               >
-                {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
-              </button>
-              <button
-                type="button"
-                onClick={() => void returnToEmbedded()}
-                className={secondaryButtonClass}
-              >
-                {messages.returnToEmbed}
-              </button>
-              {isFullscreen && (
-                <span className="px-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                  {messages.escapeHint}
-                </span>
-              )}
+                <button
+                  type="button"
+                  onClick={() => void toggleFullscreen()}
+                  className={secondaryButtonClass}
+                >
+                  {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void returnToEmbedded()}
+                  className={secondaryButtonClass}
+                >
+                  {messages.returnToEmbed}
+                </button>
+                {isFullscreen && (
+                  <span className="px-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                    {messages.escapeHint}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
+          </>
         )}
         <div
           ref={containerRef}
