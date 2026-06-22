@@ -71,7 +71,10 @@ const waifuMenuMessages: Record<string, string[]> = {
 function showWaifuMenuHint(menuId: string) {
   const msgs = waifuMenuMessages[menuId]
   if (!msgs) return
-  showWaifuMessage(msgs[Math.floor(Math.random() * msgs.length)], 4000)
+  showWaifuMessage(
+    msgs[Math.floor(Math.random() * msgs.length)],
+    menuId === 'pokemon' ? 6500 : 4000
+  )
 }
 
 import { renderNeonText, renderGamerText } from './NeonFlicker'
@@ -283,14 +286,6 @@ function PokemonModal({
           className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${typeStyle.glow}`}
         />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.65),transparent_70%)] dark:bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.1),transparent_70%)]" />
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
-          aria-label="Close Pokemon dialog"
-        >
-          ✕
-        </button>
-
         {loading && (
           <div className="flex h-72 flex-col items-center justify-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-cyan-500 dark:border-slate-700 dark:border-t-cyan-300" />
@@ -334,15 +329,24 @@ function PokemonModal({
                     #{pokemon.id.toString().padStart(4, '0')}
                   </p>
                 </div>
-                <div className="flex flex-wrap justify-end gap-2">
-                  {pokemon.types.map((type) => (
-                    <span
-                      key={type}
-                      className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase ${typeColors[type] || 'bg-gray-400 text-white'}`}
-                    >
-                      {type}
-                    </span>
-                  ))}
+                <div className="flex shrink-0 flex-col items-end gap-3">
+                  <button
+                    onClick={onClose}
+                    className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
+                    aria-label="Close Pokemon dialog"
+                  >
+                    ✕
+                  </button>
+                  <div className="flex max-w-[11rem] flex-wrap justify-end gap-2">
+                    {pokemon.types.map((type) => (
+                      <span
+                        key={type}
+                        className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase ${typeColors[type] || 'bg-gray-400 text-white'}`}
+                      >
+                        {type}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -769,7 +773,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
         `<span>${pokeName}</span> 出现了！快用宝可梦球收服它！`,
         `好可爱的 <span>${pokeName}</span>！主人一定很想要这只！`,
       ]
-      showWaifuMessage(pokeMsgs[Math.floor(Math.random() * pokeMsgs.length)])
+      showWaifuMessage(pokeMsgs[Math.floor(Math.random() * pokeMsgs.length)], 8500)
     } catch {
       setPokemonData(null)
     } finally {
