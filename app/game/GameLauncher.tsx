@@ -616,8 +616,9 @@ export default function GameLauncher() {
         {(fullWindow || isFullscreen) && (
           <>
             <div
-              className="absolute top-3 right-3 z-20 h-16 w-[min(22rem,calc(100%-2rem))] sm:top-5 sm:right-5 sm:w-[22rem]"
+              className="absolute top-0 right-0 z-20 h-24 w-[min(24rem,100%)]"
               onMouseEnter={revealTopRightControls}
+              onMouseMove={revealTopRightControls}
               aria-hidden="true"
             />
             <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex justify-end sm:inset-x-5 sm:top-5">
