@@ -3,7 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { opencodeSplash } from '@/data/splashes/opencode'
+import {
+  DEFAULT_HOME_SPLASH_ID,
+  getHomeSplashById,
+  visibleHomeSplashes,
+} from '@/data/splashes/home'
 import { quotes } from '@/data/quotes'
 
 // --- Live2D interaction helper ---
@@ -643,11 +647,19 @@ interface HomeTerminalProps {
   posts: Array<{ slug: string; title: string; summary?: string; tags: string[] }>
 }
 
+const HOME_SPLASH_STORAGE_KEY = 'alohayo-home-splash'
+
 export default function HomeTerminal({ posts }: HomeTerminalProps) {
   const router = useRouter()
   const [appState, setAppState] = useState<AppState>('splash')
   const [splashStage, setSplashStage] = useState<'typing-cmd' | 'showing' | 'done'>('typing-cmd')
   const [typedCmd, setTypedCmd] = useState('')
+  const [activeSplashId, setActiveSplashId] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_HOME_SPLASH_ID
+    const stored = window.localStorage.getItem(HOME_SPLASH_STORAGE_KEY)
+    const resolved = getHomeSplashById(stored || '')
+    return resolved && !resolved.hidden ? resolved.id : DEFAULT_HOME_SPLASH_ID
+  })
   const [activeOption, setActiveOption] = useState(0)
   const [menuPromptTyped, setMenuPromptTyped] = useState('')
 
@@ -669,6 +681,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   const lastScrollY = useRef(0)
   const [carouselProgress, setCarouselProgress] = useState(0)
   const carouselPaused = useRef(false)
+  const activeSplash = getHomeSplashById(activeSplashId) ?? visibleHomeSplashes[0]
 
   useEffect(() => {
     const handleScroll = () => {
@@ -685,6 +698,11 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(HOME_SPLASH_STORAGE_KEY, activeSplash.id)
+  }, [activeSplash.id])
 
   useEffect(() => {
     if (appState !== 'menu' || menuPromptTyped !== menuPrompt) return
@@ -704,7 +722,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   // --- Splash animation ---
   useEffect(() => {
     if (appState !== 'splash') return
-    const cmd = opencodeSplash.cmd
+    const cmd = activeSplash.cmd
     if (splashStage === 'typing-cmd') {
       if (typedCmd.length < cmd.length) {
         const t = setTimeout(() => setTypedCmd(cmd.slice(0, typedCmd.length + 1)), 40)
@@ -722,10 +740,31 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       const t = setTimeout(() => setAppState('menu'), 200)
       return () => clearTimeout(t)
     }
-  }, [appState, splashStage, typedCmd])
+  }, [appState, splashStage, typedCmd, activeSplash.cmd])
 
   // --- Menu prompt typing ---
   const menuPrompt = "Hi, I'm AlohaYo. What would you like me to do?"
+
+  const replaySplash = useCallback(() => {
+    carouselPaused.current = false
+    setCarouselProgress(0)
+    setTypedCmd('')
+    setMenuPromptTyped('')
+    setSplashStage('typing-cmd')
+    setAppState('splash')
+  }, [])
+
+  const cycleSplash = useCallback(() => {
+    if (visibleHomeSplashes.length <= 1) return
+    const currentIndex = visibleHomeSplashes.findIndex((splash) => splash.id === activeSplash.id)
+    const nextSplash =
+      visibleHomeSplashes[
+        (currentIndex + 1 + visibleHomeSplashes.length) % visibleHomeSplashes.length
+      ] ?? visibleHomeSplashes[0]
+    setActiveSplashId(nextSplash.id)
+    replaySplash()
+  }, [activeSplash.id, replaySplash])
+
   useEffect(() => {
     if (appState !== 'menu') return
     if (menuPromptTyped.length < menuPrompt.length) {
@@ -897,6 +936,13 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                   </button>
                 </div>
                 <span className="ml-3 text-gray-500 dark:text-[#7b7f87]">AlohaYo Terminal</span>
+                <button
+                  onClick={cycleSplash}
+                  className="ml-auto cursor-pointer rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 transition hover:border-cyan-300 hover:text-cyan-600 dark:border-gray-700 dark:text-[#7b7f87] dark:hover:border-cyan-700 dark:hover:text-cyan-300"
+                  title={`Switch banner (current: ${activeSplash.label})`}
+                >
+                  Banner: {activeSplash.label} ↻
+                </button>
               </div>
 
               {/* Content */}
@@ -913,7 +959,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                     {splashStage !== 'typing-cmd' && (
                       <>
                         <pre className="mt-2 text-xs leading-relaxed md:text-sm">
-                          {opencodeSplash.lines.map((line, i) => (
+                          {activeSplash.lines.map((line, i) => (
                             <span key={i} className={line.color}>
                               {line.text}
                               {'\n'}
@@ -927,7 +973,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                             <span className="h-2 w-2 animate-bounce rounded-full bg-green-500 [animation-delay:300ms]" />
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            Loading skill alohayo...
+                            {activeSplash.loadingText}
                           </span>
                         </div>
                       </>
