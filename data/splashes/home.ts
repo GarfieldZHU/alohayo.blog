@@ -1,5 +1,9 @@
 import { opencodeSplash } from './opencode'
 
+// Keep the visible name separate from the decorative glyphs. ASCII art is easy
+// to misread, so every home-splash variant carries this canonical spelling.
+export const ALOHAYO_WORDMARK = 'AlohaYo'
+
 export interface SplashLine {
   text: string
   color: string
@@ -17,19 +21,40 @@ export interface HomeSplash {
 export const homeSplashes: HomeSplash[] = [
   {
     id: 'alohayo',
-    label: 'AlohaYo',
+    label: ALOHAYO_WORDMARK,
     cmd: '$ alohayo --mood sunrise --skill terminal',
     loadingText: 'Warming up the terminal breeze...',
     lines: [
       { text: '', color: '' },
-      { text: '      _    _       _                 __   __', color: 'text-cyan-500' },
-      { text: '     / \\  | | ___ | |__   __ _ _   _ \\ \\ / /__', color: 'text-cyan-400' },
-      { text: "    / _ \\ | |/ _ \\| '_ \\ / _` | | | | \\ V / _ \\", color: 'text-sky-400' },
-      { text: '   / ___ \\| | (_) | | | | (_| | |_| |  | | (_) |', color: 'text-blue-400' },
-      { text: '  /_/   \\_\\_|\\___/|_| |_|\\__,_|\\__, |  |_|\\___/', color: 'text-indigo-400' },
-      { text: '                               |___/', color: 'text-indigo-300' },
+      {
+        text: '      █████╗ ██╗      ██████╗ ██╗  ██╗ █████╗ ██╗   ██╗ ██████╗',
+        color: 'text-cyan-500',
+      },
+      {
+        text: '      ██╔══██╗██║     ██╔═══██╗██║  ██║██╔══██╗╚██╗ ██╔╝██╔═══██╗',
+        color: 'text-cyan-400',
+      },
+      {
+        text: '      ███████║██║     ██║   ██║███████║███████║ ╚████╔╝ ██║   ██║',
+        color: 'text-sky-400',
+      },
+      {
+        text: '      ██╔══██║██║     ██║   ██║██╔══██║██╔══██║  ╚██╔╝  ██║   ██║',
+        color: 'text-blue-400',
+      },
+      {
+        text: '      ██║  ██║███████╗╚██████╔╝██║  ██║██║  ██║   ██║   ╚██████╔╝',
+        color: 'text-indigo-400',
+      },
+      {
+        text: '      ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝    ╚═════╝',
+        color: 'text-indigo-300',
+      },
       { text: '', color: '' },
-      { text: '                 Aloha, ohayoo~  ☀︎  ✦  ✿', color: 'text-orange-400' },
+      {
+        text: `                 ${ALOHAYO_WORDMARK} · Aloha, ohayoo~  ☀︎  ✦  ✿`,
+        color: 'text-orange-400',
+      },
       { text: '', color: '' },
       { text: '  cwd   ~/Home/Code/alohayo.blog', color: 'text-gray-500' },
       { text: '  mode  programmer × animation lover × world builder', color: 'text-cyan-400' },
@@ -40,7 +65,7 @@ export const homeSplashes: HomeSplash[] = [
   },
   {
     id: 'ohayoo-wave',
-    label: 'Ohayoo Wave',
+    label: `${ALOHAYO_WORDMARK} Wave`,
     cmd: '$ alohayo --banner wave --greet',
     loadingText: 'Tuning the morning waveform...',
     lines: [
@@ -56,7 +81,7 @@ export const homeSplashes: HomeSplash[] = [
       { text: '  │                           |__/               │', color: 'text-indigo-300' },
       { text: '  ╰──────────────────────────────────────────────╯', color: 'text-cyan-500' },
       { text: '', color: '' },
-      { text: '                ~  Aloha, ohayoo~  ~', color: 'text-pink-400' },
+      { text: `             ~  ${ALOHAYO_WORDMARK} · Aloha, ohayoo~  ~`, color: 'text-pink-400' },
       { text: '', color: '' },
       { text: '  cwd   ~/Home/Code/alohayo.blog', color: 'text-gray-500' },
       { text: '  scene code, games, anime glow, and a calm morning shell', color: 'text-cyan-400' },
