@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
 // Keep this hash aligned with the published alohayo-world release commit.
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=9c3d205'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=48139be'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -247,6 +247,13 @@ export default function GameLauncher() {
     return () => {
       document.body.style.overflow = ''
     }
+  }, [fullWindow, isFullscreen])
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event('resize'))
+    })
+    return () => window.cancelAnimationFrame(frame)
   }, [fullWindow, isFullscreen])
 
   const clearOverlayHideTimer = useCallback(() => {
@@ -609,7 +616,7 @@ export default function GameLauncher() {
         ref={shellRef}
         className={
           fullWindow
-            ? 'fixed inset-3 z-50 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-2xl backdrop-blur sm:inset-6 sm:p-5 dark:border-gray-700 dark:bg-slate-950/95'
+            ? 'fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden bg-slate-100 shadow-2xl dark:bg-[#07111f]'
             : 'relative'
         }
       >
@@ -658,7 +665,7 @@ export default function GameLauncher() {
           ref={containerRef}
           className={
             fullWindow
-              ? 'relative h-[calc(100vh-2rem)] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl sm:h-[calc(100vh-4rem)] dark:border-gray-700 dark:bg-[#07111f]'
+              ? 'relative h-full min-h-0 w-full overflow-hidden bg-slate-100 dark:bg-[#07111f]'
               : 'relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]'
           }
           aria-live="polite"
