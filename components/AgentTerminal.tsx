@@ -1,586 +1,350 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { opencodeSplash } from '@/data/splashes/opencode'
-import { claudeCodeSplash } from '@/data/splashes/claude-code'
-import { openclawSplash } from '@/data/splashes/openclaw'
+import { useState } from 'react'
 
-function renderMd(text: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = []
-  const regex = /(\*\*(.+?)\*\*|`(.+?)`)/g
-  let lastIndex = 0
-  let match: RegExpExecArray | null
+type Surface = 'app' | 'cli'
+type Terminal = 'codex' | 'opencode' | 'openclaw'
 
-  while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index))
-    }
-    if (match[2]) {
-      parts.push(
-        <span key={match.index} className="font-bold text-white">
-          {match[2]}
-        </span>
-      )
-    } else if (match[3]) {
-      parts.push(
-        <span key={match.index} className="rounded bg-gray-700/60 px-1 font-mono text-yellow-300">
-          {match[3]}
-        </span>
-      )
-    }
-    lastIndex = regex.lastIndex
-  }
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex))
-  }
-  return parts
-}
-
-type AgentLine =
-  | { type: 'text'; content: string }
-  | { type: 'labels'; items: { label: string; color: string }[] }
-
-const exchanges: { user: string; agent: AgentLine[] }[] = [
+const threads = [
   {
-    user: 'What kind of engineer are you?',
-    agent: [
-      {
-        type: 'labels',
-        items: [
-          { label: 'TypeScript', color: 'text-blue-400' },
-          { label: 'Java', color: 'text-red-400' },
-          { label: 'Rust', color: 'text-orange-400' },
-          { label: 'Python', color: 'text-yellow-400' },
-          { label: 'Go', color: 'text-sky-300' },
-          { label: 'C++', color: 'text-purple-400' },
-        ],
-      },
-      { type: 'text', content: '• Primary env: `React` + `TypeScript` at MicroStrategy' },
-      { type: 'text', content: '• Genuinely skilled, not resume-padding' },
-      {
-        type: 'text',
-        content: "• I have opinions and I'll share them whether you ask or not",
-      },
+    title: 'Refresh the Agent page',
+    state: 'Review ready',
+    tone: 'bg-emerald-400',
+    detail: '2 files · build passed',
+    goal: 'Update the Agent page with current knowledge and a richer interactive story.',
+    answer:
+      'The page is now a working model of the collaboration: a concrete project view, task states, and a terminal switcher.',
+    steps: [
+      'Read current page + conventions',
+      'Research primary sources',
+      'Implement the interaction model',
+      'Build and inspect the diff',
     ],
+    changed: ['app/agent/page.tsx', 'components/AgentTerminal.tsx'],
+    status: 'Ready for your review',
   },
   {
-    user: 'How do you approach debugging?',
-    agent: [
-      { type: 'text', content: '• Start with the **simplest hypothesis**' },
-      {
-        type: 'text',
-        content: '• Most bugs are embarrassingly simple — a typo, a stale cache, a wrong import',
-      },
-      {
-        type: 'text',
-        content:
-          "• Don't reach for the distributed tracing dashboard when `console.log` would've found it in 30 seconds",
-      },
+    title: 'Trace the deploy regression',
+    state: 'Investigating',
+    tone: 'bg-amber-400',
+    detail: 'logs + last deploy · 4m',
+    goal: 'Find why the production deploy slowed down without changing user-visible behavior.',
+    answer:
+      'I am correlating the deployment log with the last two commits before proposing a fix. No production action has been taken.',
+    steps: [
+      'Capture the failing deployment',
+      'Compare changed dependencies',
+      'Reproduce locally',
+      'Propose the narrowest fix',
     ],
+    changed: ['read-only investigation'],
+    status: 'Waiting on evidence',
   },
   {
-    user: "What's your code philosophy?",
-    agent: [
-      { type: 'text', content: '• Code readable cold **six months later**' },
-      { type: 'text', content: '• Structure reveals intent without comments' },
-      { type: 'text', content: '• Edge cases handled, not ignored' },
-      {
-        type: 'text',
-        content:
-          '• If your function needs a comment to explain what it does, **rename the function**',
-      },
+    title: 'Extract release notes',
+    state: 'Working',
+    tone: 'bg-sky-400',
+    detail: 'git history + docs · 2m',
+    goal: 'Turn the shipped changes into a short, human release note.',
+    answer:
+      'I am grouping commits by user outcome, leaving out internal churn, and linking any upgrade notes that need action.',
+    steps: [
+      'Read merged commits',
+      'Group by user outcome',
+      'Draft the release note',
+      'Check claims against diffs',
     ],
+    changed: ['notes/release-draft.md'],
+    status: 'Drafting the summary',
   },
   {
-    user: 'Will you sugarcoat feedback?',
-    agent: [
-      {
-        type: 'text',
-        content: "• No. If something's dumb, I'll say it — **charming, not cruel**",
-      },
-      { type: 'text', content: '• `"This shit is brilliant"` beats `"Great job!"`' },
-      { type: 'text', content: '• One is real, the other is corporate autopilot' },
-      { type: 'text', content: '• **Brevity is a virtue.** One sentence beats a paragraph.' },
+    title: 'Review the API boundary',
+    state: 'Queued',
+    tone: 'bg-slate-400',
+    detail: 'security pass · queued',
+    goal: 'Map the request path and spot unsafe trust boundaries before a feature expands it.',
+    answer:
+      'This thread is queued behind the current work. It will begin as an audit, not a rewrite.',
+    steps: [
+      'Map entry points',
+      'List trust transitions',
+      'Validate findings',
+      'Recommend scoped hardening',
     ],
+    changed: ['no files yet'],
+    status: 'Queued with bounded scope',
+  },
+  {
+    title: 'Prototype the reading mode',
+    state: 'Needs direction',
+    tone: 'bg-violet-400',
+    detail: 'design decision · paused',
+    goal: 'Explore a calmer reading experience for long technical posts.',
+    answer:
+      'There are two valid visual directions. I stopped before inventing product taste and left a concise decision request.',
+    steps: [
+      'Inspect existing typography',
+      'Sketch two directions',
+      'Ask for a preference',
+      'Implement the chosen route',
+    ],
+    changed: ['research only'],
+    status: 'Needs a human choice',
   },
 ]
 
-const creedData = [
-  {
-    rule: 'Have opinions, and be firm',
-    meaning: 'Take a stand. Admit when wrong — but only when actually wrong.',
+const terminalViews = {
+  codex: {
+    label: 'Codex CLI',
+    command: 'codex',
+    accent: 'text-sky-400',
+    prompt: 'alohayo:~/code/alohayo.blog$',
+    lines: [
+      ['›', 'Inspect the architecture before proposing a change.'],
+      ['↳', 'Found app/agent/page.tsx and one focused interactive surface.'],
+      ['›', 'Make the agent story current, personal, and verifiable.'],
+      ['↳', 'I’ll update the page, run the build, and leave the judgment call visible.'],
+    ],
+    note: 'A tight loop for one repo, one task, and evidence on demand.',
   },
-  {
-    rule: 'Answer directly, no preamble',
-    meaning: 'No "Great question!" niceties. Just the answer.',
-  },
-  { rule: 'Brevity is a virtue', meaning: "One sentence beats a paragraph. Don't ramble." },
-  {
-    rule: 'Humor is allowed',
-    meaning: 'Natural wit from real knowledge. "This shit is brilliant" beats corporate praise.',
-  },
-  { rule: 'Call out problems', meaning: "If something's dumb, say it — charming, not cruel." },
-  { rule: 'Swearing is allowed', meaning: 'Sparingly, for emphasis. Not performance.' },
-]
-
-const techStack = [
-  { label: 'TypeScript', color: 'text-blue-400' },
-  { label: 'Java', color: 'text-red-400' },
-  { label: 'Rust', color: 'text-orange-400' },
-  { label: 'Python', color: 'text-yellow-400' },
-  { label: 'Go', color: 'text-sky-300' },
-  { label: 'C++', color: 'text-purple-400' },
-]
-
-const splashScreens = {
-  opencode: opencodeSplash,
-  'claude-code': claudeCodeSplash,
-  openclaw: openclawSplash,
-}
-
-type ThemeName = 'opencode' | 'claude-code' | 'openclaw'
-
-const themes = {
   opencode: {
-    bg: 'bg-[#212121]',
-    text: 'text-[#e0e0e0]',
-    titleBar: 'bg-[#2a2a2a]',
-    titleText: 'Open Code- Sisyphus',
-    titleColor: 'text-[#7b7f87]',
-    userMsg: 'border-l-4 border-[#5c9cf5] pl-3 py-1',
-    userBg: '',
-    userColor: 'text-[#e0e0e0]',
-    agentMsg: 'border-l-4 border-[#fab283] pl-3 py-1',
-    agentColor: 'text-[#e0e0e0]',
-    userPrefix: '❯',
-    userPrefixColor: 'text-[#5c9cf5]',
-    agentPrefix: '⌬',
-    agentPrefixColor: 'text-[#fab283]',
-    footerText: 'claude-sonnet-4-20250514',
-    footerColor: 'text-[#7b7f87]',
-    primaryColor: 'text-pink-400',
-  },
-  'claude-code': {
-    bg: 'bg-[#1a1a2e]',
-    text: 'text-[#e0e0e0]',
-    titleBar: 'bg-[#16162a]',
-    titleText: 'Claude-Code',
-    titleColor: 'text-[#7b7f87]',
-    userMsg: 'py-1',
-    userBg: '',
-    userColor: 'text-[#e0e0e0]',
-    agentMsg: 'py-1',
-    agentColor: 'text-[#e0e0e0]',
-    userPrefix: '❯',
-    userPrefixColor: 'text-[#fab283]',
-    agentPrefix: '⚡',
-    agentPrefixColor: 'text-[#fab283]',
-    footerText: 'claude-sonnet-4-20250514',
-    footerColor: 'text-[#7b7f87]',
-    primaryColor: 'text-pink-400',
+    label: 'OpenCode TUI',
+    command: 'opencode --skill alohayo',
+    accent: 'text-orange-300',
+    prompt: 'AlohaYo@blog ~/agent',
+    lines: [
+      ['❯', 'Read the page, then propose a stronger structure.'],
+      [
+        '⌬',
+        'I found a static terminal demo. I’ll keep the character and make its task state useful.',
+      ],
+      ['❯', 'Show the app workflow too.'],
+      ['⌬', 'Done: project threads above, direct terminal craft below.'],
+    ],
+    note: 'A dense, keyboard-first conversation when you want the work close to the code.',
   },
   openclaw: {
-    bg: 'bg-[#1e1e2e]',
-    text: 'text-[#E8E3D5]',
-    titleBar: 'bg-[#181825]',
-    titleText: 'OpenClaw',
-    titleColor: 'text-[#7B7F87]',
-    userMsg: 'p-2 rounded mt-1 mb-2',
-    userBg: 'bg-[#2B2F36]',
-    userColor: 'text-[#F3EEE0]',
-    agentMsg: 'py-1',
-    agentColor: 'text-[#E8E3D5]',
-    userPrefix: '→',
-    userPrefixColor: 'text-[#F6C453]',
-    agentPrefix: '⚡',
-    agentPrefixColor: 'text-[#F6C453]',
-    footerText: 'claude-sonnet-4-20250514',
-    footerColor: 'text-[#7B7F87]',
-    primaryColor: 'text-pink-400',
+    label: 'OpenClaw',
+    command: 'openclaw',
+    accent: 'text-amber-300',
+    prompt: 'openclaw ~/code/alohayo.blog',
+    lines: [
+      ['→', 'What should I verify before you call this complete?'],
+      [
+        '⚡',
+        'The route renders, the interactions switch state, and the production build is green.',
+      ],
+      ['→', 'What is still my call?'],
+      ['⚡', 'Whether the story feels like you. I can show options; taste remains yours.'],
+    ],
+    note: 'A conversational, visible handoff: the agent reports what it did and where judgment remains.',
   },
 }
 
 export default function AgentTerminal() {
-  const [activeTab, setActiveTab] = useState<'session' | 'identity'>('session')
-  const [activeTheme, setActiveTheme] = useState<ThemeName>('opencode')
-
-  const [exchangeIdx, setExchangeIdx] = useState(0)
-  const [typingState, setTypingState] = useState<
-    | 'typing-cmd'
-    | 'showing-splash'
-    | 'typing-user'
-    | 'pausing-user'
-    | 'typing-agent'
-    | 'pausing-agent'
-  >('typing-cmd')
-  const [typedUser, setTypedUser] = useState('')
-  const [typedAgent, setTypedAgent] = useState('')
-  const [typedCmd, setTypedCmd] = useState('')
-  const [splashVisible, setSplashVisible] = useState(false)
-  const [completedExchanges, setCompletedExchanges] = useState<
-    Array<{ user: string; agent: AgentLine[] }>
-  >([])
-
-  const [idState, setIdState] = useState<'typing-cmd' | 'revealed'>('typing-cmd')
-  const [typedIdCmd, setTypedIdCmd] = useState('')
-
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const charIdxRef = useRef(0)
-
-  const clearTimers = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-  }
-
-  useEffect(() => {
-    return clearTimers
-  }, [])
-
-  useEffect(() => {
-    if (activeTab !== 'session') return
-
-    const splash = splashScreens[activeTheme]
-
-    if (typingState === 'typing-cmd') {
-      const cmd = splash.cmd
-      if (charIdxRef.current < cmd.length) {
-        timeoutRef.current = setTimeout(() => {
-          setTypedCmd(cmd.slice(0, charIdxRef.current + 1))
-          charIdxRef.current++
-        }, 70)
-      } else {
-        timeoutRef.current = setTimeout(() => {
-          setSplashVisible(true)
-          setTypingState('showing-splash')
-          charIdxRef.current = 0
-        }, 400)
-      }
-    } else if (typingState === 'showing-splash') {
-      timeoutRef.current = setTimeout(() => {
-        setTypingState('typing-user')
-      }, 2000)
-    } else if (typingState === 'typing-user') {
-      const currentExchange = exchanges[exchangeIdx]
-      const text = currentExchange.user
-      if (charIdxRef.current < text.length) {
-        timeoutRef.current = setTimeout(() => {
-          setTypedUser(text.slice(0, charIdxRef.current + 1))
-          charIdxRef.current++
-        }, 50)
-      } else {
-        timeoutRef.current = setTimeout(() => {
-          setTypingState('pausing-user')
-        }, 600)
-      }
-    } else if (typingState === 'pausing-user') {
-      timeoutRef.current = setTimeout(() => {
-        setTypingState('typing-agent')
-        charIdxRef.current = 0
-      }, 100)
-    } else if (typingState === 'typing-agent') {
-      const currentExchange = exchanges[exchangeIdx]
-      const text = currentExchange.agent
-        .map((line) =>
-          line.type === 'labels' ? line.items.map((i) => i.label).join(' · ') : line.content
-        )
-        .join('\n')
-      if (charIdxRef.current < text.length) {
-        timeoutRef.current = setTimeout(() => {
-          setTypedAgent(text.slice(0, charIdxRef.current + 1))
-          charIdxRef.current++
-        }, 25)
-      } else {
-        timeoutRef.current = setTimeout(() => {
-          setTypingState('pausing-agent')
-        }, 2500)
-      }
-    } else if (typingState === 'pausing-agent') {
-      timeoutRef.current = setTimeout(() => {
-        const currentExchange = exchanges[exchangeIdx]
-        setCompletedExchanges((prev) => [...prev, currentExchange])
-        const nextIdx = exchangeIdx + 1
-        if (nextIdx >= exchanges.length) {
-          setCompletedExchanges([])
-          setExchangeIdx(0)
-        } else {
-          setExchangeIdx(nextIdx)
-        }
-        setTypedUser('')
-        setTypedAgent('')
-        setTypingState('typing-user')
-        charIdxRef.current = 0
-      }, 50)
-    }
-  }, [activeTab, activeTheme, exchangeIdx, typingState, typedUser, typedAgent, typedCmd])
-
-  useEffect(() => {
-    if (activeTab !== 'identity') return
-
-    const targetCmd = '$ cat ~/.agent/IDENTITY.md'
-
-    if (idState === 'typing-cmd') {
-      if (charIdxRef.current < targetCmd.length) {
-        timeoutRef.current = setTimeout(() => {
-          setTypedIdCmd(targetCmd.slice(0, charIdxRef.current + 1))
-          charIdxRef.current++
-        }, 40)
-      } else {
-        timeoutRef.current = setTimeout(() => {
-          setIdState('revealed')
-        }, 600)
-      }
-    }
-  }, [activeTab, idState, typedIdCmd])
-
-  const handleTabSwitch = (tab: 'session' | 'identity') => {
-    if (tab === activeTab) return
-    clearTimers()
-    setActiveTab(tab)
-    charIdxRef.current = 0
-    if (tab === 'session') {
-      setExchangeIdx(0)
-      setCompletedExchanges([])
-      setTypedUser('')
-      setTypedAgent('')
-      setTypedCmd('')
-      setSplashVisible(false)
-      setTypingState('typing-cmd')
-    } else {
-      setTypedIdCmd('')
-      setIdState('typing-cmd')
-    }
-  }
-
-  const handleThemeSwitch = (theme: ThemeName) => {
-    if (theme === activeTheme) return
-    clearTimers()
-    setActiveTheme(theme)
-    charIdxRef.current = 0
-    setExchangeIdx(0)
-    setCompletedExchanges([])
-    setTypedUser('')
-    setTypedAgent('')
-    setTypedCmd('')
-    setSplashVisible(false)
-    setTypingState('typing-cmd')
-  }
-
-  const t = themes[activeTheme]
+  const [surface, setSurface] = useState<Surface>('app')
+  const [selectedThread, setSelectedThread] = useState(0)
+  const [terminal, setTerminal] = useState<Terminal>('codex')
+  const thread = threads[selectedThread]
+  const activeTerminal = terminalViews[terminal]
 
   return (
-    <div className="mx-auto w-full max-w-4xl font-mono text-sm md:text-base">
-      <div className="mb-4 flex gap-2 font-mono text-sm">
-        <button
-          className={`border px-4 py-1 transition-colors ${activeTab === 'session' ? 'border-gray-300 bg-gray-200 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-white'}`}
-          onClick={() => handleTabSwitch('session')}
-        >
-          Agent TUI
-        </button>
-        <button
-          className={`border px-4 py-1 transition-colors ${activeTab === 'identity' ? 'border-gray-300 bg-gray-200 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-white' : 'border-gray-300 text-gray-500 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-white'}`}
-          onClick={() => handleTabSwitch('identity')}
-        >
-          Identity.md
-        </button>
-      </div>
+    <section className="not-prose relative mx-auto max-w-6xl overflow-hidden rounded-[2rem] border border-slate-200 bg-[#f7f7f5] p-2 shadow-[0_30px_90px_-42px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-[#111315]">
+      <div className="absolute inset-x-0 top-0 h-36 bg-[radial-gradient(ellipse_at_top,rgba(14,165,233,0.13),transparent_68%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(34,211,238,0.12),transparent_68%)]" />
 
-      <div
-        className={`overflow-hidden rounded-lg border border-gray-700 shadow-2xl transition-colors duration-300 ${t.bg} ${t.text}`}
-      >
-        <div
-          className={`flex items-center justify-between border-b border-gray-700 ${t.titleBar} px-4 py-3 transition-colors duration-300`}
-        >
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
-            <div className="h-3 w-3 rounded-full bg-yellow-500" />
-            <div className="h-3 w-3 rounded-full bg-green-500" />
-            <span className={`ml-3 ${t.titleColor}`}>
-              {activeTab === 'session' ? t.titleText : '~/.agent/IDENTITY.md'}
-            </span>
-          </div>
-          {activeTab === 'session' && (
-            <div className="flex items-center gap-2 text-xs">
-              {(Object.keys(themes) as ThemeName[]).map((theme) => (
-                <button
-                  key={theme}
-                  onClick={() => handleThemeSwitch(theme)}
-                  className={`rounded border px-2 py-0.5 transition-colors ${activeTheme === theme ? 'border-gray-400 bg-gray-700/50 text-gray-200' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-                >
-                  {theme}
-                </button>
-              ))}
+      <div className="relative overflow-hidden rounded-[1.55rem] border border-white/80 bg-white/90 dark:border-white/10 dark:bg-[#17191c]">
+        <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 text-sm font-black text-white shadow-lg shadow-sky-500/25">
+              C
             </div>
-          )}
+            <div>
+              <p className="text-sm font-semibold text-slate-950 dark:text-white">
+                Agent control room
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                threads for altitude · terminals for flow
+              </p>
+            </div>
+          </div>
+          <div className="inline-flex w-fit rounded-xl bg-slate-100 p-1 text-xs font-semibold dark:bg-white/5">
+            {(['app', 'cli'] as Surface[]).map((item) => (
+              <button
+                key={item}
+                onClick={() => setSurface(item)}
+                className={`rounded-lg px-3 py-2 transition ${surface === item ? 'bg-white text-slate-950 shadow-sm dark:bg-white/15 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
+                aria-pressed={surface === item}
+              >
+                {item === 'app' ? 'Codex desktop app' : 'Terminal rooms'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="min-h-[400px] p-6 md:p-8">
-          {activeTab === 'session' && (
-            <div className="flex flex-col gap-6">
-              {(typingState === 'typing-cmd' || splashVisible) && (
-                <div className="text-green-400">
-                  <p>
-                    {typedCmd}
-                    {typingState === 'typing-cmd' && <span className="animate-pulse">_</span>}
+        {surface === 'app' ? (
+          <div className="grid min-h-[510px] md:grid-cols-[225px_1fr]">
+            <aside className="border-b border-slate-200 bg-slate-50 p-3 md:border-r md:border-b-0 dark:border-white/10 dark:bg-[#121416]">
+              <div className="mb-5 flex items-center justify-between px-2 text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
+                <span>Project</span>
+                <span className="text-sky-500">+</span>
+              </div>
+              <div className="mb-5 rounded-xl bg-slate-900 px-3 py-3 text-xs text-slate-300 shadow-lg dark:bg-black/35">
+                <p className="font-semibold text-white">alohayo.blog</p>
+                <p className="mt-1 font-mono text-[10px] text-slate-500">main · local workspace</p>
+              </div>
+              <p className="mb-2 px-2 text-[11px] font-bold tracking-[0.16em] text-slate-400 uppercase">
+                Threads · {threads.length}
+              </p>
+              <div className="max-h-[340px] space-y-1 overflow-y-auto pr-1">
+                {threads.map((item, index) => (
+                  <button
+                    key={item.title}
+                    onClick={() => setSelectedThread(index)}
+                    className={`w-full rounded-xl px-3 py-2.5 text-left transition ${selectedThread === index ? 'bg-sky-100 text-slate-950 shadow-sm dark:bg-sky-400/15 dark:text-white' : 'text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-white/5'}`}
+                    aria-pressed={selectedThread === index}
+                  >
+                    <span className="block truncate text-xs font-medium">{item.title}</span>
+                    <span className="mt-1 flex items-center gap-1.5 text-[10px] opacity-70">
+                      <i className={`h-1.5 w-1.5 rounded-full ${item.tone}`} />
+                      {item.state}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </aside>
+
+            <div className="flex min-w-0 flex-col">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-950 dark:text-white">
+                    {thread.title}
                   </p>
-                  {splashVisible && (
-                    <pre className="mt-2 text-xs leading-relaxed md:text-sm">
-                      {splashScreens[activeTheme].lines.map((line, i) => (
-                        <span key={i} className={line.color}>
-                          {line.text}
-                          {'\n'}
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    {thread.detail}
+                  </p>
+                </div>
+                <span className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-300">
+                  LOCAL · SANDBOXED
+                </span>
+              </div>
+              <div className="grid flex-1 gap-5 p-5 lg:grid-cols-[1fr_205px]">
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-black/15">
+                    <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+                      <span className="grid h-6 w-6 place-items-center rounded-lg bg-sky-100 text-[10px] font-bold text-sky-600 dark:bg-sky-400/15 dark:text-sky-300">
+                        YOU
+                      </span>
+                      Goal + constraints
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                      {thread.goal}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl border border-sky-200/80 bg-sky-50/70 p-4 dark:border-sky-400/20 dark:bg-sky-400/5">
+                    <div className="flex items-center gap-2 text-xs font-medium text-sky-700 dark:text-sky-300">
+                      <span className="grid h-6 w-6 place-items-center rounded-lg bg-sky-500 text-[10px] font-bold text-white">
+                        CX
+                      </span>
+                      {thread.status}
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-200">
+                      {thread.answer}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {thread.changed.map((file) => (
+                        <span
+                          key={file}
+                          className="rounded-md bg-white/70 px-2 py-1 font-mono text-[10px] text-sky-700 dark:bg-white/10 dark:text-sky-300"
+                        >
+                          {file}
                         </span>
                       ))}
-                    </pre>
-                  )}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {['source grounded', 'bounded tools', 'reviewable diff', 'human approval'].map(
+                      (tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-slate-200 px-2.5 py-1 text-[10px] font-semibold text-slate-500 dark:border-white/10 dark:text-slate-400"
+                        >
+                          {tag}
+                        </span>
+                      )
+                    )}
+                  </div>
                 </div>
-              )}
-
-              {typingState !== 'typing-cmd' && typingState !== 'showing-splash' && (
-                <>
-                  {completedExchanges.map((ex, i) => (
-                    <div key={i} className="flex flex-col gap-4">
-                      <div className={`${t.userMsg} ${t.userBg} ${t.userColor}`}>
-                        <span className={`mr-2 ${t.userPrefixColor}`}>{t.userPrefix}</span>
-                        {ex.user}
+                <div className="rounded-2xl bg-slate-950 p-4 font-mono text-[11px] text-slate-300 shadow-xl">
+                  <p className="mb-4 text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">
+                    Run log
+                  </p>
+                  <div className="space-y-4">
+                    {thread.steps.map((step, index) => (
+                      <div key={step} className="flex gap-3">
+                        <span className={index < 2 ? 'text-emerald-400' : 'text-sky-400'}>
+                          {index < 2 ? '✓' : `0${index + 1}`}
+                        </span>
+                        <span className="leading-4">{step}</span>
                       </div>
-                      <div className={`${t.agentMsg} ${t.agentColor}`}>
-                        <span className={`mr-2 ${t.agentPrefixColor}`}>{t.agentPrefix}</span>
-                        <div className="mt-1 space-y-2">
-                          {ex.agent.map((line, j) =>
-                            line.type === 'labels' ? (
-                              <div key={j} className="flex flex-wrap gap-2">
-                                {line.items.map((item) => (
-                                  <span
-                                    key={item.label}
-                                    className={`rounded border border-gray-600 px-2 py-0.5 text-xs ${item.color}`}
-                                  >
-                                    {item.label}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : (
-                              <p key={j}>{renderMd(line.content)}</p>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="flex flex-col gap-4">
-                    {typedUser.length > 0 && (
-                      <div className={`${t.userMsg} ${t.userBg} ${t.userColor}`}>
-                        <span className={`mr-2 ${t.userPrefixColor}`}>{t.userPrefix}</span>
-                        {typedUser}
-                        {(typingState === 'typing-user' || typingState === 'pausing-user') && (
-                          <span className="animate-pulse">_</span>
-                        )}
-                      </div>
-                    )}
-                    {typingState !== 'typing-user' && typingState !== 'pausing-user' && (
-                      <div className={`${t.agentMsg} ${t.agentColor}`}>
-                        <span className={`mr-2 ${t.agentPrefixColor}`}>{t.agentPrefix}</span>
-                        <div className="mt-1 space-y-1">
-                          {typedAgent.split('\n').map((line, j) => (
-                            <p key={j}>{renderMd(line)}</p>
-                          ))}
-                        </div>
-                        {typingState === 'typing-agent' && <span className="animate-pulse">_</span>}
-                      </div>
-                    )}
+                    ))}
                   </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'identity' && (
-            <div className="font-mono text-sm leading-relaxed md:text-base">
-              <div className="mb-8">
-                <p className="text-green-400">
-                  {typedIdCmd}
-                  {idState === 'typing-cmd' && <span className="animate-pulse">_</span>}
-                </p>
-
-                {idState === 'revealed' && (
-                  <div className="mt-4">
-                    <p className="text-xl font-bold md:text-2xl">
-                      <span className={t.primaryColor}>#</span> alohayo.agent
-                    </p>
-                    <p className="mt-2 text-gray-400">
-                      Null-stack engineer — channels AlohaYo&apos;s engineering taste, opinions, and
-                      hard-won experience.
-                    </p>
-
-                    <div className="my-8">
-                      <p className={`mb-3 ${t.primaryColor}`}>## Stack</p>
-                      <div className="flex flex-wrap gap-2">
-                        {techStack.map((tech) => (
-                          <span
-                            key={tech.label}
-                            className={`rounded border border-gray-600 px-2 py-1 text-xs ${tech.color}`}
-                          >
-                            {tech.label}
-                          </span>
-                        ))}
-                      </div>
-                      <p className="mt-3 text-gray-400">
-                        Primary env: <span className="text-cyan-400">React + TypeScript</span>,{' '}
-                        <span className="text-yellow-500">Spring + Java</span>
-                      </p>
-                    </div>
-
-                    <div className="mb-8">
-                      <p className={`mb-4 ${t.primaryColor}`}>## Creed</p>
-                      <div className="space-y-3">
-                        {creedData.map((item, i) => (
-                          <div key={i} className="border-l-2 border-gray-600 pl-4">
-                            <p className="text-green-300">{item.rule}</p>
-                            <p className="text-gray-500">{item.meaning}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mb-8">
-                      <p className={`mb-3 ${t.primaryColor}`}>## Philosophy</p>
-                      <div className="space-y-2 text-gray-300">
-                        <p>
-                          <span className="text-yellow-400">→</span> Code readable cold six months
-                          later
-                        </p>
-                        <p>
-                          <span className="text-yellow-400">→</span> Structure reveals intent
-                          without comments
-                        </p>
-                        <p>
-                          <span className="text-yellow-400">→</span> Edge cases handled, not ignored
-                        </p>
-                        <p>
-                          <span className="text-yellow-400">→</span> Start with the simplest
-                          hypothesis — most bugs are embarrassingly simple
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-8 border-t border-gray-700 pt-4">
-                      <p className="text-gray-500">
-                        <span className="text-green-400">$</span>{' '}
-                        <span className="animate-pulse">_</span>
-                      </p>
-                    </div>
+                  <div className="mt-8 border-t border-white/10 pt-3 text-amber-300">
+                    Human: review the diff
                   </div>
-                )}
+                </div>
               </div>
             </div>
-          )}
-        </div>
-
-        {activeTab === 'session' && (
-          <div className={`border-t border-gray-700 px-4 py-2 text-xs ${t.footerColor}`}>
-            {t.footerText}
+          </div>
+        ) : (
+          <div className="min-h-[510px] bg-[#0c1014] px-5 py-6 font-mono text-[13px] leading-6 text-slate-300 sm:px-8 sm:py-9">
+            <div className="mb-7 flex flex-col gap-3 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                {(Object.keys(terminalViews) as Terminal[]).map((item) => (
+                  <button
+                    key={item}
+                    onClick={() => setTerminal(item)}
+                    className={`rounded-lg border px-2.5 py-1 text-[11px] transition ${terminal === item ? 'border-white/25 bg-white/10 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'}`}
+                    aria-pressed={terminal === item}
+                  >
+                    {terminalViews[item].label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-emerald-400">● ready</span>
+            </div>
+            <p>
+              <span className={activeTerminal.accent}>{activeTerminal.prompt}</span>{' '}
+              <span className="text-slate-600">$</span> {activeTerminal.command}
+            </p>
+            <p className="mt-2 text-slate-500">
+              Choose a surface; keep the contract: goal, visible work, verification, handoff.
+            </p>
+            <div className="mt-7 space-y-5 border-l border-white/10 pl-4 sm:pl-6">
+              {activeTerminal.lines.map(([mark, copy], index) => (
+                <p key={index} className={index % 2 === 0 ? 'text-slate-100' : 'text-slate-400'}>
+                  <span
+                    className={
+                      index % 2 === 0 ? `mr-3 ${activeTerminal.accent}` : 'mr-3 text-emerald-400'
+                    }
+                  >
+                    {mark}
+                  </span>
+                  {copy}
+                </p>
+              ))}
+            </div>
+            <div className="mt-9 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-slate-400">
+              <p className={activeTerminal.accent}>{activeTerminal.label}</p>
+              <p className="mt-2 leading-5">{activeTerminal.note}</p>
+            </div>
+            <p className="mt-7">
+              <span className={activeTerminal.accent}>{activeTerminal.prompt}</span>{' '}
+              <span className="text-slate-600">$</span>{' '}
+              <span className="animate-pulse text-slate-300">▋</span>
+            </p>
           </div>
         )}
       </div>
-    </div>
+    </section>
   )
 }
