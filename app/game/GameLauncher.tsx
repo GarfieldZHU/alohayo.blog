@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
 // Keep this hash aligned with the published alohayo-world release commit.
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=8d1707a'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=583d222'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -17,7 +17,7 @@ const LANGUAGE_OPTIONS: Array<{ code: LocaleCode; label: string }> = [
 
 const MESSAGES = {
   en: {
-    eyebrow: 'Alohayo World / v0.1.1',
+    eyebrow: 'Alohayo World / v0.1.2',
     title: 'A vivid world from one small seed.',
     description:
       'Generate a geography atlas, explore its biomes, and inspect the climate beneath every cell. The world streams in chunk by chunk, stores preferences locally, and loads no engine or map resources until you enter. Game mode keeps the camera centered on the explorer; dev mode unlocks survey controls.',
@@ -59,7 +59,7 @@ const MESSAGES = {
     },
   },
   'zh-CN': {
-    eyebrow: 'Alohayo World / v0.1.1',
+    eyebrow: 'Alohayo World / v0.1.2',
     title: '一枚小小种子，展开一整个鲜活世界。',
     description:
       '生成一张地理世界图谱，探索不同生态地貌，并查看每个地格背后的气候数据。世界会按区块持续流式生成，偏好仅保存在本地，而且在你真正进入之前不会加载引擎或地图资源。游戏模式会让镜头跟随主角；开发模式则解锁调试控制。',
