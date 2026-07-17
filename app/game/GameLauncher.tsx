@@ -336,7 +336,7 @@ export default function GameLauncher() {
         const preset = sizePresets[presetIndex]
         gameRef.current = await gameModule.mountGame({
           container: containerRef.current,
-          assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/',
+          assetBaseUrl: 'https://garfieldzhu.github.io/alohayo-world/embed/',
           devMode,
           locale,
           theme: effectiveTheme,
