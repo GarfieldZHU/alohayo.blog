@@ -1,5 +1,6 @@
 import { genPageMetadata } from 'app/seo'
 import AgentTerminal from '@/components/AgentTerminal'
+import AgentUsageStats from '@/components/AgentUsageStats'
 
 export const metadata = genPageMetadata({
   title: 'Agent',
@@ -23,6 +24,7 @@ export default function AgentPage() {
       </section>
 
       <AgentTerminal />
+      <AgentUsageStats />
     </div>
   )
 }
