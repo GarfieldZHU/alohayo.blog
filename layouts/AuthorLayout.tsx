@@ -16,10 +16,7 @@ export default function AuthorLayout({ children, content }: Props) {
       <section className="relative isolate mt-6 overflow-hidden rounded-3xl border border-gray-200 bg-gradient-to-br from-rose-50 via-white to-sky-50 px-6 py-10 shadow-[0_28px_75px_-55px_rgba(15,23,42,0.7)] sm:px-10 sm:py-14 dark:border-white/10 dark:from-[#21171c] dark:via-[#17191c] dark:to-[#101b26]">
         <div className="bg-primary-300/25 dark:bg-primary-500/15 absolute -top-16 -right-12 -z-10 h-52 w-52 rounded-full blur-3xl" />
         <div className="absolute -bottom-20 left-1/3 -z-10 h-48 w-48 rounded-full bg-sky-300/25 blur-3xl dark:bg-sky-400/10" />
-        <p className="text-primary-600 dark:text-primary-300 font-mono text-[11px] font-bold tracking-[0.2em] uppercase">
-          A small introduction
-        </p>
-        <div className="mt-5 max-w-3xl">
+        <div className="max-w-3xl">
           <h1 className="text-4xl leading-[1.02] font-extrabold tracking-tight text-gray-900 sm:text-6xl dark:text-white">
             Building things with care, curiosity, and a little play.
           </h1>

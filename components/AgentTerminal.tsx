@@ -153,11 +153,9 @@ export default function AgentTerminal() {
           </div>
           <div>
             <h2 className="font-serif text-lg font-semibold text-gray-900 dark:text-white">
-              Agent control room
+              How I work
             </h2>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              a working field note from the blog
-            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">tools, threads, and handoffs</p>
           </div>
         </div>
         <div className="inline-flex w-fit rounded-lg bg-gray-200/70 p-1 text-xs font-semibold dark:bg-white/5">
