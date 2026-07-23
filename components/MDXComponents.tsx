@@ -7,6 +7,7 @@ import CustomLink from './Link'
 import { NeonFlicker } from './NeonFlicker'
 import { HoverImageTooltip } from './HoverImageTooltip'
 import { GamingPlatforms } from './GamingPlatforms'
+import { AboutSectionLabel } from './AboutSectionLabel'
 
 export const components: MDXComponents = {
   Image,
@@ -17,4 +18,5 @@ export const components: MDXComponents = {
   NeonFlicker,
   HoverImageTooltip,
   GamingPlatforms,
+  AboutSectionLabel,
 }
