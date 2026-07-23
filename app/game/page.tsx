@@ -3,7 +3,7 @@ import GameLauncher from './GameLauncher'
 
 export const metadata = genPageMetadata({
   title: 'Alohayo World',
-  description: 'Generate and explore a vivid geography-based world, entirely in your browser.',
+  description: 'Step into an evolving world and find your own way across its horizon.',
 })
 
 export default function GamePage() {

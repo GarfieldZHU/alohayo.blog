@@ -17,10 +17,11 @@ const LANGUAGE_OPTIONS: Array<{ code: LocaleCode; label: string }> = [
 
 const MESSAGES = {
   en: {
-    eyebrow: 'Alohayo World / v0.1.3',
-    title: 'A vivid world from one small seed.',
-    description:
-      'Generate a geography atlas, explore its biomes, and inspect the climate beneath every cell. The world streams in chunk by chunk, stores preferences locally, and loads no engine or map resources until you enter. Game mode keeps the camera centered on the explorer; dev mode unlocks survey controls.',
+    eyebrow: 'Alohayo World',
+    title: 'Where the map ends.',
+    description: 'Take a first step. The rest of the world will meet you on the way.',
+    fieldManual: 'Field manual',
+    playerGuide: 'Move with WASD or arrows. Hold Shift to run. E or Space interacts.',
     seedLabel: 'World seed',
     enterWorld: 'Enter the world',
     resurvey: 'Resurvey',
@@ -46,8 +47,7 @@ const MESSAGES = {
     returnToEmbed: 'Return to page',
     escapeHint: 'Esc also exits full screen',
     startError: 'The world could not be started.',
-    placeholder:
-      'PixiJS, the generation worker, content definitions, and terrain resources are waiting behind the button.',
+    placeholder: 'The horizon is waiting.',
     footer:
       'WASD or arrows walk. Hold Shift to run. E or Space acts. In game mode, the camera follows the explorer and zoom stays locked. The minimap fills as you discover the world.',
     footerDev:
@@ -59,10 +59,11 @@ const MESSAGES = {
     },
   },
   'zh-CN': {
-    eyebrow: 'Alohayo World / v0.1.3',
-    title: '一枚小小种子，展开一整个鲜活世界。',
-    description:
-      '生成一张地理世界图谱，探索不同生态地貌，并查看每个地格背后的气候数据。世界会按区块持续流式生成，偏好仅保存在本地，而且在你真正进入之前不会加载引擎或地图资源。游戏模式会让镜头跟随主角；开发模式则解锁调试控制。',
+    eyebrow: 'Alohayo World',
+    title: '地图尽头，世界才开始。',
+    description: '迈出第一步，剩下的路会在眼前展开。',
+    fieldManual: '旅途手册',
+    playerGuide: 'WASD 或方向键移动，按住 Shift 奔跑，E 或空格互动。',
     seedLabel: '世界种子',
     enterWorld: '进入世界',
     resurvey: '重新勘测',
@@ -87,7 +88,7 @@ const MESSAGES = {
     returnToEmbed: '返回页面',
     escapeHint: '也可以按 Esc 退出全屏',
     startError: '世界启动失败。',
-    placeholder: 'PixiJS、生成 Worker、内容定义和地形资源都在按钮后按需等待加载。',
+    placeholder: '地平线正在等待。',
     footer:
       'WASD 或方向键移动，按住 Shift 奔跑，E 或空格执行动作。游戏模式下镜头会跟随主角且缩放锁定。随着探索推进，小地图会逐步点亮。',
     footerDev:
@@ -471,89 +472,66 @@ export default function GameLauncher() {
 
   return (
     <div className="py-8 sm:py-12">
-      <div className="mb-8 max-w-3xl">
-        <p className="font-mono text-sm tracking-[0.18em] text-cyan-600 uppercase dark:text-cyan-400">
-          {messages.eyebrow}
-        </p>
-        <h1 className="mt-3 text-4xl font-extrabold tracking-tight text-gray-900 sm:text-6xl dark:text-gray-100">
-          {messages.title}
-        </h1>
-        <p className="mt-5 text-lg leading-8 text-gray-600 dark:text-gray-300">
-          {messages.description}
-        </p>
-      </div>
-
-      <form onSubmit={startGame} className="mb-5">
-        <div className="mb-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-          <div className="inline-flex rounded-xl border border-slate-200 bg-white/80 p-1 shadow-sm dark:border-cyan-800/30 dark:bg-slate-950/60">
-            {LANGUAGE_OPTIONS.map((option) => {
-              const selected = locale === option.code
-              return (
-                <button
-                  key={option.code}
-                  type="button"
-                  onClick={() => setLocale(option.code)}
-                  aria-pressed={selected}
-                  className={selected ? selectedLanguageClass : idleLanguageClass}
+      <form onSubmit={startGame}>
+        {devMode && (
+          <section className="mb-4 rounded-xl border border-cyan-900/30 bg-slate-950/55 p-4 shadow-sm dark:bg-slate-950/70">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <label
+                  htmlFor="world-seed"
+                  className="mb-2 block font-mono text-xs font-medium text-cyan-200"
                 >
-                  {option.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        <label htmlFor="world-seed" className="mb-2 block font-mono text-sm font-medium">
-          {messages.seedLabel}
-        </label>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <input
-            id="world-seed"
-            value={seed}
-            onChange={(event) => setSeed(event.target.value)}
-            maxLength={64}
-            className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 font-mono text-gray-900 outline-none focus:border-cyan-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-          />
-          <button
-            type="button"
-            onClick={async () => {
-              const nextIndex = Math.min(sizeIndex + 1, sizePresets.length - 1)
-              setSizeIndex(nextIndex)
-              if (state === 'running') await mountWithPreset(nextIndex)
-            }}
-            disabled={sizeIndex === sizePresets.length - 1 || state === 'loading'}
-            className={secondaryButtonClass}
-          >
-            {messages.sizeNames[sizePresets[sizeIndex].name]} · {sizePresets[sizeIndex].width}×
-            {sizePresets[sizeIndex].height}
-            {sizeIndex < sizePresets.length - 1
-              ? ` / ${messages.enlarge}`
-              : ` / ${messages.maximum}`}
-          </button>
-          <button
-            type="submit"
-            disabled={state === 'loading'}
-            className="cursor-pointer rounded-xl bg-cyan-600 px-6 py-3 font-bold text-white shadow-sm transition hover:bg-cyan-500 disabled:cursor-wait disabled:opacity-60 dark:bg-cyan-700 dark:hover:bg-cyan-600"
-          >
-            {state === 'loading'
-              ? messages.surveying
-              : state === 'running'
-                ? messages.resurvey
-                : messages.enterWorld}
-          </button>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-          <label className={toggleLabelClass}>
-            <input
-              type="checkbox"
-              checked={devMode}
-              onChange={(event) => setDevMode(event.target.checked)}
-              className="h-4 w-4 accent-cyan-500"
-            />
-            {messages.devMode}
-          </label>
-          {devMode && (
-            <>
+                  {messages.seedLabel}
+                </label>
+                <input
+                  id="world-seed"
+                  value={seed}
+                  onChange={(event) => setSeed(event.target.value)}
+                  maxLength={64}
+                  className="w-full rounded-lg border border-cyan-800/50 bg-slate-900 px-3 py-2.5 font-mono text-sm text-white outline-none focus:border-cyan-400"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const nextIndex = Math.min(sizeIndex + 1, sizePresets.length - 1)
+                  setSizeIndex(nextIndex)
+                  if (state === 'running') await mountWithPreset(nextIndex)
+                }}
+                disabled={sizeIndex === sizePresets.length - 1 || state === 'loading'}
+                className={secondaryButtonClass}
+              >
+                {messages.sizeNames[sizePresets[sizeIndex].name]} · {sizePresets[sizeIndex].width}×
+                {sizePresets[sizeIndex].height}
+                {sizeIndex < sizePresets.length - 1
+                  ? ` / ${messages.enlarge}`
+                  : ` / ${messages.maximum}`}
+              </button>
+              <button type="submit" disabled={state === 'loading'} className={secondaryButtonClass}>
+                {state === 'loading'
+                  ? messages.surveying
+                  : state === 'running'
+                    ? messages.resurvey
+                    : messages.enterWorld}
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-3 font-mono text-xs text-slate-400">
+              <div className="inline-flex rounded-lg border border-cyan-800/30 bg-slate-900/80 p-1">
+                {LANGUAGE_OPTIONS.map((option) => {
+                  const selected = locale === option.code
+                  return (
+                    <button
+                      key={option.code}
+                      type="button"
+                      onClick={() => setLocale(option.code)}
+                      aria-pressed={selected}
+                      className={selected ? selectedLanguageClass : idleLanguageClass}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
               <label className={toggleLabelClass}>
                 <input
                   type="checkbox"
@@ -567,121 +545,154 @@ export default function GameLauncher() {
                 {messages.devModeEnabled}
                 {terrainShowcase ? ` ${messages.terrainShowcaseEnabled}` : ''}
               </span>
-            </>
-          )}
-        </div>
-      </form>
-
-      <div className="mb-3 flex flex-wrap gap-3 font-mono text-xs text-gray-500 dark:text-gray-400">
-        <span>
-          {hasWebGL2 === null
-            ? messages.rendererChecking
-            : hasWebGL2
-              ? messages.rendererReady
-              : messages.rendererFallback}
-        </span>
-        <span>{messages.localOnly}</span>
-        <span>{messages.onDemandLoading}</span>
-        <span>{messages.infiniteWorld}</span>
-        {devMode && <span>{messages.developerToolingEnabled}</span>}
-      </div>
-
-      <div className="mb-3 flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={() => void toggleFullWindow()}
-          className={secondaryButtonClass}
-        >
-          {fullWindow ? messages.exitFullWindow : messages.fullWindow}
-        </button>
-        <button
-          type="button"
-          onClick={() => void toggleFullscreen()}
-          className={secondaryButtonClass}
-        >
-          {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
-        </button>
-      </div>
-
-      {state === 'error' && (
-        <p
-          role="alert"
-          className="mb-3 rounded-lg bg-red-50 p-4 text-red-700 dark:bg-red-950 dark:text-red-300"
-        >
-          {error}
-        </p>
-      )}
-
-      <div
-        ref={shellRef}
-        className={
-          fullWindow
-            ? 'fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden bg-slate-100 shadow-2xl dark:bg-[#07111f]'
-            : 'relative'
-        }
-      >
-        {(fullWindow || isFullscreen) && (
-          <>
-            <div
-              className="absolute top-0 right-0 z-20 h-24 w-[min(24rem,100%)]"
-              onMouseEnter={revealTopRightControls}
-              onMouseMove={revealTopRightControls}
-              aria-hidden="true"
-            />
-            <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex justify-end sm:inset-x-5 sm:top-5">
-              <div
-                className={`pointer-events-auto flex max-w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur transition-all duration-300 dark:border-cyan-800/40 dark:bg-slate-950/90 ${
-                  topRightControlsVisible ? 'translate-y-0 opacity-100' : '-translate-y-4 opacity-0'
-                }`}
-                onMouseEnter={revealTopRightControls}
-                onMouseLeave={scheduleOverlayHide}
-                onFocus={revealTopRightControls}
-                onBlur={scheduleOverlayHide}
-              >
-                <button
-                  type="button"
-                  onClick={() => void toggleFullscreen()}
-                  className={secondaryButtonClass}
-                >
-                  {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void returnToEmbedded()}
-                  className={secondaryButtonClass}
-                >
-                  {messages.returnToEmbed}
-                </button>
-                {isFullscreen && (
-                  <span className="px-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                    {messages.escapeHint}
-                  </span>
-                )}
-              </div>
             </div>
-          </>
+          </section>
         )}
+
         <div
-          ref={containerRef}
+          ref={shellRef}
           className={
             fullWindow
-              ? 'relative h-full min-h-0 w-full overflow-hidden bg-slate-100 dark:bg-[#07111f]'
-              : 'relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]'
+              ? 'fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden bg-slate-100 shadow-2xl dark:bg-[#07111f]'
+              : 'relative'
           }
-          aria-live="polite"
         >
-          {state === 'idle' && (
-            <div className="grid h-full place-items-center p-8 text-center font-mono text-sm text-slate-400">
-              {messages.placeholder}
-            </div>
+          {(fullWindow || isFullscreen) && (
+            <>
+              <div
+                className="absolute top-0 right-0 z-20 h-24 w-[min(24rem,100%)]"
+                onMouseEnter={revealTopRightControls}
+                onMouseMove={revealTopRightControls}
+                aria-hidden="true"
+              />
+              <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex justify-end sm:inset-x-5 sm:top-5">
+                <div
+                  className={`pointer-events-auto flex max-w-full flex-wrap items-center justify-end gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-2.5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur transition-all duration-300 dark:border-cyan-800/40 dark:bg-slate-950/90 ${
+                    topRightControlsVisible
+                      ? 'translate-y-0 opacity-100'
+                      : '-translate-y-4 opacity-0'
+                  }`}
+                  onMouseEnter={revealTopRightControls}
+                  onMouseLeave={scheduleOverlayHide}
+                  onFocus={revealTopRightControls}
+                  onBlur={scheduleOverlayHide}
+                >
+                  <button
+                    type="button"
+                    onClick={() => void toggleFullscreen()}
+                    className={secondaryButtonClass}
+                  >
+                    {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void returnToEmbedded()}
+                    className={secondaryButtonClass}
+                  >
+                    {messages.returnToEmbed}
+                  </button>
+                  {isFullscreen && (
+                    <span className="px-2 font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                      {messages.escapeHint}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </>
           )}
+          <div
+            ref={containerRef}
+            className={
+              fullWindow
+                ? 'relative h-full min-h-0 w-full overflow-hidden bg-slate-100 dark:bg-[#07111f]'
+                : 'relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]'
+            }
+            aria-live="polite"
+          >
+            {state === 'idle' && (
+              <div className="relative grid h-full place-items-center overflow-hidden p-8 text-center">
+                <div className="max-w-lg">
+                  <p className="font-mono text-xs font-medium tracking-[0.2em] text-cyan-300 uppercase">
+                    {messages.eyebrow}
+                  </p>
+                  <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-6xl">
+                    {messages.title}
+                  </h1>
+                  <p className="mt-4 text-base leading-7 text-slate-300 sm:text-lg">
+                    {messages.description}
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={state === 'loading'}
+                    className="mt-8 cursor-pointer rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 shadow-[0_12px_32px_rgba(34,211,238,0.24)] transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {state === 'loading' ? messages.surveying : messages.enterWorld}
+                  </button>
+                </div>
+                <aside className="absolute right-4 bottom-4 max-w-[15rem] rounded-lg border border-white/10 bg-slate-950/65 px-3 py-2.5 text-left backdrop-blur-sm sm:right-5 sm:bottom-5">
+                  <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-cyan-300 uppercase">
+                    {messages.fieldManual}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-slate-300">{messages.playerGuide}</p>
+                </aside>
+              </div>
+            )}
+            <label className="absolute top-3 right-3 z-20 inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-white/10 bg-slate-950/55 px-2 py-1 font-mono text-[10px] tracking-[0.12em] text-slate-400 backdrop-blur-sm transition hover:border-cyan-400/40 hover:text-cyan-200">
+              <input
+                type="checkbox"
+                checked={devMode}
+                onChange={(event) => setDevMode(event.target.checked)}
+                className="h-3 w-3 accent-cyan-400"
+              />
+              {messages.devMode}
+            </label>
+          </div>
         </div>
-      </div>
-
-      <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
-        {messages.footer}
-        {devMode && ` ${messages.footerDev}`}
-      </p>
+        {state === 'error' && (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg bg-red-50 p-4 text-red-700 dark:bg-red-950 dark:text-red-300"
+          >
+            {error}
+          </p>
+        )}
+        {devMode && (
+          <>
+            <div className="mt-3 flex flex-wrap gap-3 font-mono text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                {hasWebGL2 === null
+                  ? messages.rendererChecking
+                  : hasWebGL2
+                    ? messages.rendererReady
+                    : messages.rendererFallback}
+              </span>
+              <span>{messages.localOnly}</span>
+              <span>{messages.onDemandLoading}</span>
+              <span>{messages.infiniteWorld}</span>
+              <span>{messages.developerToolingEnabled}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => void toggleFullWindow()}
+                className={secondaryButtonClass}
+              >
+                {fullWindow ? messages.exitFullWindow : messages.fullWindow}
+              </button>
+              <button
+                type="button"
+                onClick={() => void toggleFullscreen()}
+                className={secondaryButtonClass}
+              >
+                {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+              </button>
+            </div>
+            <p className="mt-4 font-mono text-xs text-gray-500 dark:text-gray-400">
+              {messages.footerDev}
+            </p>
+          </>
+        )}
+      </form>
     </div>
   )
 }
