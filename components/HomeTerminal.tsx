@@ -1056,7 +1056,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
 
               {/* Footer */}
               <div className="border-t border-gray-200 px-4 py-2 text-xs text-gray-400 dark:border-gray-700 dark:text-[#7b7f87]">
-                claude-sonnet-4-20250514
+                GPT-5.6 Sol xHigh
               </div>
             </div>
           </div>
