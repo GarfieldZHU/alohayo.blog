@@ -29,10 +29,9 @@ const platforms = [
 const dossiers = [
   {
     id: 'steam',
-    eyebrow: 'Steam archive',
-    title: 'The completionist has logged in.',
-    detail:
-      'A public shelf of favourites, strange detours, and a suspiciously patient achievement hunt.',
+    eyebrow: 'Steam library',
+    title: 'A shelf worth lingering at.',
+    detail: 'A little serious about achievements. Entirely unserious about bedtime.',
     stats: [
       ['200', 'games'],
       ['783', 'achievements'],
@@ -41,13 +40,38 @@ const dossiers = [
     ],
     href: 'https://steamcommunity.com/profiles/76561198092274492',
     action: 'Browse the library',
+    highlights: [
+      {
+        name: 'Cyberpunk 2077',
+        href: 'https://steamcommunity.com/app/1091500',
+        image:
+          'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1091500/590e0988a2fb79f44d3e31e41fd4949eb76abc41/capsule_184x69.jpg?t=1784714077',
+      },
+      {
+        name: "Baldur's Gate 3",
+        href: 'https://steamcommunity.com/app/1086940',
+        image:
+          'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1086940/3dd81008e9c385caf68152450c22353f6a8abec9/capsule_184x69.jpg?t=1777363040',
+      },
+      {
+        name: 'Sekiro: Shadows Die Twice',
+        href: 'https://steamcommunity.com/app/814380',
+        image:
+          'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/814380/capsule_184x69.jpg?t=1762888662',
+      },
+      {
+        name: 'Sid Meier’s Civilization VI',
+        href: 'https://steamcommunity.com/app/289070',
+        image:
+          'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/289070/capsule_184x69.jpg?t=1784651829',
+      },
+    ],
   },
   {
     id: 'psn',
     eyebrow: 'PSN trophy vault',
-    title: 'Bonfires rested at. Bosses argued with.',
-    detail:
-      'Follow the trophy trail under AlohaYo_Z — no controller throws were officially recorded.',
+    title: 'Bonfires rested. Bosses negotiated.',
+    detail: 'Follow AlohaYo_Z’s trophy trail. Controller throws remain strictly unconfirmed.',
     stats: [
       ['PSN', 'AlohaYo_Z'],
       ['☀', 'sun praised'],
@@ -59,8 +83,7 @@ const dossiers = [
     id: 'switch',
     eyebrow: 'Switch signal',
     title: 'The friend code is the side quest.',
-    detail:
-      'SW-7050-4176-3344. Add the code, then bring snacks and a game worth losing track of time to.',
+    detail: 'SW-7050-4176-3344. Bring snacks, a co-op game, and a suspicious amount of free time.',
     stats: [
       ['SW', 'friend code'],
       ['✓', 'co-op ready'],
@@ -71,26 +94,53 @@ const dossiers = [
 ]
 
 const OPEN_DELAY_MS = 260
+const CLOSE_DELAY_MS = 420
 
 export function GamingPlatforms() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isPinned, setIsPinned] = useState(false)
   const [activeId, setActiveId] = useState('steam')
   const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const clearOpenTimer = () => {
     if (openTimer.current) window.clearTimeout(openTimer.current)
     openTimer.current = null
   }
 
+  const clearCloseTimer = () => {
+    if (closeTimer.current) window.clearTimeout(closeTimer.current)
+    closeTimer.current = null
+  }
+
   const scheduleOpen = (id: string) => {
     clearOpenTimer()
+    clearCloseTimer()
+    setIsPinned(false)
+    if (isOpen) {
+      setActiveId(id)
+      return
+    }
     openTimer.current = window.setTimeout(() => {
       setActiveId(id)
       setIsOpen(true)
     }, OPEN_DELAY_MS)
   }
 
-  useEffect(() => () => clearOpenTimer(), [])
+  const scheduleClose = () => {
+    clearOpenTimer()
+    clearCloseTimer()
+    if (isPinned) return
+    closeTimer.current = window.setTimeout(() => setIsOpen(false), CLOSE_DELAY_MS)
+  }
+
+  useEffect(
+    () => () => {
+      clearOpenTimer()
+      clearCloseTimer()
+    },
+    []
+  )
 
   const activeDossier = dossiers.find((dossier) => dossier.id === activeId) ?? dossiers[0]
 
@@ -98,10 +148,8 @@ export function GamingPlatforms() {
     <div className="not-prose my-9">
       <div
         className="relative inline-flex max-w-full flex-nowrap items-center gap-1.5"
-        onPointerLeave={() => {
-          clearOpenTimer()
-          setIsOpen(false)
-        }}
+        onPointerEnter={clearCloseTimer}
+        onPointerLeave={scheduleClose}
       >
         <div className="no-scrollbar flex max-w-full flex-nowrap items-center gap-1.5 overflow-x-auto pb-2">
           {platforms.map((platform) => (
@@ -129,9 +177,20 @@ export function GamingPlatforms() {
           type="button"
           aria-label="Open gamer dossier"
           aria-expanded={isOpen}
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={() => {
+            clearOpenTimer()
+            clearCloseTimer()
+            if (isPinned) {
+              setIsPinned(false)
+              setIsOpen(false)
+              return
+            }
+            setIsPinned(true)
+            setIsOpen(true)
+          }}
           onFocus={() => {
             clearOpenTimer()
+            clearCloseTimer()
             setIsOpen(true)
           }}
           className="mb-2 shrink-0 rounded-full border border-slate-300 bg-white px-2 py-1 font-mono text-[10px] font-bold tracking-[0.13em] text-slate-500 transition hover:border-cyan-500 hover:text-cyan-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-cyan-400 dark:hover:text-cyan-200"
@@ -139,61 +198,96 @@ export function GamingPlatforms() {
           STATS +
         </button>
 
-        <section
-          aria-live="polite"
-          className={`absolute top-[calc(100%+0.45rem)] left-0 z-30 w-[min(34rem,calc(100vw-2.5rem))] origin-top-left rounded-xl border border-slate-200 bg-white/95 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.18)] backdrop-blur transition duration-200 dark:border-cyan-900/50 dark:bg-slate-950/95 ${
+        <div
+          className={`absolute top-full right-0 z-30 w-[min(34rem,calc(100vw-2.5rem))] pt-2 transition duration-200 ${
             isOpen
               ? 'pointer-events-auto translate-y-0 opacity-100'
               : 'pointer-events-none -translate-y-1 opacity-0'
           }`}
-          onPointerEnter={clearOpenTimer}
-          onPointerLeave={() => setIsOpen(false)}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-cyan-700 uppercase dark:text-cyan-300">
-                {activeDossier.eyebrow}
-              </p>
-              <h3 className="mt-1 text-base font-bold tracking-tight text-slate-900 dark:text-white">
-                {activeDossier.title}
-              </h3>
-            </div>
-            <span className="rounded-full border border-cyan-500/25 bg-cyan-500/10 px-2 py-1 font-mono text-[9px] font-bold tracking-[0.12em] text-cyan-700 uppercase dark:text-cyan-200">
-              Player card
-            </span>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {activeDossier.detail}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {activeDossier.stats.map(([value, label]) => (
-              <span
-                key={`${value}-${label}`}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 dark:border-slate-800 dark:bg-slate-900"
-              >
-                <strong className="font-mono text-sm text-slate-900 dark:text-white">
-                  {value}
-                </strong>{' '}
-                <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                  {label}
-                </span>
-              </span>
-            ))}
-          </div>
-          <a
-            href={activeDossier.href}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 inline-flex items-center gap-1 font-mono text-xs font-bold text-cyan-700 transition hover:gap-2 hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100"
+          <section
+            aria-live="polite"
+            className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_18px_50px_rgba(15,23,42,0.2)] backdrop-blur dark:border-cyan-900/50 dark:bg-slate-950/95"
+            onPointerEnter={clearCloseTimer}
+            onPointerLeave={scheduleClose}
           >
-            {activeDossier.action} <span aria-hidden="true">↗</span>
-          </a>
-          {activeDossier.id === 'steam' && (
-            <p className="mt-3 font-mono text-[10px] text-slate-400 dark:text-slate-500">
-              Public Steam profile snapshot · 26 Jul 2026
-            </p>
-          )}
-        </section>
+            <div className="border-b border-slate-100 px-4 pt-4 pb-3 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-cyan-700 uppercase dark:text-cyan-300">
+                    {activeDossier.eyebrow}
+                  </p>
+                  <h3 className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-white">
+                    {activeDossier.title}
+                  </h3>
+                </div>
+                <span className="mt-0.5 inline-flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.9)]" />
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                {activeDossier.detail}
+              </p>
+            </div>
+            <div className="px-4 py-3">
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                {activeDossier.stats.map(([value, label]) => (
+                  <span key={`${value}-${label}`} className="inline-flex items-baseline gap-1.5">
+                    <strong className="font-mono text-sm text-slate-900 dark:text-white">
+                      {value}
+                    </strong>
+                    <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                      {label}
+                    </span>
+                  </span>
+                ))}
+              </div>
+              {'highlights' in activeDossier && (
+                <div className="mt-4">
+                  <p className="mb-2 font-mono text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase dark:text-slate-500">
+                    Pinned to the shelf
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {activeDossier.highlights.map((game) => (
+                      <a
+                        key={game.href}
+                        href={game.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={game.name}
+                        className="group/game relative overflow-hidden rounded-lg border border-slate-200 bg-slate-900 shadow-sm dark:border-slate-800"
+                      >
+                        {/* Steam's public profile supplies these featured-library capsule images. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={game.image}
+                          alt=""
+                          className="aspect-[184/69] w-full object-cover opacity-90 transition duration-200 group-hover/game:scale-105 group-hover/game:opacity-100"
+                        />
+                        <span className="absolute inset-x-0 bottom-0 bg-slate-950/80 px-1.5 py-1 font-mono text-[9px] text-white opacity-0 transition group-hover/game:opacity-100">
+                          {game.name}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <a
+                  href={activeDossier.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-cyan-700 transition hover:gap-2 hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100"
+                >
+                  {activeDossier.action} <span aria-hidden="true">↗</span>
+                </a>
+                {activeDossier.id === 'steam' && (
+                  <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                    26 Jul 2026
+                  </span>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   )
