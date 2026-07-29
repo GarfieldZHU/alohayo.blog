@@ -1,5 +1,5 @@
 const counterUrl =
-  'https://hits.sh/alohayo.me.svg?view=total&style=flat-square&label=Visitors&color=f6339a&labelColor=4b5563'
+  'https://hits.sh/alohayo.me.svg?view=total&style=flat-square&label=Visitors&color=f6339a&labelColor=62565a'
 
 export default function VisitorTelemetry() {
   return (
