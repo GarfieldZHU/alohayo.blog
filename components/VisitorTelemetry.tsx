@@ -6,8 +6,7 @@ import { useTheme } from 'next-themes'
 const badgeUrls = {
   light:
     'https://hits.sh/alohayo.me.svg?view=total&style=flat-square&label=Visitors&color=ff4d8d&labelColor=22c7f3',
-  dark:
-    'https://hits.sh/alohayo.me.svg?view=total&style=flat-square&label=Visitors&color=0f766e&labelColor=172554',
+  dark: 'https://hits.sh/alohayo.me.svg?view=total&style=flat-square&label=Visitors&color=0f766e&labelColor=172554',
 }
 
 export default function VisitorTelemetry() {
