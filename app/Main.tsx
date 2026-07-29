@@ -4,6 +4,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
 import HomeTerminal from '@/components/HomeTerminal'
+import VisitorTelemetry from '@/components/VisitorTelemetry'
 
 const MAX_DISPLAY = 5
 
@@ -89,6 +90,7 @@ export default function Home({ posts }) {
           <NewsletterForm />
         </div>
       )}
+      <VisitorTelemetry />
     </>
   )
 }
