@@ -176,7 +176,7 @@ input:-webkit-autofill:focus {
 }
 
 .visitor-counter-badge {
-  filter: brightness(1.5) saturate(0.75);
+  filter: invert(1) brightness(1.1) contrast(0.9);
 }
 
 .dark .visitor-counter-badge {
