@@ -12,13 +12,14 @@ The component appears only in `app/Main.tsx`, after the optional All Posts link 
 
 ## Visual design
 
-The panel follows the existing home terminal language:
+The panel follows the existing home terminal language and is an instrument card, not a standalone badge:
 
 - centered, monospace container with a subtle light/dark border;
-- header text: `// VISITOR TELEMETRY`;
-- small green status dot and amber `LIVE` indicator;
-- a single `hits.sh` flat-square SVG badge, using the dark terminal background, cyan count, and amber label accents already used by `HomeTerminal`;
-- responsive width with no horizontal overflow and no motion.
+- header text: `◉ LIVE · SITE TRAFFIC`, with a green status dot and amber `LIVE` accent;
+- a single `hits.sh` `for-the-badge` SVG whose label is `TOTAL VIEWS`;
+- terminal colors: `#212121` background, `#5c9cf5` count, and `#fab283` accent;
+- short helper text: `privacy-first · no cookies`;
+- responsive width with no horizontal overflow, no motion, and only a subtle cyan border glow on hover.
 
 The badge is given meaningful alt text. The surrounding frame is presentational, so a failed badge leaves an unobtrusive panel rather than an error message or layout shift.
 
