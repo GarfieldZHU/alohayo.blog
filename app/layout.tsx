@@ -3,7 +3,8 @@ import 'pliny/search/algolia.css'
 
 import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import Script from 'next/script'
-import { Analytics, AnalyticsConfig } from 'pliny/analytics'
+import { Analytics as PlinyAnalytics, AnalyticsConfig } from 'pliny/analytics'
+import { Analytics as VercelAnalytics } from '@vercel/analytics/next'
 import { SearchProvider, SearchConfig } from 'pliny/search'
 import Header from '@/components/Header'
 import SectionContainer from '@/components/SectionContainer'
@@ -83,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
       <body className="bg-white text-black antialiased dark:bg-gray-950 dark:text-white">
         <ThemeProviders>
-          <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
+          <PlinyAnalytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
           <SectionContainer>
             <div className="flex h-screen flex-col justify-between font-sans">
               <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
@@ -100,6 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         {/* console banner */}
         <AlohaYoConsoleBanner />
+        <VercelAnalytics />
       </body>
     </html>
   )
