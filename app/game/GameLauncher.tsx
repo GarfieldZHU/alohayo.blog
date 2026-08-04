@@ -305,20 +305,26 @@ export default function GameLauncher() {
   }, [TOP_RIGHT_CLEARANCE_PX, topRightControlsVisible])
 
   useEffect(() => {
-    const nodes = Array.from(
-      document.querySelectorAll<HTMLElement>('#waifu, #waifu-tool, #live2d-widget, [id^="waifu-"]')
-    )
-
     const shouldHide = fullWindow || isFullscreen || state === 'loading' || state === 'running'
-    const previousDisplays = nodes.map((node) => node.style.display)
-    for (const node of nodes) {
-      node.style.display = shouldHide ? 'none' : ''
+    const previousDisplays = new Map<HTMLElement, string>()
+    const syncDecorativeCanvases = () => {
+      const nodes = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '#waifu, #waifu-tool, #live2d-widget, [id^="waifu-"]'
+        )
+      )
+      for (const node of nodes) {
+        if (!previousDisplays.has(node)) previousDisplays.set(node, node.style.display)
+        node.style.display = shouldHide ? 'none' : ''
+      }
     }
+    syncDecorativeCanvases()
+    const observer = new MutationObserver(syncDecorativeCanvases)
+    observer.observe(document.body, { childList: true, subtree: true })
 
     return () => {
-      nodes.forEach((node, index) => {
-        node.style.display = previousDisplays[index] ?? ''
-      })
+      observer.disconnect()
+      for (const [node, display] of previousDisplays) node.style.display = display
     }
   }, [fullWindow, isFullscreen, state])
 
