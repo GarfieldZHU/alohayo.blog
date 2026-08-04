@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
 
 // Keep this hash aligned with the verified alohayo-world Pages commit.
-const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=f01ab42'
+const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=6a00f88'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
 type LocaleCode = 'en' | 'zh-CN'
@@ -308,9 +308,8 @@ export default function GameLauncher() {
     const nodes = Array.from(
       document.querySelectorAll<HTMLElement>('#waifu, #waifu-tool, #live2d-widget, [id^="waifu-"]')
     )
-    if (!nodes.length) return
 
-    const shouldHide = fullWindow || isFullscreen
+    const shouldHide = fullWindow || isFullscreen || state === 'loading' || state === 'running'
     const previousDisplays = nodes.map((node) => node.style.display)
     for (const node of nodes) {
       node.style.display = shouldHide ? 'none' : ''
@@ -321,7 +320,21 @@ export default function GameLauncher() {
         node.style.display = previousDisplays[index] ?? ''
       })
     }
-  }, [fullWindow, isFullscreen])
+  }, [fullWindow, isFullscreen, state])
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const onLifecycle = (event: Event) => {
+      const lifecycle = (event as CustomEvent<{ state?: string }>).detail?.state
+      if (lifecycle) container.dataset.alohayoWorldLifecycle = lifecycle
+    }
+    container.addEventListener('alohayo-world:lifecycle', onLifecycle)
+    return () => {
+      container.removeEventListener('alohayo-world:lifecycle', onLifecycle)
+      delete container.dataset.alohayoWorldLifecycle
+    }
+  }, [])
 
   const mountWithPreset = useCallback(
     async (presetIndex: number) => {
