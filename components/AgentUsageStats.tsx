@@ -5,8 +5,9 @@
 
 import { useState } from 'react'
 
-const embedUrl =
-  'https://tokscale.ai/api/embed/GarfieldZHU/svg?template=graph&color=YlGnBu&rank=percent&tokens=full&cost=full'
+// const embedUrl =
+//   'https://tokscale.ai/api/embed/GarfieldZHU/svg?template=graph&color=YlGnBu&rank=percent&tokens=full&cost=full'
+const embedUrl = 'https://tokscale.ai/api/embed/GarfieldZHU/svg?view=3d'
 const profileUrl = 'https://tokscale.ai/GarfieldZHU'
 
 export default function AgentUsageStats() {
