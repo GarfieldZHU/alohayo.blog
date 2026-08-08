@@ -14,7 +14,7 @@ const Header = () => {
   const pathLabel = pathname === '/' ? '~/' : `~${pathname}`
 
   return (
-    <header className="site-header sticky top-0 z-40 flex items-center justify-between gap-4 bg-white/90 py-4 backdrop-blur-md sm:py-5 dark:bg-gray-950/90">
+    <header className="site-header sticky top-0 z-40 flex items-center justify-between gap-4 bg-[#fbfaf7]/90 py-4 backdrop-blur-md sm:py-5 dark:bg-[#080d18]/90">
       <div className="min-w-0">
         <Link href="/" aria-label={siteMetadata.headerTitle} className="block">
           <div className="site-header__brand">
@@ -54,6 +54,7 @@ const Header = () => {
               )
             })}
         </nav>
+        <span className="site-header__divider" aria-hidden="true" />
         <SearchButton />
         <ThemeSwitch />
         <MobileNav />

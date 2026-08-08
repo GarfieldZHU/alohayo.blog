@@ -41,12 +41,14 @@ const QuantumAvatar = ({ src, alt }: QuantumAvatarProps) => {
       onPointerLeave={resetPointerPosition}
     >
       <div className="quantum-avatar__field" aria-hidden="true">
-        <span className="quantum-avatar__orbit quantum-avatar__orbit--wide" />
-        <span className="quantum-avatar__orbit quantum-avatar__orbit--tight" />
-        <span className="quantum-avatar__particle quantum-avatar__particle--pink" />
-        <span className="quantum-avatar__particle quantum-avatar__particle--cyan" />
-        <span className="quantum-avatar__particle quantum-avatar__particle--violet" />
-        <span className="quantum-avatar__particle quantum-avatar__particle--pearl" />
+        <span className="quantum-avatar__orbit quantum-avatar__orbit--wide">
+          <span className="quantum-avatar__particle quantum-avatar__particle--pink" />
+          <span className="quantum-avatar__particle quantum-avatar__particle--cyan" />
+        </span>
+        <span className="quantum-avatar__orbit quantum-avatar__orbit--tight">
+          <span className="quantum-avatar__particle quantum-avatar__particle--violet" />
+          <span className="quantum-avatar__particle quantum-avatar__particle--pearl" />
+        </span>
       </div>
       <div className="quantum-avatar__image-shell">
         <span className="quantum-avatar__sheen" aria-hidden="true" />

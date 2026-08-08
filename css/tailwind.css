@@ -80,15 +80,26 @@
 }
 
 @layer components {
+  .site-header {
+    border-bottom: 1px solid rgb(100 116 139 / 0.14);
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .dark .site-header {
+    border-color: rgb(148 163 184 / 0.14);
+  }
+
   .site-header__brand {
     display: flex;
     min-width: 0;
     align-items: center;
-    gap: 0.85rem;
+    gap: 0.8rem;
   }
 
   .site-header__logo {
-    width: clamp(3.75rem, 9vw, 5rem);
+    width: clamp(3.75rem, 8vw, 5.25rem);
   }
 
   .site-header__logo svg {
@@ -99,10 +110,10 @@
 
   .site-header__wordmark {
     color: var(--color-gray-950);
-    font-size: clamp(1.35rem, 2.3vw, 2rem);
+    font-size: clamp(1.35rem, 2.25vw, 1.95rem);
     font-weight: 650;
-    letter-spacing: -0.055em;
-    line-height: 1;
+    letter-spacing: -0.06em;
+    line-height: 0.98;
     transition: color 180ms ease;
   }
 
@@ -115,9 +126,9 @@
   }
 
   .author-card {
-    border-color: rgb(100 116 139 / 0.24);
-    background: rgb(248 250 252 / 0.82);
-    box-shadow: 0 1.25rem 2.75rem rgb(71 85 105 / 0.08);
+    border-color: rgb(120 113 108 / 0.22);
+    background: rgb(251 250 247 / 0.9);
+    box-shadow: 0 1.25rem 2.75rem rgb(120 113 108 / 0.1);
   }
 
   .dark .author-card {
@@ -130,11 +141,11 @@
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    margin-top: 0.35rem;
+    margin-top: 0.42rem;
     color: var(--color-gray-500);
     font-family: var(--font-jetbrains-mono), monospace;
     font-size: 0.62rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     line-height: 1;
   }
 
@@ -152,8 +163,8 @@
   .site-nav-link {
     position: relative;
     color: var(--color-gray-600);
-    font-size: 0.9rem;
-    letter-spacing: 0.01em;
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
     transition: color 180ms ease;
   }
 
@@ -164,13 +175,14 @@
   .site-nav-link::after {
     position: absolute;
     right: 0;
-    bottom: -0.55rem;
+    bottom: -0.72rem;
     left: 0;
-    height: 1px;
+    height: 0.18rem;
     content: '';
-    background: linear-gradient(90deg, transparent, var(--color-primary-400), transparent);
+    border-radius: 9999px;
+    background: radial-gradient(ellipse, var(--color-primary-400) 0 28%, transparent 72%);
     opacity: 0;
-    transform: scaleX(0.35);
+    transform: scaleX(0.25);
     transition:
       opacity 180ms ease,
       transform 180ms ease;
@@ -187,13 +199,24 @@
     transform: scaleX(1);
   }
 
+  .site-header__divider {
+    display: none;
+    width: 1px;
+    height: 1.8rem;
+    background: rgb(100 116 139 / 0.2);
+  }
+
+  .dark .site-header__divider {
+    background: rgb(148 163 184 / 0.2);
+  }
+
   .quantum-avatar {
     --quantum-x: 0;
     --quantum-y: 0;
     --quantum-halo-pink: rgb(218 157 172 / 0.2);
     --quantum-halo-cyan: rgb(132 174 179 / 0.18);
-    --quantum-orbit: rgb(100 116 139 / 0.42);
-    --quantum-orbit-accent: rgb(180 126 149 / 0.3);
+    --quantum-orbit: rgb(86 95 118 / 0.52);
+    --quantum-orbit-accent: rgb(180 126 149 / 0.42);
     --quantum-particle-border: rgb(255 255 255 / 0.78);
     --quantum-particle-highlight: rgb(255 255 255 / 0.55);
     --quantum-rim: conic-gradient(
@@ -220,8 +243,8 @@
   .dark .quantum-avatar {
     --quantum-halo-pink: rgb(244 169 209 / 0.25);
     --quantum-halo-cyan: rgb(116 224 247 / 0.2);
-    --quantum-orbit: rgb(211 215 255 / 0.38);
-    --quantum-orbit-accent: rgb(255 182 221 / 0.3);
+    --quantum-orbit: rgb(211 215 255 / 0.46);
+    --quantum-orbit-accent: rgb(255 182 221 / 0.4);
     --quantum-particle-border: rgb(255 255 255 / 0.72);
     --quantum-particle-highlight: rgb(255 255 255 / 0.65);
     --quantum-rim: conic-gradient(
@@ -257,7 +280,7 @@
     position: absolute;
     inset: 0.15rem;
     z-index: 0;
-    opacity: 0.18;
+    opacity: 0.56;
     transform: translate(calc(var(--quantum-x) * 0.35rem), calc(var(--quantum-y) * 0.35rem));
     transition:
       opacity 420ms ease,
@@ -274,20 +297,22 @@
   .quantum-avatar__orbit {
     position: absolute;
     display: block;
-    border: 1px dashed var(--quantum-orbit);
+    border: 1px solid var(--quantum-orbit);
     border-radius: 9999px;
     box-shadow: 0 0 1rem var(--quantum-halo-cyan);
+    transform-origin: center;
+    will-change: transform;
   }
 
   .quantum-avatar__orbit--wide {
     inset: 0.35rem 0.1rem;
-    transform: rotate(-12deg) scaleY(0.63);
+    animation: quantum-orbit-wide 14s linear infinite;
   }
 
   .quantum-avatar__orbit--tight {
     inset: 1rem 0.4rem;
     border-color: var(--quantum-orbit-accent);
-    transform: rotate(34deg) scaleY(0.78);
+    animation: quantum-orbit-tight 10.5s linear infinite;
   }
 
   .quantum-avatar__particle {
@@ -300,7 +325,43 @@
     box-shadow:
       0 0 0.45rem var(--quantum-particle-highlight),
       inset 0 0 0.25rem var(--quantum-particle-highlight);
-    animation: quantum-drift 5.4s ease-in-out infinite alternate;
+    animation: quantum-pulse 2.8s ease-in-out infinite;
+    will-change: filter;
+  }
+
+  .quantum-avatar__orbit--wide .quantum-avatar__particle--pink {
+    top: -0.35rem;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    transform: translate(-50%, -50%) scaleY(1.58);
+  }
+
+  .quantum-avatar__orbit--wide .quantum-avatar__particle--cyan {
+    top: auto;
+    right: auto;
+    bottom: -0.35rem;
+    left: 50%;
+    animation-delay: -1.4s;
+    transform: translate(-50%, 50%) scaleY(1.58);
+  }
+
+  .quantum-avatar__orbit--tight .quantum-avatar__particle--violet {
+    top: 50%;
+    right: -0.35rem;
+    bottom: auto;
+    left: auto;
+    animation-delay: -0.9s;
+    transform: translate(50%, -50%) scaleY(1.28);
+  }
+
+  .quantum-avatar__orbit--tight .quantum-avatar__particle--pearl {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: -0.35rem;
+    animation-delay: -2s;
+    transform: translate(-50%, -50%) scaleY(1.28);
   }
 
   .quantum-avatar__particle--pink {
@@ -392,12 +453,41 @@
     opacity: 1;
   }
 
-  @keyframes quantum-drift {
+  .quantum-avatar:hover .quantum-avatar__orbit--wide,
+  .quantum-avatar:focus-visible .quantum-avatar__orbit--wide {
+    animation-duration: 8.5s;
+  }
+
+  .quantum-avatar:hover .quantum-avatar__orbit--tight,
+  .quantum-avatar:focus-visible .quantum-avatar__orbit--tight {
+    animation-duration: 6.5s;
+  }
+
+  @keyframes quantum-orbit-wide {
     from {
-      transform: translate3d(0, 0, 0) scale(0.9);
+      transform: rotate(-12deg) scaleY(0.63) rotate(0deg);
     }
     to {
-      transform: translate3d(0, -0.35rem, 0) scale(1.08);
+      transform: rotate(-12deg) scaleY(0.63) rotate(360deg);
+    }
+  }
+
+  @keyframes quantum-orbit-tight {
+    from {
+      transform: rotate(34deg) scaleY(0.78) rotate(360deg);
+    }
+    to {
+      transform: rotate(34deg) scaleY(0.78) rotate(0deg);
+    }
+  }
+
+  @keyframes quantum-pulse {
+    0%,
+    100% {
+      filter: brightness(0.94);
+    }
+    50% {
+      filter: brightness(1.16);
     }
   }
 
@@ -431,9 +521,16 @@
     }
   }
 
+  @media (min-width: 640px) {
+    .site-header__divider {
+      display: block;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .site-header__cursor,
-    .quantum-avatar__particle {
+    .quantum-avatar__particle,
+    .quantum-avatar__orbit {
       animation: none;
     }
 
