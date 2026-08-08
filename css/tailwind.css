@@ -306,87 +306,97 @@
 
   .quantum-avatar__orbit--wide {
     inset: 0.35rem 0.1rem;
-    animation: quantum-orbit-wide 14s linear infinite;
+    transform: rotate(-12deg) scaleY(0.63);
   }
 
   .quantum-avatar__orbit--tight {
     inset: 1rem 0.4rem;
     border-color: var(--quantum-orbit-accent);
-    animation: quantum-orbit-tight 10.5s linear infinite;
+    transform: rotate(34deg) scaleY(0.78);
+  }
+
+  .quantum-avatar__atom-track {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+  }
+
+  .quantum-avatar__atom-track--wide {
+    animation: quantum-atom-wide 14s linear infinite;
+  }
+
+  .quantum-avatar__atom-track--tight {
+    animation: quantum-atom-tight 10.5s linear infinite;
+  }
+
+  .quantum-avatar__atom-track--wide.quantum-avatar__atom-track--delayed {
+    animation-delay: -7s;
+  }
+
+  .quantum-avatar__atom-track--tight.quantum-avatar__atom-track--delayed {
+    animation-delay: -5.25s;
+  }
+
+  .quantum-avatar__atom-path {
+    position: relative;
+    display: block;
+    width: 0;
+    height: 0;
+    transform-origin: 0 0;
+  }
+
+  .quantum-avatar__atom-path--wide {
+    transform: rotate(-12deg) scaleY(0.63);
+  }
+
+  .quantum-avatar__atom-path--tight {
+    transform: rotate(34deg) scaleY(0.78);
   }
 
   .quantum-avatar__particle {
     position: absolute;
+    top: 0;
+    left: 0;
     display: block;
-    width: 0.65rem;
-    height: 0.65rem;
+    width: 0.72rem;
+    height: 0.72rem;
     border: 1px solid var(--quantum-particle-border);
     border-radius: 9999px;
     box-shadow:
-      0 0 0.45rem var(--quantum-particle-highlight),
-      inset 0 0 0.25rem var(--quantum-particle-highlight);
+      0 0 0.48rem var(--quantum-particle-highlight),
+      inset 0.12rem 0.1rem 0.16rem rgb(255 255 255 / 0.72),
+      inset -0.16rem -0.18rem 0.2rem rgb(0 0 0 / 0.32);
     animation: quantum-pulse 2.8s ease-in-out infinite;
     will-change: filter;
   }
 
-  .quantum-avatar__orbit--wide .quantum-avatar__particle--pink {
-    top: -0.35rem;
-    right: auto;
-    bottom: auto;
-    left: 50%;
-    transform: translate(-50%, -50%) scaleY(1.58);
+  .quantum-avatar__atom-path--wide .quantum-avatar__particle {
+    transform: translate(-50%, -50%) translateX(6.1rem) scaleY(1.58);
   }
 
-  .quantum-avatar__orbit--wide .quantum-avatar__particle--cyan {
-    top: auto;
-    right: auto;
-    bottom: -0.35rem;
-    left: 50%;
-    animation-delay: -1.4s;
-    transform: translate(-50%, 50%) scaleY(1.58);
-  }
-
-  .quantum-avatar__orbit--tight .quantum-avatar__particle--violet {
-    top: 50%;
-    right: -0.35rem;
-    bottom: auto;
-    left: auto;
-    animation-delay: -0.9s;
-    transform: translate(50%, -50%) scaleY(1.28);
-  }
-
-  .quantum-avatar__orbit--tight .quantum-avatar__particle--pearl {
-    top: 50%;
-    right: auto;
-    bottom: auto;
-    left: -0.35rem;
-    animation-delay: -2s;
-    transform: translate(-50%, -50%) scaleY(1.28);
+  .quantum-avatar__atom-path--tight .quantum-avatar__particle {
+    transform: translate(-50%, -50%) translateX(5.15rem) scaleY(1.28);
   }
 
   .quantum-avatar__particle--pink {
-    top: 10%;
-    left: 22%;
     background: radial-gradient(circle at 35% 30%, #fffaf8, #d8a2b0 42%, #a7667e);
   }
 
   .quantum-avatar__particle--cyan {
-    top: 25%;
-    right: 9%;
     background: radial-gradient(circle at 35% 30%, #f8fffe, #a4cfd2 42%, #6c9ea7);
     animation-delay: -1.2s;
   }
 
   .quantum-avatar__particle--violet {
-    right: 11%;
-    bottom: 13%;
     background: radial-gradient(circle at 35% 30%, #fcfaff, #b8afd3 42%, #847b9e);
     animation-delay: -2.3s;
   }
 
   .quantum-avatar__particle--pearl {
-    bottom: 16%;
-    left: 10%;
     background: radial-gradient(circle at 35% 30%, #ffffff, #ece9e1 45%, #b8b3a9);
     animation-delay: -3.4s;
   }
@@ -453,31 +463,31 @@
     opacity: 1;
   }
 
-  .quantum-avatar:hover .quantum-avatar__orbit--wide,
-  .quantum-avatar:focus-visible .quantum-avatar__orbit--wide {
+  .quantum-avatar:hover .quantum-avatar__atom-track--wide,
+  .quantum-avatar:focus-visible .quantum-avatar__atom-track--wide {
     animation-duration: 8.5s;
   }
 
-  .quantum-avatar:hover .quantum-avatar__orbit--tight,
-  .quantum-avatar:focus-visible .quantum-avatar__orbit--tight {
+  .quantum-avatar:hover .quantum-avatar__atom-track--tight,
+  .quantum-avatar:focus-visible .quantum-avatar__atom-track--tight {
     animation-duration: 6.5s;
   }
 
-  @keyframes quantum-orbit-wide {
+  @keyframes quantum-atom-wide {
     from {
-      transform: rotate(-12deg) scaleY(0.63) rotate(0deg);
+      transform: rotate(0deg);
     }
     to {
-      transform: rotate(-12deg) scaleY(0.63) rotate(360deg);
+      transform: rotate(360deg);
     }
   }
 
-  @keyframes quantum-orbit-tight {
+  @keyframes quantum-atom-tight {
     from {
-      transform: rotate(34deg) scaleY(0.78) rotate(360deg);
+      transform: rotate(360deg);
     }
     to {
-      transform: rotate(34deg) scaleY(0.78) rotate(0deg);
+      transform: rotate(0deg);
     }
   }
 
@@ -530,7 +540,7 @@
   @media (prefers-reduced-motion: reduce) {
     .site-header__cursor,
     .quantum-avatar__particle,
-    .quantum-avatar__orbit {
+    .quantum-avatar__atom-track {
       animation: none;
     }
 
