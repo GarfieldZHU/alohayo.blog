@@ -79,6 +79,371 @@
   }
 }
 
+@layer components {
+  .site-header__brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.85rem;
+  }
+
+  .site-header__logo {
+    width: clamp(3.75rem, 9vw, 5rem);
+  }
+
+  .site-header__logo svg {
+    display: block;
+    height: auto;
+    width: 100%;
+  }
+
+  .site-header__wordmark {
+    color: var(--color-gray-950);
+    font-size: clamp(1.35rem, 2.3vw, 2rem);
+    font-weight: 650;
+    letter-spacing: -0.055em;
+    line-height: 1;
+    transition: color 180ms ease;
+  }
+
+  .dark .site-header__wordmark {
+    color: var(--color-gray-50);
+  }
+
+  .site-header__brand:hover .site-header__wordmark {
+    color: var(--color-primary-500);
+  }
+
+  .author-card {
+    border-color: rgb(100 116 139 / 0.24);
+    background: rgb(248 250 252 / 0.82);
+    box-shadow: 0 1.25rem 2.75rem rgb(71 85 105 / 0.08);
+  }
+
+  .dark .author-card {
+    border-color: rgb(255 255 255 / 0.1);
+    background: rgb(17 24 39 / 0.62);
+    box-shadow: 0 1.25rem 2.75rem rgb(0 0 0 / 0.18);
+  }
+
+  .site-header__path {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    color: var(--color-gray-500);
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+
+  .dark .site-header__path {
+    color: var(--color-gray-400);
+  }
+
+  .site-header__cursor {
+    width: 0.38rem;
+    height: 0.7rem;
+    background: var(--color-primary-400);
+    animation: site-header-cursor 1.2s steps(1, end) infinite;
+  }
+
+  .site-nav-link {
+    position: relative;
+    color: var(--color-gray-600);
+    font-size: 0.9rem;
+    letter-spacing: 0.01em;
+    transition: color 180ms ease;
+  }
+
+  .dark .site-nav-link {
+    color: var(--color-gray-300);
+  }
+
+  .site-nav-link::after {
+    position: absolute;
+    right: 0;
+    bottom: -0.55rem;
+    left: 0;
+    height: 1px;
+    content: '';
+    background: linear-gradient(90deg, transparent, var(--color-primary-400), transparent);
+    opacity: 0;
+    transform: scaleX(0.35);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+
+  .site-nav-link:hover,
+  .site-nav-link--current {
+    color: var(--color-primary-500);
+  }
+
+  .site-nav-link:hover::after,
+  .site-nav-link--current::after {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+
+  .quantum-avatar {
+    --quantum-x: 0;
+    --quantum-y: 0;
+    --quantum-halo-pink: rgb(218 157 172 / 0.2);
+    --quantum-halo-cyan: rgb(132 174 179 / 0.18);
+    --quantum-orbit: rgb(100 116 139 / 0.42);
+    --quantum-orbit-accent: rgb(180 126 149 / 0.3);
+    --quantum-particle-border: rgb(255 255 255 / 0.78);
+    --quantum-particle-highlight: rgb(255 255 255 / 0.55);
+    --quantum-rim: conic-gradient(
+      from 132deg,
+      #d7a7b4,
+      #f7eee8 20%,
+      #a6cbd0 47%,
+      #aca4c8 67%,
+      #d7b5c2 84%,
+      #d7a7b4
+    );
+    --quantum-rim-shadow: rgb(148 123 141 / 0.16);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    width: 13rem;
+    height: 13rem;
+    margin: 0 auto;
+    place-items: center;
+    perspective: 900px;
+    touch-action: manipulation;
+  }
+
+  .dark .quantum-avatar {
+    --quantum-halo-pink: rgb(244 169 209 / 0.25);
+    --quantum-halo-cyan: rgb(116 224 247 / 0.2);
+    --quantum-orbit: rgb(211 215 255 / 0.38);
+    --quantum-orbit-accent: rgb(255 182 221 / 0.3);
+    --quantum-particle-border: rgb(255 255 255 / 0.72);
+    --quantum-particle-highlight: rgb(255 255 255 / 0.65);
+    --quantum-rim: conic-gradient(
+      from 132deg,
+      #f5b0d8,
+      #f6e3ec 20%,
+      #9eefff 47%,
+      #8aa3ff 67%,
+      #d68fd1 84%,
+      #f5b0d8
+    );
+    --quantum-rim-shadow: rgb(207 158 255 / 0.18);
+  }
+
+  .quantum-avatar::before {
+    position: absolute;
+    inset: 20%;
+    z-index: -2;
+    border-radius: 9999px;
+    content: '';
+    background:
+      radial-gradient(circle at 30% 38%, var(--quantum-halo-pink), transparent 55%),
+      radial-gradient(circle at 72% 55%, var(--quantum-halo-cyan), transparent 58%);
+    filter: blur(1.5rem);
+    opacity: 0.42;
+    transform: translate(calc(var(--quantum-x) * 0.75rem), calc(var(--quantum-y) * 0.75rem));
+    transition:
+      opacity 420ms ease,
+      transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .quantum-avatar__field {
+    position: absolute;
+    inset: 0.15rem;
+    z-index: 0;
+    opacity: 0.18;
+    transform: translate(calc(var(--quantum-x) * 0.35rem), calc(var(--quantum-y) * 0.35rem));
+    transition:
+      opacity 420ms ease,
+      transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .quantum-avatar:hover::before,
+  .quantum-avatar:focus-visible::before,
+  .quantum-avatar:hover .quantum-avatar__field,
+  .quantum-avatar:focus-visible .quantum-avatar__field {
+    opacity: 0.92;
+  }
+
+  .quantum-avatar__orbit {
+    position: absolute;
+    display: block;
+    border: 1px dashed var(--quantum-orbit);
+    border-radius: 9999px;
+    box-shadow: 0 0 1rem var(--quantum-halo-cyan);
+  }
+
+  .quantum-avatar__orbit--wide {
+    inset: 0.35rem 0.1rem;
+    transform: rotate(-12deg) scaleY(0.63);
+  }
+
+  .quantum-avatar__orbit--tight {
+    inset: 1rem 0.4rem;
+    border-color: var(--quantum-orbit-accent);
+    transform: rotate(34deg) scaleY(0.78);
+  }
+
+  .quantum-avatar__particle {
+    position: absolute;
+    display: block;
+    width: 0.65rem;
+    height: 0.65rem;
+    border: 1px solid var(--quantum-particle-border);
+    border-radius: 9999px;
+    box-shadow:
+      0 0 0.45rem var(--quantum-particle-highlight),
+      inset 0 0 0.25rem var(--quantum-particle-highlight);
+    animation: quantum-drift 5.4s ease-in-out infinite alternate;
+  }
+
+  .quantum-avatar__particle--pink {
+    top: 10%;
+    left: 22%;
+    background: radial-gradient(circle at 35% 30%, #fffaf8, #d8a2b0 42%, #a7667e);
+  }
+
+  .quantum-avatar__particle--cyan {
+    top: 25%;
+    right: 9%;
+    background: radial-gradient(circle at 35% 30%, #f8fffe, #a4cfd2 42%, #6c9ea7);
+    animation-delay: -1.2s;
+  }
+
+  .quantum-avatar__particle--violet {
+    right: 11%;
+    bottom: 13%;
+    background: radial-gradient(circle at 35% 30%, #fcfaff, #b8afd3 42%, #847b9e);
+    animation-delay: -2.3s;
+  }
+
+  .quantum-avatar__particle--pearl {
+    bottom: 16%;
+    left: 10%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #ece9e1 45%, #b8b3a9);
+    animation-delay: -3.4s;
+  }
+
+  .dark .quantum-avatar__particle--pink {
+    background: radial-gradient(circle at 35% 30%, white, #f4a7b8 42%, #ba628f);
+  }
+
+  .dark .quantum-avatar__particle--cyan {
+    background: radial-gradient(circle at 35% 30%, white, #8de8f6 42%, #3e91c5);
+  }
+
+  .dark .quantum-avatar__particle--violet {
+    background: radial-gradient(circle at 35% 30%, white, #c7a8ff 42%, #7159c7);
+  }
+
+  .dark .quantum-avatar__particle--pearl {
+    background: radial-gradient(circle at 35% 30%, white, #e9e7f5 45%, #9e9bb5);
+  }
+
+  .quantum-avatar__image-shell {
+    position: relative;
+    z-index: 1;
+    width: 9rem;
+    height: 9rem;
+    padding: 0.2rem;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: var(--quantum-rim);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.2),
+      0 0 1.35rem var(--quantum-rim-shadow),
+      0 1.1rem 2.25rem rgb(0 0 0 / 0.16);
+    transform: rotateX(calc(var(--quantum-y) * -4deg)) rotateY(calc(var(--quantum-x) * 4deg))
+      scale(1);
+    transform-style: preserve-3d;
+    transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .quantum-avatar:hover .quantum-avatar__image-shell,
+  .quantum-avatar:focus-visible .quantum-avatar__image-shell {
+    transform: rotateX(calc(var(--quantum-y) * -4deg)) rotateY(calc(var(--quantum-x) * 4deg))
+      scale(1.035);
+  }
+
+  .quantum-avatar__sheen {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle at calc(50% + var(--quantum-x) * 28%) calc(50% + var(--quantum-y) * 28%),
+      rgb(255 255 255 / 0.38),
+      transparent 23%
+    );
+    mix-blend-mode: screen;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 280ms ease;
+  }
+
+  .quantum-avatar:hover .quantum-avatar__sheen,
+  .quantum-avatar:focus-visible .quantum-avatar__sheen {
+    opacity: 1;
+  }
+
+  @keyframes quantum-drift {
+    from {
+      transform: translate3d(0, 0, 0) scale(0.9);
+    }
+    to {
+      transform: translate3d(0, -0.35rem, 0) scale(1.08);
+    }
+  }
+
+  @keyframes site-header-cursor {
+    0%,
+    46% {
+      opacity: 1;
+    }
+    47%,
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @media (max-width: 639px) {
+    .site-header__path {
+      display: none;
+    }
+
+    .site-header__brand {
+      gap: 0.65rem;
+    }
+
+    .site-header__wordmark {
+      font-size: 1.25rem;
+    }
+
+    .quantum-avatar {
+      width: 12rem;
+      height: 12rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-header__cursor,
+    .quantum-avatar__particle {
+      animation: none;
+    }
+
+    .quantum-avatar,
+    .quantum-avatar * {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
 @layer utilities {
   .prose {
     & a {
