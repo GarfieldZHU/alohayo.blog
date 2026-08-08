@@ -324,17 +324,18 @@
 
   .quantum-avatar__atom-path {
     position: absolute;
-    inset: 0;
     display: block;
     transform-origin: center;
   }
 
   .quantum-avatar__atom-path--wide {
-    transform: rotate(-12deg);
+    inset: 0.35rem 0.1rem;
+    transform: rotate(-12deg) scaleY(0.63);
   }
 
   .quantum-avatar__atom-path--tight {
-    transform: rotate(34deg);
+    inset: 1rem 0.4rem;
+    transform: rotate(34deg) scaleY(0.78);
   }
 
   .quantum-avatar__particle {
@@ -357,19 +358,21 @@
   }
 
   .quantum-avatar__atom-path--wide .quantum-avatar__particle {
-    offset-path: ellipse(6.35rem 3.95rem at 50% 50%);
+    offset-path: ellipse(50% 50% at 50% 50%);
     animation-name: quantum-atom-wide, quantum-pulse;
     animation-duration: 14s, 2.8s;
     animation-timing-function: linear, ease-in-out;
     animation-iteration-count: infinite, infinite;
+    transform: translate(-50%, -50%) scaleY(1.5873);
   }
 
   .quantum-avatar__atom-path--tight .quantum-avatar__particle {
-    offset-path: ellipse(6.1rem 4.29rem at 50% 50%);
+    offset-path: ellipse(50% 50% at 50% 50%);
     animation-name: quantum-atom-tight, quantum-pulse;
     animation-duration: 10.5s, 2.8s;
     animation-timing-function: linear, ease-in-out;
     animation-iteration-count: infinite, infinite;
+    transform: translate(-50%, -50%) scaleY(1.2821);
   }
 
   .quantum-avatar__atom-track--wide.quantum-avatar__atom-track--delayed .quantum-avatar__particle {
