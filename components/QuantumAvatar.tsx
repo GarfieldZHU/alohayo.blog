@@ -45,22 +45,30 @@ const QuantumAvatar = ({ src, alt }: QuantumAvatarProps) => {
         <span className="quantum-avatar__orbit quantum-avatar__orbit--tight" />
         <span className="quantum-avatar__atom-track quantum-avatar__atom-track--wide">
           <span className="quantum-avatar__atom-path quantum-avatar__atom-path--wide">
-            <span className="quantum-avatar__particle quantum-avatar__particle--pink" />
+            <span className="quantum-avatar__particle-orbit">
+              <span className="quantum-avatar__particle quantum-avatar__particle--pink" />
+            </span>
           </span>
         </span>
         <span className="quantum-avatar__atom-track quantum-avatar__atom-track--wide quantum-avatar__atom-track--delayed">
           <span className="quantum-avatar__atom-path quantum-avatar__atom-path--wide">
-            <span className="quantum-avatar__particle quantum-avatar__particle--cyan" />
+            <span className="quantum-avatar__particle-orbit">
+              <span className="quantum-avatar__particle quantum-avatar__particle--cyan" />
+            </span>
           </span>
         </span>
         <span className="quantum-avatar__atom-track quantum-avatar__atom-track--tight">
           <span className="quantum-avatar__atom-path quantum-avatar__atom-path--tight">
-            <span className="quantum-avatar__particle quantum-avatar__particle--violet" />
+            <span className="quantum-avatar__particle-orbit">
+              <span className="quantum-avatar__particle quantum-avatar__particle--violet" />
+            </span>
           </span>
         </span>
         <span className="quantum-avatar__atom-track quantum-avatar__atom-track--tight quantum-avatar__atom-track--delayed">
           <span className="quantum-avatar__atom-path quantum-avatar__atom-path--tight">
-            <span className="quantum-avatar__particle quantum-avatar__particle--pearl" />
+            <span className="quantum-avatar__particle-orbit">
+              <span className="quantum-avatar__particle quantum-avatar__particle--pearl" />
+            </span>
           </span>
         </span>
       </div>
