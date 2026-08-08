@@ -317,44 +317,24 @@
 
   .quantum-avatar__atom-track {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
+    inset: 0;
     transform-origin: 0 0;
-    will-change: transform;
-  }
-
-  .quantum-avatar__atom-track--wide {
-    animation: quantum-atom-wide 14s linear infinite;
-  }
-
-  .quantum-avatar__atom-track--tight {
-    animation: quantum-atom-tight 10.5s linear infinite;
-  }
-
-  .quantum-avatar__atom-track--wide.quantum-avatar__atom-track--delayed {
-    animation-delay: -7s;
-  }
-
-  .quantum-avatar__atom-track--tight.quantum-avatar__atom-track--delayed {
-    animation-delay: -5.25s;
+    pointer-events: none;
   }
 
   .quantum-avatar__atom-path {
-    position: relative;
+    position: absolute;
+    inset: 0;
     display: block;
-    width: 0;
-    height: 0;
-    transform-origin: 0 0;
+    transform-origin: center;
   }
 
   .quantum-avatar__atom-path--wide {
-    transform: rotate(-12deg) scaleY(0.63);
+    transform: rotate(-12deg);
   }
 
   .quantum-avatar__atom-path--tight {
-    transform: rotate(34deg) scaleY(0.78);
+    transform: rotate(34deg);
   }
 
   .quantum-avatar__particle {
@@ -370,16 +350,38 @@
       0 0 0.48rem var(--quantum-particle-highlight),
       inset 0.12rem 0.1rem 0.16rem rgb(255 255 255 / 0.72),
       inset -0.16rem -0.18rem 0.2rem rgb(0 0 0 / 0.32);
+    offset-rotate: 0deg;
+    transform: translate(-50%, -50%);
     animation: quantum-pulse 2.8s ease-in-out infinite;
-    will-change: filter;
+    will-change: offset-distance, filter;
   }
 
   .quantum-avatar__atom-path--wide .quantum-avatar__particle {
-    transform: translate(-50%, -50%) translateX(6.1rem) scaleY(1.58);
+    offset-path: ellipse(6.35rem 3.95rem at 50% 50%);
+    animation-name: quantum-atom-wide, quantum-pulse;
+    animation-duration: 14s, 2.8s;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
   }
 
   .quantum-avatar__atom-path--tight .quantum-avatar__particle {
-    transform: translate(-50%, -50%) translateX(5.15rem) scaleY(1.28);
+    offset-path: ellipse(6.1rem 4.29rem at 50% 50%);
+    animation-name: quantum-atom-tight, quantum-pulse;
+    animation-duration: 10.5s, 2.8s;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+  }
+
+  .quantum-avatar__atom-track--wide.quantum-avatar__atom-track--delayed .quantum-avatar__particle {
+    animation-delay:
+      -7s,
+      -1.4s;
+  }
+
+  .quantum-avatar__atom-track--tight.quantum-avatar__atom-track--delayed .quantum-avatar__particle {
+    animation-delay:
+      -5.25s,
+      -2s;
   }
 
   .quantum-avatar__particle--pink {
@@ -465,29 +467,39 @@
 
   .quantum-avatar:hover .quantum-avatar__atom-track--wide,
   .quantum-avatar:focus-visible .quantum-avatar__atom-track--wide {
-    animation-duration: 8.5s;
+    --quantum-orbit-duration: 8.5s;
   }
 
   .quantum-avatar:hover .quantum-avatar__atom-track--tight,
   .quantum-avatar:focus-visible .quantum-avatar__atom-track--tight {
-    animation-duration: 6.5s;
+    --quantum-orbit-duration: 6.5s;
+  }
+
+  .quantum-avatar:hover .quantum-avatar__atom-path--wide .quantum-avatar__particle,
+  .quantum-avatar:focus-visible .quantum-avatar__atom-path--wide .quantum-avatar__particle {
+    animation-duration: var(--quantum-orbit-duration), 2.8s;
+  }
+
+  .quantum-avatar:hover .quantum-avatar__atom-path--tight .quantum-avatar__particle,
+  .quantum-avatar:focus-visible .quantum-avatar__atom-path--tight .quantum-avatar__particle {
+    animation-duration: var(--quantum-orbit-duration), 2.8s;
   }
 
   @keyframes quantum-atom-wide {
     from {
-      transform: rotate(0deg);
+      offset-distance: 0%;
     }
     to {
-      transform: rotate(360deg);
+      offset-distance: 100%;
     }
   }
 
   @keyframes quantum-atom-tight {
     from {
-      transform: rotate(360deg);
+      offset-distance: 100%;
     }
     to {
-      transform: rotate(0deg);
+      offset-distance: 0%;
     }
   }
 
