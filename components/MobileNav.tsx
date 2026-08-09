@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import Link from './Link'
-import Logo from './Logo'
 import headerNavLinks from '@/data/headerNavLinks'
 import siteMetadata from '@/data/siteMetadata'
 
@@ -91,9 +90,6 @@ const MobileNav = () => {
                   className="site-mobile-nav__identity"
                   onClick={onToggleNav}
                 >
-                  <span className="site-mobile-nav__logo" aria-hidden="true">
-                    <Logo />
-                  </span>
                   <span className="site-mobile-nav__context">
                     <span className="site-mobile-nav__eyebrow">site map</span>
                     <span className="site-mobile-nav__wordmark">{siteMetadata.headerTitle}</span>
@@ -120,7 +116,7 @@ const MobileNav = () => {
                 </button>
               </div>
               <nav className="site-mobile-nav__links" aria-label="Mobile navigation">
-                {headerNavLinks.map((link, index) => {
+                {headerNavLinks.map((link) => {
                   const isCurrent =
                     pathname === link.href ||
                     (link.href !== '/' && pathname.startsWith(`${link.href}/`))
@@ -134,19 +130,12 @@ const MobileNav = () => {
                       className={`site-mobile-nav__link ${isCurrent ? 'site-mobile-nav__link--current' : ''}`}
                       onClick={onToggleNav}
                     >
-                      <span className="site-mobile-nav__index">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
                       <span className="site-mobile-nav__title">{link.title}</span>
                       <span className="site-mobile-nav__route">{routeLabel}</span>
                     </Link>
                   )
                 })}
               </nav>
-              <div className="site-mobile-nav__footer" aria-hidden="true">
-                <span>responsive navigation</span>
-                <span>© {new Date().getFullYear()} AlohaYo</span>
-              </div>
             </div>
           </div>,
           document.body
