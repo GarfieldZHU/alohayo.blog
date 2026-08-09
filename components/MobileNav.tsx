@@ -1,25 +1,42 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import Link from './Link'
+import Logo from './Logo'
 import headerNavLinks from '@/data/headerNavLinks'
+import siteMetadata from '@/data/siteMetadata'
 
 const MobileNav = () => {
   const [mounted, setMounted] = useState(false)
   const [navShow, setNavShow] = useState(false)
+  const pathname = usePathname() ?? '/'
+  const pathLabel = pathname === '/' ? '~/' : `~${pathname}`
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
-    document.body.style.overflow = navShow ? 'hidden' : 'auto'
+    const originalOverflow = document.body.style.overflow
+    document.body.style.overflow = navShow ? 'hidden' : originalOverflow
 
     return () => {
-      document.body.style.overflow = 'auto'
+      document.body.style.overflow = originalOverflow
     }
   }, [navShow])
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setNavShow(false)
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   const onToggleNav = () => {
     setNavShow((status) => !status)
@@ -27,12 +44,18 @@ const MobileNav = () => {
 
   return (
     <>
-      <button aria-label="Toggle Menu" onClick={onToggleNav} className="xl:hidden">
+      <button
+        aria-label="Toggle Menu"
+        aria-controls="mobile-navigation-drawer"
+        aria-expanded={navShow}
+        onClick={onToggleNav}
+        className="site-mobile-nav__trigger xl:hidden"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
           fill="currentColor"
-          className="h-8 w-8 text-gray-900 dark:text-gray-100"
+          className="h-5 w-5"
         >
           <path
             fillRule="evenodd"
@@ -44,29 +67,49 @@ const MobileNav = () => {
       {mounted &&
         createPortal(
           <div
-            className={`fixed inset-0 z-[100] xl:hidden ${
-              navShow ? 'pointer-events-auto' : 'pointer-events-none'
+            className={`site-mobile-nav fixed inset-0 z-[100] xl:hidden ${
+              navShow ? 'site-mobile-nav--open pointer-events-auto' : 'pointer-events-none'
             }`}
           >
             <button
               aria-label="Close Menu Backdrop"
-              className={`absolute inset-0 bg-gray-950/40 transition-opacity duration-300 dark:bg-black/60 ${
-                navShow ? 'opacity-100' : 'opacity-0'
-              }`}
+              className="site-mobile-nav__backdrop absolute inset-0"
               onClick={onToggleNav}
             />
             <div
-              className={`absolute top-0 right-0 flex h-dvh w-[min(20rem,85vw)] flex-col border-l border-gray-200 bg-white shadow-2xl transition-transform duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-950 ${
-                navShow ? 'translate-x-0' : 'translate-x-full'
-              }`}
+              id="mobile-navigation-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site navigation"
+              data-open={navShow}
+              className="site-mobile-nav__drawer absolute"
             >
-              <div className="flex items-center justify-end border-b border-gray-100 px-5 py-5 dark:border-gray-800">
-                <button className="h-8 w-8" aria-label="Toggle Menu" onClick={onToggleNav}>
+              <div className="site-mobile-nav__header">
+                <Link
+                  href="/"
+                  aria-label={siteMetadata.headerTitle}
+                  className="site-mobile-nav__identity"
+                  onClick={onToggleNav}
+                >
+                  <span className="site-mobile-nav__logo" aria-hidden="true">
+                    <Logo />
+                  </span>
+                  <span className="site-mobile-nav__context">
+                    <span className="site-mobile-nav__eyebrow">site map</span>
+                    <span className="site-mobile-nav__wordmark">{siteMetadata.headerTitle}</span>
+                    <span className="site-mobile-nav__path">{pathLabel}</span>
+                  </span>
+                </Link>
+                <button
+                  className="site-mobile-nav__close"
+                  aria-label="Close Menu"
+                  onClick={onToggleNav}
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
-                    className="text-gray-900 dark:text-gray-100"
+                    className="h-5 w-5"
                   >
                     <path
                       fillRule="evenodd"
@@ -76,18 +119,34 @@ const MobileNav = () => {
                   </svg>
                 </button>
               </div>
-              <nav className="flex flex-1 flex-col overflow-y-auto px-4 py-6">
-                {headerNavLinks.map((link) => (
-                  <Link
-                    key={link.title}
-                    href={link.href}
-                    className="rounded-xl px-4 py-3 text-lg font-semibold tracking-wide text-gray-900 transition-colors hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-900"
-                    onClick={onToggleNav}
-                  >
-                    {link.title}
-                  </Link>
-                ))}
+              <nav className="site-mobile-nav__links" aria-label="Mobile navigation">
+                {headerNavLinks.map((link, index) => {
+                  const isCurrent =
+                    pathname === link.href ||
+                    (link.href !== '/' && pathname.startsWith(`${link.href}/`))
+                  const routeLabel = link.href === '/' ? '~/' : `~${link.href}/`
+
+                  return (
+                    <Link
+                      key={link.title}
+                      href={link.href}
+                      aria-current={isCurrent ? 'page' : undefined}
+                      className={`site-mobile-nav__link ${isCurrent ? 'site-mobile-nav__link--current' : ''}`}
+                      onClick={onToggleNav}
+                    >
+                      <span className="site-mobile-nav__index">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className="site-mobile-nav__title">{link.title}</span>
+                      <span className="site-mobile-nav__route">{routeLabel}</span>
+                    </Link>
+                  )
+                })}
               </nav>
+              <div className="site-mobile-nav__footer" aria-hidden="true">
+                <span>responsive navigation</span>
+                <span>© {new Date().getFullYear()} AlohaYo</span>
+              </div>
             </div>
           </div>,
           document.body
