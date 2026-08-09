@@ -14,7 +14,7 @@ const Header = () => {
   const pathLabel = pathname === '/' ? '~/' : `~${pathname}`
 
   return (
-    <header className="site-header sticky top-0 z-40 flex items-center justify-between gap-4 bg-[#fbfaf7]/90 py-4 backdrop-blur-md sm:py-5 dark:bg-[#080d18]/90">
+    <header className="site-header sticky top-0 z-40 flex min-w-0 items-center justify-between gap-4 py-4 sm:py-5">
       <div className="min-w-0">
         <Link href="/" aria-label={siteMetadata.headerTitle} className="block">
           <div className="site-header__brand">
@@ -36,7 +36,7 @@ const Header = () => {
         </Link>
       </div>
       <div className="flex shrink-0 items-center gap-3 leading-5 sm:gap-5 lg:gap-6">
-        <nav className="hidden items-center gap-5 sm:flex lg:gap-7" aria-label="Primary navigation">
+        <nav className="hidden items-center gap-5 xl:flex xl:gap-7" aria-label="Primary navigation">
           {headerNavLinks
             .filter((link) => link.href !== '/')
             .map((link) => {

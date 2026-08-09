@@ -27,7 +27,7 @@ const MobileNav = () => {
 
   return (
     <>
-      <button aria-label="Toggle Menu" onClick={onToggleNav} className="sm:hidden">
+      <button aria-label="Toggle Menu" onClick={onToggleNav} className="xl:hidden">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
@@ -44,7 +44,7 @@ const MobileNav = () => {
       {mounted &&
         createPortal(
           <div
-            className={`fixed inset-0 z-[100] sm:hidden ${
+            className={`fixed inset-0 z-[100] xl:hidden ${
               navShow ? 'pointer-events-auto' : 'pointer-events-none'
             }`}
           >

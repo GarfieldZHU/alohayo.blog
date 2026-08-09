@@ -80,14 +80,28 @@
 }
 
 @layer components {
+  .site-shell {
+    min-height: 100vh;
+    overflow-x: clip;
+    background: #f5f6fa;
+    transition: background-color 180ms ease;
+  }
+
+  .dark .site-shell {
+    background: #070d18;
+  }
+
   .site-header {
+    background: rgb(245 246 250 / 0.92);
     border-bottom: 1px solid rgb(100 116 139 / 0.14);
+    backdrop-filter: blur(18px);
     transition:
       background-color 180ms ease,
       border-color 180ms ease;
   }
 
   .dark .site-header {
+    background: rgb(7 13 24 / 0.92);
     border-color: rgb(148 163 184 / 0.14);
   }
 
@@ -551,7 +565,7 @@
     }
   }
 
-  @media (min-width: 640px) {
+  @media (min-width: 1280px) {
     .site-header__divider {
       display: block;
     }
