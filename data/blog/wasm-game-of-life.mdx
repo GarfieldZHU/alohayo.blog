@@ -33,4 +33,22 @@ This is the little playground I like. Click cells to make a pattern, pause it, a
 
 If the embedded view does not load, open the [playground directly](https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/). The source is in the [`wasm-game-of-life` folder](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life).
 
+## How the WASM fits into this MDX page
+
+This first version keeps the Rust project separate from the blog. The GitHub Actions workflow runs `wasm-pack --target web`, copies the generated package into a static GitHub Pages site, and the MDX page embeds that site with an `<iframe>`. The blog only needs a fixed URL, `garfieldzhu.github.io` in `frame-src`, and a normal link for browsers that block the frame. The `not-prose` wrapper keeps the playground's layout out of the article typography.
+
+That split is useful for now. The WASM app can have its own build and release cycle, and the blog does not need to understand the Rust package or load it during server rendering.
+
+## A plan for a more interactive article
+
+If I want the WASM to feel like part of the article instead of a separate page, I would make it a real MDX component:
+
+1. Keep the Rust crate and `wasm-pack --target web` output small and browser-friendly.
+2. Add a client-only `WasmGameOfLife` React component, then register it in `components/MDXComponents.tsx`.
+3. Let the component own loading, the canvas, controls, and errors; expose only a small API such as `<WasmGameOfLife />` to the MDX.
+4. Put the component between short explanations so each step in the article can change the Rust state and show the result immediately.
+5. Keep a fallback link and test the production build, mobile layout, and a browser with WebAssembly disabled.
+
+The iframe is the safe boundary for this demo. A first-class component would make the article more playful, but it would also couple the MDX build, the browser-only React code, and the WASM package more closely.
+
 My current mental model is simple: WASM is not a replacement for the Web platform. It is a compact place to run the part of a program that benefits from Rust, while the frontend remains responsible for the browser experience.
