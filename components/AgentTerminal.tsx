@@ -265,13 +265,6 @@ export default function AgentTerminal() {
             <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-sky-600 uppercase dark:text-sky-300">
               agent workbench / visible by design
             </p>
-            <h2 className="mt-2 text-2xl font-bold tracking-[-0.04em] text-slate-950 sm:text-3xl dark:text-white">
-              Delegate the middle. Keep the proof.
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
-              A small simulation of how Codex-style workspaces and Claude Code-style terminal craft
-              can coexist: context first, action in the middle, evidence before handoff.
-            </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
