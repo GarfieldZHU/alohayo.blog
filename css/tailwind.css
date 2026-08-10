@@ -226,20 +226,21 @@
 
   .site-language-switch {
     display: inline-flex;
-    min-height: 2.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
     align-items: center;
-    gap: 0.3rem;
-    border: 1px solid transparent;
-    border-radius: 0.7rem;
-    padding: 0.45rem 0.55rem;
+    justify-content: center;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    background: transparent;
     color: var(--color-gray-700);
     font-family: var(--font-jetbrains-mono), monospace;
-    font-size: 0.78rem;
-    letter-spacing: 0.02em;
+    font-size: 0.7rem;
+    letter-spacing: -0.04em;
     transition:
       color 180ms ease,
-      background-color 180ms ease,
-      border-color 180ms ease;
+      opacity 180ms ease;
   }
 
   .dark .site-language-switch {
@@ -248,19 +249,17 @@
 
   .site-language-switch:hover,
   .site-language-switch[aria-expanded='true'] {
-    border-color: rgb(190 120 166 / 0.38);
-    background: rgb(255 255 255 / 0.72);
     color: var(--color-primary-500);
+    opacity: 0.86;
   }
 
-  .dark .site-language-switch:hover,
-  .dark .site-language-switch[aria-expanded='true'] {
-    background: rgb(30 41 59 / 0.72);
+  .site-language-switch:focus-visible {
+    outline: none;
   }
 
   .site-language-popover {
     position: absolute;
-    top: calc(100% + 0.65rem);
+    top: calc(100% + 0.45rem);
     right: 0;
     z-index: 80;
     width: 12rem;
@@ -592,12 +591,23 @@
   }
 
   .site-mobile-nav__trigger {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.85rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
   }
 
-  .site-mobile-nav__trigger:hover,
+  .site-mobile-nav__trigger:hover {
+    color: var(--color-primary-500);
+    background: transparent;
+    transform: none;
+  }
+
+  .site-mobile-nav__trigger:focus-visible {
+    outline: none;
+  }
+
   .site-mobile-nav__close:hover {
     color: var(--color-primary-500);
     border-color: rgb(190 120 166 / 0.52);
@@ -605,14 +615,23 @@
     transform: translateY(-1px);
   }
 
-  .dark .site-mobile-nav__trigger,
+  .dark .site-mobile-nav__trigger {
+    color: var(--color-gray-200);
+    border-color: transparent;
+    background: transparent;
+  }
+
+  .dark .site-mobile-nav__trigger:hover {
+    border-color: transparent;
+    background: transparent;
+  }
+
   .dark .site-mobile-nav__close {
     color: var(--color-gray-200);
     border-color: rgb(148 163 184 / 0.24);
     background: rgb(17 24 39 / 0.52);
   }
 
-  .dark .site-mobile-nav__trigger:hover,
   .dark .site-mobile-nav__close:hover {
     border-color: rgb(244 169 209 / 0.56);
     background: rgb(31 41 55 / 0.76);
