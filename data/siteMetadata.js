@@ -15,6 +15,7 @@ const siteMetadata = {
   twitter: 'https://twitter.com/_AlohaYo_',
   linkedin: 'https://www.linkedin.com/in/alohayo/',
   locale: 'en-US',
+  i18n: { showLocaleSwitch: true },
   analytics: {
     // If you want to use an analytics provider you have to add it to the
     // content security policy in the `next.config.js` file.

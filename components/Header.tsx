@@ -8,6 +8,7 @@ import Logo from './Logo'
 import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
 import SearchButton from './SearchButton'
+import LanguageSwitch from './LanguageSwitch'
 
 const Header = () => {
   const pathname = usePathname() ?? '/'
@@ -56,6 +57,7 @@ const Header = () => {
         </nav>
         <span className="site-header__divider" aria-hidden="true" />
         <SearchButton />
+        <LanguageSwitch />
         <ThemeSwitch />
         <MobileNav />
       </div>
