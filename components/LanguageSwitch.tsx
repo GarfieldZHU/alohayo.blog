@@ -4,15 +4,15 @@ import siteMetadata from '@/data/siteMetadata'
 import { getLocalePath } from '@/lib/i18n'
 import { useLocale } from './LocaleProvider'
 export default function LanguageSwitch() {
-  if (siteMetadata.i18n?.showLocaleSwitch === false) return null
-  const { locale, setLocale } = useLocale()
+  const { locale, setLocale, messages } = useLocale()
   const router = useRouter()
   const pathname = usePathname() || '/'
+  if (siteMetadata.i18n?.showLocaleSwitch === false) return null
   const next = locale === 'en' ? 'zh-CN' : 'en'
   return (
     <button
       type="button"
-      aria-label="文/A"
+      aria-label={messages.accessibility.languageSwitch}
       aria-pressed={locale === 'zh-CN'}
       onClick={() => {
         setLocale(next)
