@@ -9,15 +9,18 @@ import MobileNav from './MobileNav'
 import ThemeSwitch from './ThemeSwitch'
 import SearchButton from './SearchButton'
 import LanguageSwitch from './LanguageSwitch'
+import { useLocale } from './LocaleProvider'
 
 const Header = () => {
   const pathname = usePathname() ?? '/'
+  const { locale, messages } = useLocale()
+  const prefix = locale === 'zh-CN' ? '/zh-CN' : ''
   const pathLabel = pathname === '/' ? '~/' : `~${pathname}`
 
   return (
     <header className="site-header sticky top-0 z-40 flex min-w-0 items-center justify-between gap-4 py-4 sm:py-5">
       <div className="min-w-0">
-        <Link href="/" aria-label={siteMetadata.headerTitle} className="block">
+        <Link href={`${prefix}/`} aria-label={siteMetadata.headerTitle} className="block">
           <div className="site-header__brand">
             <div className="site-header__logo shrink-0">
               <Logo />
@@ -37,20 +40,24 @@ const Header = () => {
         </Link>
       </div>
       <div className="flex shrink-0 items-center gap-3 leading-5 sm:gap-5 lg:gap-6">
-        <nav className="hidden items-center gap-5 xl:flex xl:gap-7" aria-label="Primary navigation">
+        <nav
+          className="hidden items-center gap-5 xl:flex xl:gap-7"
+          aria-label={messages.shell.primaryNavigation}
+        >
           {headerNavLinks
             .filter((link) => link.href !== '/')
             .map((link) => {
-              const isCurrent = pathname === link.href || pathname.startsWith(`${link.href}/`)
+              const href = link.href === '/' ? `${prefix}/` : `${prefix}${link.href}`
+              const isCurrent = pathname === href || pathname.startsWith(`${href}/`)
 
               return (
                 <Link
                   key={link.title}
-                  href={link.href}
+                  href={href}
                   aria-current={isCurrent ? 'page' : undefined}
                   className={`site-nav-link font-medium ${isCurrent ? 'site-nav-link--current' : ''}`}
                 >
-                  {link.title}
+                  {messages.nav[link.title.toLowerCase()] || link.title}
                 </Link>
               )
             })}

@@ -9,16 +9,20 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import { getMessages, type LocaleCode } from '@/lib/i18n'
 
 interface LayoutProps {
   content: CoreContent<Blog>
   children: ReactNode
-  next?: { path: string; title: string }
-  prev?: { path: string; title: string }
+  next?: { path: string; title: string; localizedSlug?: string }
+  prev?: { path: string; title: string; localizedSlug?: string }
+  locale?: LocaleCode
 }
 
-export default function PostMinimal({ content, next, prev, children }: LayoutProps) {
+export default function PostMinimal({ content, next, prev, children, locale = 'en' }: LayoutProps) {
+  const messages = getMessages(locale)
   const { slug, title, images } = content
+  const localizedSlug = content.localizedSlug || slug
   const displayImage =
     images && images.length > 0 ? images[0] : 'https://picsum.photos/seed/picsum/800/400'
 
@@ -42,7 +46,7 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
           <div className="prose dark:prose-invert max-w-none py-4">{children}</div>
           {siteMetadata.comments && (
             <div className="pt-6 pb-6 text-center text-gray-700 dark:text-gray-300" id="comment">
-              <Comments slug={slug} />
+              <Comments slug={localizedSlug} />
             </div>
           )}
           <footer>
@@ -50,9 +54,13 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
               {prev && prev.path && (
                 <div className="pt-4 xl:pt-8">
                   <Link
-                    href={`/${prev.path}`}
+                    href={
+                      locale === 'zh-CN' && prev.localizedSlug
+                        ? `/zh-CN/blog/${prev.localizedSlug}`
+                        : `/${prev.path}`
+                    }
                     className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                    aria-label={`Previous post: ${prev.title}`}
+                    aria-label={`${messages.blog.previous}: ${prev.title}`}
                   >
                     &larr; {prev.title}
                   </Link>
@@ -61,9 +69,13 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
               {next && next.path && (
                 <div className="pt-4 xl:pt-8">
                   <Link
-                    href={`/${next.path}`}
+                    href={
+                      locale === 'zh-CN' && next.localizedSlug
+                        ? `/zh-CN/blog/${next.localizedSlug}`
+                        : `/${next.path}`
+                    }
                     className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                    aria-label={`Next post: ${next.title}`}
+                    aria-label={`${messages.blog.next}: ${next.title}`}
                   >
                     {next.title} &rarr;
                   </Link>

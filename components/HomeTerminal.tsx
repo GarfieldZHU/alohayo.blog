@@ -9,6 +9,8 @@ import {
   visibleHomeSplashes,
 } from '@/data/splashes/home'
 import { quotes } from '@/data/quotes'
+import { useLocale } from './LocaleProvider'
+import { getLocalePath } from '@/lib/i18n'
 
 // --- Live2D interaction helper ---
 function showWaifuMessage(text: string, duration = 6000) {
@@ -72,8 +74,59 @@ const waifuMenuMessages: Record<string, string[]> = {
   ],
 }
 
-function showWaifuMenuHint(menuId: string) {
-  const msgs = waifuMenuMessages[menuId]
+const englishWaifuMenuMessages: Record<string, string[]> = {
+  introduce: [
+    'Want to know the master? His identity, stack, and life philosophy are hiding here~',
+    'Here is the master’s self-introduction—from engineer to gamer, the whole messy bundle!',
+    'Go see what kind of person the master is. I promise there are no production bugs inside~',
+    'He calls himself a Null-stack engineer… humble, or simply refusing to pick a stack? 🤔',
+    'Coffee, code, and Souls games: the master’s little life trilogy ☕',
+    'Click in—his story has more twists than the bugs he writes!',
+    'The master is quiet in public, but this page has a few secrets~',
+    'Want to know why he is called AlohaYo? Come and see! 🌺',
+  ],
+  recommend: [
+    'Want a random article from the master’s shelf?',
+    'Let fate choose your reading today~ ✨',
+    'These posts are written with care. The occasional typo is also handcrafted.',
+    'A blog blind box! Let’s see what comes out~ 📦',
+    'Every article is a small piece of the master’s heart. Dramatic, but true.',
+    'Try your luck—today’s post might be exactly the one you need! 🎯',
+    'He writes with a latte beside him. This is apparently a process requirement~',
+    'Random recommendation is live. One click, one tiny treasure hunt ✨',
+  ],
+  quotes: [
+    'Want one of the master’s collected lines? There are technical, philosophical, and game ones!',
+    'Quote time! The master keeps a surprisingly large drawer of these~',
+    'A different sentence each time, like a tiny quote capsule toy.',
+    'A soul question or a little soup for the soul? Luck decides! 🎲',
+    'This collection crosses programming, philosophy, and games. It refuses to stay in one genre.',
+    'You may finish a quote and suddenly want to code… or play a game 😂',
+    'Some lines are the master’s, some belong to people he admires. Guess which is which~',
+    'One click for today’s small dose of courage 💪',
+  ],
+  pokemon: [
+    'A Pokémon draw! I hope we get a legendary one! ✨',
+    'Pokémon time. The master likes dragons and fire types—what about you?',
+    'Try your luck! Rumour says the master once pulled a shiny Charizard 🔥',
+    'I want an Eevee too. Please help me catch one~',
+    'Master Ball ready? Throw it with feeling! ⚡',
+    'Maybe today we meet a rare shiny one! ✨✨✨',
+    'The master promised ice cream if we pull a Charizard… please hurry! 🍦',
+    'The first generation is classic. I will accept no debate (maybe).',
+    'If Pokémon were real, I would raise a Vulpix~ 🦊',
+    'Who will be today’s lucky Pokémon? I’m excited, I’m excited!',
+  ],
+  game: [
+    'A whole world is waiting to wake up from a seed. See what the continent looks like today!',
+    'The master made this map: mountains, forests, and coasts from one little seed~',
+    'Ready to explore? The game resources wait until you press start.',
+    'Every seed makes a different world. I wonder which island you will find today?',
+  ],
+}
+
+function showWaifuMenuHint(menuId: string, locale: 'en' | 'zh-CN' = 'zh-CN') {
+  const msgs = (locale === 'en' ? englishWaifuMenuMessages : waifuMenuMessages)[menuId]
   if (!msgs) return
   showWaifuMessage(
     msgs[Math.floor(Math.random() * msgs.length)],
@@ -146,6 +199,14 @@ const menuOptions: MenuOption[] = [
   { id: 'quotes', label: 'Roll a quotes', description: 'click to get a quote' },
   { id: 'pokemon', label: 'Roll a Pokemon today', description: 'click to catch a random Pokemon' },
   { id: 'game', label: 'Enter the World', description: 'click to generate a world' },
+]
+
+const chineseMenuOptions: MenuOption[] = [
+  { id: 'introduce', label: '认识 AlohaYo', description: '点这里了解我' },
+  { id: 'recommend', label: '推荐博客', description: '随机发现几篇文章' },
+  { id: 'quotes', label: '抽一句话', description: '抽一句语录' },
+  { id: 'pokemon', label: '今天抽一只宝可梦', description: '随机抓一只宝可梦' },
+  { id: 'game', label: '进入世界', description: '生成一片世界' },
 ]
 
 const CAROUSEL_INTERVAL = 3000
@@ -255,6 +316,7 @@ function PokemonModal({
   onReroll: () => void
   loading: boolean
 }) {
+  const { messages } = useLocale()
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -294,7 +356,7 @@ function PokemonModal({
           <div className="flex h-72 flex-col items-center justify-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-slate-200 border-t-cyan-500 dark:border-slate-700 dark:border-t-cyan-300" />
             <p className="font-mono text-sm text-slate-500 dark:text-slate-300">
-              Scanning tall grass…
+              {messages.terminal.scanGrass}
             </p>
           </div>
         )}
@@ -303,7 +365,7 @@ function PokemonModal({
           <div className="relative grid gap-0 md:grid-cols-[0.95fr_1.05fr]">
             <div className="relative flex min-h-[320px] flex-col justify-between overflow-hidden px-6 py-8 md:px-8">
               <div className="absolute top-6 left-6 rounded-full border border-white/70 bg-white/75 px-3 py-1 font-mono text-[11px] tracking-[0.28em] text-slate-500 uppercase shadow-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-300">
-                Daily Catch
+                {messages.terminal.dailyCatch}
               </div>
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.8),transparent_58%)] dark:bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.08),transparent_58%)]" />
               <div className="relative flex flex-1 flex-col items-center justify-center">
@@ -317,7 +379,7 @@ function PokemonModal({
                   />
                 </div>
                 <p className="relative mt-5 font-mono text-xs tracking-[0.24em] text-slate-500 uppercase dark:text-slate-400">
-                  A neat little companion wandered in
+                  {messages.terminal.companion}
                 </p>
               </div>
               <div className="relative mt-6 flex flex-wrap items-center justify-start gap-3">
@@ -325,7 +387,7 @@ function PokemonModal({
                   onClick={onReroll}
                   className="cursor-pointer rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:from-cyan-500 hover:to-blue-500"
                 >
-                  🎲 Catch another
+                  🎲 {messages.terminal.catchAnother}
                 </button>
                 <a
                   href={`https://wiki.52poke.com/wiki/${pokemon.name}`}
@@ -333,7 +395,7 @@ function PokemonModal({
                   rel="noopener noreferrer"
                   className="rounded-2xl border border-slate-300 bg-white/75 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10"
                 >
-                  📖 Open wiki
+                  📖 {messages.terminal.openWiki}
                 </a>
               </div>
             </div>
@@ -342,7 +404,7 @@ function PokemonModal({
               <button
                 onClick={onClose}
                 className="absolute top-6 right-6 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-slate-200/80 bg-white/80 text-slate-500 shadow-sm transition hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/70 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white"
-                aria-label="Close Pokemon dialog"
+                aria-label={messages.terminal.closePokemon}
               >
                 ✕
               </button>
@@ -373,7 +435,7 @@ function PokemonModal({
               <div className="mt-5 grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
                   <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
-                    Height
+                    {messages.terminal.height}
                   </p>
                   <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {pokemon.height / 10}m
@@ -381,7 +443,7 @@ function PokemonModal({
                 </div>
                 <div className="rounded-2xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
                   <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
-                    Weight
+                    {messages.terminal.weight}
                   </p>
                   <p className="mt-1 text-lg font-semibold text-slate-900 dark:text-slate-100">
                     {pokemon.weight / 10}kg
@@ -391,7 +453,7 @@ function PokemonModal({
 
               <div className="mt-5 rounded-2xl border border-slate-200/80 bg-white/70 p-4 dark:border-white/10 dark:bg-white/5">
                 <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
-                  Abilities
+                  {messages.terminal.abilities}
                 </p>
                 <p className="mt-2 text-sm leading-6 text-slate-700 capitalize dark:text-slate-300">
                   {pokemon.abilities.join(', ')}
@@ -400,7 +462,7 @@ function PokemonModal({
 
               <div className="mt-5 space-y-2">
                 <p className="font-mono text-[11px] tracking-[0.18em] text-slate-400 uppercase">
-                  Battle Readout
+                  {messages.terminal.battleReadout}
                 </p>
                 {pokemon.stats.map((stat) => (
                   <div
@@ -433,7 +495,7 @@ function PokemonModal({
                   onClick={onClose}
                   className="rounded-2xl px-2 py-2 text-sm text-slate-500 transition hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
                 >
-                  Back to terminal
+                  {messages.terminal.backToTerminal}
                 </button>
               </div>
             </div>
@@ -447,6 +509,7 @@ function PokemonModal({
 // --- Feature Views ---
 
 function IntroduceView({ goBack }: { goBack: () => void }) {
+  const { messages } = useLocale()
   const [subState, setSubState] = useState<'menu' | 'detail'>('menu')
   const [activeTopic, setActiveTopic] = useState(0)
   const [selectedTopic, setSelectedTopic] = useState<IntroTopic | null>(null)
@@ -491,14 +554,15 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
   return (
     <div className="space-y-3">
       <p className="mb-4 text-gray-500">
-        <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>Introduce AlohaYo
+        <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>
+        {messages.terminal.introduceHeading}
       </p>
 
       {subState === 'menu' && (
         <>
           <p className="mb-3 text-gray-700 dark:text-gray-300">{renderNeonText(introGreeting)}</p>
           <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-            What would you like to know?
+            {messages.terminal.whatToKnow}
           </p>
           <div className="space-y-1">
             {introTopics.map((topic, i) => (
@@ -517,7 +581,7 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
             onClick={goBack}
             className="mt-4 cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
           >
-            ← back
+            ← {messages.terminal.back}
           </button>
         </>
       )}
@@ -545,7 +609,7 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
               onClick={backToMenu}
               className="mt-4 cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
             >
-              ← back
+              ← {messages.terminal.back}
             </button>
           )}
         </>
@@ -563,16 +627,18 @@ function RecommendView({
   onShuffle: () => void
   goBack: () => void
 }) {
+  const { messages, locale } = useLocale()
   return (
     <div className="space-y-3">
       <p className="mb-4 text-gray-500">
-        <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>Recommend the blog
+        <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>
+        {messages.terminal.recommend}
       </p>
       <div className="space-y-3">
         {posts.map((post) => (
           <Link
             key={post.slug}
-            href={`/blog/${post.slug}`}
+            href={getLocalePath(`/blog/${post.slug}`, locale)}
             className="block rounded border border-gray-200 px-4 py-3 transition-colors hover:border-blue-400 hover:bg-gray-100 dark:border-gray-700 dark:hover:border-[#5c9cf5] dark:hover:bg-[#2a2a2a]"
           >
             <p className="text-blue-600 dark:text-[#5c9cf5]">{post.title}</p>
@@ -589,13 +655,13 @@ function RecommendView({
           onClick={onShuffle}
           className="cursor-pointer text-cyan-600 transition-colors hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
         >
-          🔄 recommend others
+          🔄 {messages.terminal.recommendOthers}
         </button>
         <button
           onClick={goBack}
           className="cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
         >
-          ← back
+          ← {messages.terminal.back}
         </button>
       </div>
     </div>
@@ -611,10 +677,12 @@ function QuotesView({
   onReroll: () => void
   goBack: () => void
 }) {
+  const { messages } = useLocale()
   return (
     <div className="space-y-3">
       <p className="mb-4 text-gray-500">
-        <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>Roll a quotes
+        <span className="mr-2 text-blue-500 dark:text-[#5c9cf5]">❯</span>
+        {messages.terminal.quotes}
       </p>
       <blockquote className="border-l-4 border-cyan-500 py-2 pl-4 text-gray-700 italic dark:text-gray-200">
         &ldquo;{quote.text}&rdquo;
@@ -626,13 +694,13 @@ function QuotesView({
           onClick={onReroll}
           className="cursor-pointer text-cyan-600 transition-colors hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
         >
-          🎲 roll again
+          🎲 {messages.terminal.rollAgain}
         </button>
         <button
           onClick={goBack}
           className="cursor-pointer text-gray-400 transition-colors hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300"
         >
-          ← back
+          ← {messages.terminal.back}
         </button>
       </div>
     </div>
@@ -645,11 +713,16 @@ type AppState = 'splash' | 'menu' | 'introduce' | 'recommend' | 'quotes'
 
 interface HomeTerminalProps {
   posts: Array<{ slug: string; title: string; summary?: string; tags: string[] }>
+  locale?: 'en' | 'zh-CN'
 }
 
 const HOME_SPLASH_STORAGE_KEY = 'alohayo-home-splash'
 
-export default function HomeTerminal({ posts }: HomeTerminalProps) {
+export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTerminalProps) {
+  const { locale: contextLocale, messages } = useLocale()
+  const locale = requestedLocale || contextLocale
+  const activeMenuOptions = locale === 'zh-CN' ? chineseMenuOptions : menuOptions
+  const menuPrompt = messages.terminal.prompt
   const router = useRouter()
   const [appState, setAppState] = useState<AppState>('splash')
   const [splashStage, setSplashStage] = useState<'typing-cmd' | 'showing' | 'done'>('typing-cmd')
@@ -697,7 +770,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+  }, [locale])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -710,14 +783,14 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       if (carouselPaused.current) return
       setCarouselProgress((p) => {
         if (p >= 100) {
-          setActiveOption((o) => (o + 1) % menuOptions.length)
+          setActiveOption((o) => (o + 1) % activeMenuOptions.length)
           return 0
         }
         return p + 100 / (CAROUSEL_INTERVAL / 50)
       })
     }, 50)
     return () => clearInterval(t)
-  }, [appState, menuPromptTyped])
+  }, [appState, menuPromptTyped, menuPrompt, activeMenuOptions.length])
 
   // --- Splash animation ---
   useEffect(() => {
@@ -743,8 +816,6 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
   }, [appState, splashStage, typedCmd, activeSplash.cmd])
 
   // --- Menu prompt typing ---
-  const menuPrompt = "Hi, I'm AlohaYo. What would you like me to do?"
-
   const replaySplash = useCallback(() => {
     carouselPaused.current = false
     setCarouselProgress(0)
@@ -774,7 +845,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       )
       return () => clearTimeout(t)
     }
-  }, [appState, menuPromptTyped])
+  }, [appState, menuPromptTyped, menuPrompt])
 
   // --- Handlers ---
   const pickRandomPosts = useCallback(() => {
@@ -808,19 +879,27 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       })
       const pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1)
       const typeStr = data.types.map((t: { type: { name: string } }) => t.type.name).join('/')
-      const pokeMsgs = [
-        `哇！抽到了 <span>${pokeName}</span>！${typeStr} 属性的哦～`,
-        `是 <span>${pokeName}</span> 呢！看起来好强的样子！`,
-        `<span>${pokeName}</span> 出现了！快用宝可梦球收服它！`,
-        `好可爱的 <span>${pokeName}</span>！主人一定很想要这只！`,
-      ]
+      const pokeMsgs =
+        locale === 'zh-CN'
+          ? [
+              `哇！抽到了 <span>${pokeName}</span>！${typeStr} 属性的哦～`,
+              `是 <span>${pokeName}</span> 呢！看起来好强的样子！`,
+              `<span>${pokeName}</span> 出现了！快用宝可梦球收服它！`,
+              `好可爱的 <span>${pokeName}</span>！主人一定很想要这只！`,
+            ]
+          : [
+              `Oh! We got <span>${pokeName}</span> — a ${typeStr} type!`,
+              `It's <span>${pokeName}</span>! That one looks surprisingly strong.`,
+              `<span>${pokeName}</span> appeared! Throw the Poké Ball!`,
+              `What a cute <span>${pokeName}</span>. The boss will absolutely want this one.`,
+            ]
       showWaifuMessage(pokeMsgs[Math.floor(Math.random() * pokeMsgs.length)], 8500)
     } catch {
       setPokemonData(null)
     } finally {
       setPokemonLoading(false)
     }
-  }, [])
+  }, [locale])
 
   const selectOption = useCallback(
     (id: string) => {
@@ -836,17 +915,17 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
         setPokemonModalOpen(true)
         fetchRandomPokemon()
       } else if (id === 'game') {
-        router.push('/game')
+        router.push(getLocalePath('/game', locale))
       }
     },
-    [pickRandomPosts, pickRandomQuote, fetchRandomPokemon, router]
+    [pickRandomPosts, pickRandomQuote, fetchRandomPokemon, router, locale]
   )
 
   const goBack = useCallback(() => {
     setMenuPromptTyped(menuPrompt)
     setActiveOption(0)
     setAppState('menu')
-  }, [])
+  }, [menuPrompt])
 
   // --- Keyboard nav for menu ---
   const handleKeyDown = useCallback(
@@ -856,23 +935,23 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
       setCarouselProgress(0)
       if (e.key === 'ArrowDown' || e.key === 'Tab') {
         e.preventDefault()
-        setActiveOption((o) => (o + 1) % menuOptions.length)
+        setActiveOption((o) => (o + 1) % activeMenuOptions.length)
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        setActiveOption((o) => (o - 1 + menuOptions.length) % menuOptions.length)
+        setActiveOption((o) => (o - 1 + activeMenuOptions.length) % activeMenuOptions.length)
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        selectOption(menuOptions[activeOption].id)
+        selectOption(activeMenuOptions[activeOption].id)
       }
     },
-    [appState, activeOption, selectOption]
+    [appState, activeOption, selectOption, activeMenuOptions]
   )
 
   useEffect(() => {
     if (appState === 'menu' && menuPromptTyped === menuPrompt) {
       containerRef.current?.focus()
     }
-  }, [appState, menuPromptTyped])
+  }, [appState, menuPromptTyped, menuPrompt])
 
   return (
     <>
@@ -935,13 +1014,15 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                     </span>
                   </button>
                 </div>
-                <span className="ml-3 text-gray-500 dark:text-[#7b7f87]">AlohaYo Terminal</span>
+                <span className="ml-3 text-gray-500 dark:text-[#7b7f87]">
+                  {messages.terminal.title}
+                </span>
                 <button
                   onClick={cycleSplash}
                   className="ml-auto cursor-pointer rounded-md border border-gray-200 px-2.5 py-1 text-xs text-gray-500 transition hover:border-cyan-300 hover:text-cyan-600 dark:border-gray-700 dark:text-[#7b7f87] dark:hover:border-cyan-700 dark:hover:text-cyan-300"
-                  title={`Switch banner (current: ${activeSplash.label})`}
+                  title={`${messages.terminal.switchBanner} (${activeSplash.label})`}
                 >
-                  Banner: {activeSplash.label} ↻
+                  {messages.terminal.banner}: {activeSplash.label} ↻
                 </button>
               </div>
 
@@ -993,7 +1074,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                     </p>
                     {menuPromptTyped === menuPrompt && (
                       <div className="mt-4 space-y-1">
-                        {menuOptions.map((opt, i) => (
+                        {activeMenuOptions.map((opt, i) => (
                           <button
                             key={opt.id}
                             data-menu-id={opt.id}
@@ -1009,7 +1090,7 @@ export default function HomeTerminal({ posts }: HomeTerminalProps) {
                               carouselPaused.current = true
                               setCarouselProgress(0)
                               setActiveOption(i)
-                              showWaifuMenuHint(opt.id)
+                              showWaifuMenuHint(opt.id, locale)
                             }}
                             onMouseLeave={() => {
                               carouselPaused.current = false

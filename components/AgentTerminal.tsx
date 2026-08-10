@@ -1,6 +1,7 @@
 'use client'
 
 import { FormEvent, useMemo, useState } from 'react'
+import { useLocale } from './LocaleProvider'
 
 type Surface = 'workspace' | 'terminal'
 type Panel = 'overview' | 'run' | 'contract'
@@ -176,6 +177,7 @@ const threadMatchesFilter = (thread: Thread, filter: ThreadFilter) => {
 }
 
 export default function AgentTerminal() {
+  const { messages } = useLocale()
   const [surface, setSurface] = useState<Surface>('workspace')
   const [panel, setPanel] = useState<Panel>('overview')
   const [selectedThread, setSelectedThread] = useState(0)
@@ -263,14 +265,14 @@ export default function AgentTerminal() {
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div className="max-w-2xl">
             <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-sky-600 uppercase dark:text-sky-300">
-              agent workbench / visible by design
+              {messages.agent.workbench}
             </p>
           </div>
           <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
-              ['05', 'threads'],
-              ['03', 'surfaces'],
-              ['01', 'human in loop'],
+              ['05', messages.agent.threads],
+              ['03', messages.agent.surfaces],
+              ['01', messages.agent.humanInLoop],
             ].map(([value, label]) => (
               <div
                 key={label}
@@ -296,11 +298,11 @@ export default function AgentTerminal() {
               aria-pressed={surface === item}
               className={`rounded-md px-3 py-2 text-xs font-semibold transition ${surface === item ? 'bg-white text-slate-950 shadow-sm dark:bg-white/15 dark:text-white' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'}`}
             >
-              {item === 'workspace' ? 'Codex workspace' : 'CLI stream'}
+              {item === 'workspace' ? messages.agent.workspace : messages.agent.terminal}
             </button>
           ))}
         </div>
-        <p className="font-mono text-[10px] text-slate-400">esc to stop · no network actions</p>
+        <p className="font-mono text-[10px] text-slate-400">{messages.agent.stop}</p>
       </div>
 
       {surface === 'workspace' ? (
@@ -362,7 +364,7 @@ export default function AgentTerminal() {
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4 dark:border-white/10">
               <div>
                 <p className="font-mono text-[10px] tracking-[0.14em] text-slate-400 uppercase">
-                  selected thread
+                  {messages.agent.selectedThread}
                 </p>
                 <h3 className="mt-1 text-base font-semibold text-slate-950 dark:text-white">
                   {thread.title}
@@ -374,7 +376,7 @@ export default function AgentTerminal() {
                 onClick={() => setPreviewRun((current) => !current)}
                 className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${previewRun ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' : 'bg-slate-950 text-white hover:bg-sky-600 dark:bg-white dark:text-slate-950 dark:hover:bg-sky-200'}`}
               >
-                {previewRun ? 'Preview running · stop' : 'Preview workflow'}
+                {previewRun ? messages.agent.previewRunningStop : messages.agent.previewWorkflow}
               </button>
             </div>
             <div className="border-b border-slate-200 px-5 pt-3 dark:border-white/10">
@@ -387,7 +389,7 @@ export default function AgentTerminal() {
                     aria-pressed={panel === item}
                     className={`border-b-2 pb-3 capitalize transition ${panel === item ? 'border-sky-500 text-sky-700 dark:text-sky-300' : 'border-transparent text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                   >
-                    {item === 'run' ? 'Run log' : item}
+                    {item === 'run' ? messages.agent.runLog : item}
                   </button>
                 ))}
               </div>
@@ -401,7 +403,7 @@ export default function AgentTerminal() {
                       <span className="grid h-6 w-6 place-items-center rounded-lg bg-sky-100 text-[9px] font-bold text-sky-700 dark:bg-sky-400/15 dark:text-sky-300">
                         YOU
                       </span>
-                      Task brief
+                      {messages.agent.taskBrief}
                     </div>
                     <p className="mt-3 text-sm leading-6 text-slate-700 dark:text-slate-200">
                       {thread.objective}
@@ -410,11 +412,11 @@ export default function AgentTerminal() {
                   <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-5 dark:border-sky-400/20 dark:bg-sky-400/[0.06]">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs font-semibold text-sky-700 dark:text-sky-300">
-                        Agent response · {thread.status}
+                        {messages.agent.agentResponse} · {thread.status}
                       </p>
                       {previewRun && (
                         <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-300">
-                          ● live preview
+                          ● {messages.agent.livePreview}
                         </span>
                       )}
                     </div>
@@ -435,7 +437,7 @@ export default function AgentTerminal() {
                   <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-black/15">
                     <div className="flex items-center justify-between gap-3">
                       <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-                        live activity
+                        {messages.agent.liveActivity}
                       </p>
                       <span className="font-mono text-[10px] text-slate-400">now</span>
                     </div>
@@ -538,10 +540,10 @@ export default function AgentTerminal() {
                 <div className="space-y-5">
                   <div>
                     <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-                      working contract
+                      {messages.agent.workingContract}
                     </p>
                     <h4 className="mt-3 text-xl font-semibold tracking-tight text-slate-950 dark:text-white">
-                      Useful, inspectable, still yours.
+                      {messages.agent.usefulInspectable}
                     </h4>
                     <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 dark:text-slate-300">
                       The model can own the middle of the task. The boundary stays visible so you
@@ -575,11 +577,11 @@ export default function AgentTerminal() {
 
           <aside className="border-t border-slate-200 bg-slate-50/60 p-5 xl:border-t-0 dark:border-white/10 dark:bg-[#0d1118]">
             <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-400 uppercase">
-              inspector
+              {messages.agent.inspector}
             </p>
             <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-black/20">
               <p className="text-xs font-semibold text-slate-950 dark:text-white">
-                Current contract
+                {messages.agent.currentContract}
               </p>
               <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
                 {thread.objective}
@@ -608,7 +610,7 @@ export default function AgentTerminal() {
             </dl>
             <div className="mt-7 border-t border-slate-200 pt-5 dark:border-white/10">
               <p className="font-mono text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase">
-                handoff checklist
+                {messages.agent.handoffChecklist}
               </p>
               <div className="mt-3 space-y-2.5 text-xs text-slate-600 dark:text-slate-300">
                 {[
@@ -647,7 +649,7 @@ export default function AgentTerminal() {
               </div>
               <span className="flex items-center gap-2 text-[10px] text-emerald-300">
                 <i className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                ready
+                {messages.agent.ready}
               </span>
             </div>
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 text-[11px]">
@@ -687,7 +689,7 @@ export default function AgentTerminal() {
                 id="agent-command"
                 value={command}
                 onChange={(event) => setCommand(event.target.value)}
-                placeholder="try /plan or ask a task..."
+                placeholder={messages.agent.placeholder}
                 className="min-w-0 flex-1 border-0 bg-transparent p-0 text-slate-100 placeholder:text-slate-600 focus:ring-0"
                 autoComplete="off"
               />
@@ -695,13 +697,13 @@ export default function AgentTerminal() {
                 type="submit"
                 className="rounded-md bg-white/10 px-2 py-1 text-[10px] text-slate-300 transition hover:bg-sky-400/20 hover:text-sky-200"
               >
-                run
+                {messages.agent.run}
               </button>
             </form>
           </div>
           <aside className="border-t border-white/10 bg-white/[0.025] p-5 lg:border-t-0 lg:border-l">
             <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-slate-500 uppercase">
-              command palette
+              {messages.agent.commandPalette}
             </p>
             <p className="mt-3 text-xs leading-5 text-slate-400">
               Small commands make the work visible without hiding behind a fake full terminal.

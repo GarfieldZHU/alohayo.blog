@@ -13,6 +13,7 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
+import { canonicalBlogs, findTranslation, isChineseBlog } from '@/lib/blogI18n'
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -26,7 +27,9 @@ export async function generateMetadata(props: {
 }): Promise<Metadata | undefined> {
   const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
-  const post = allBlogs.find((p) => p.slug === slug)
+  // Keep direct links to temporary/test posts addressable, while excluding them
+  // from feeds, search, pagination, and the home page through canonicalBlogs().
+  const post = allBlogs.find((p) => !isChineseBlog(p) && p.slug === slug)
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
@@ -35,6 +38,8 @@ export async function generateMetadata(props: {
   if (!post) {
     return
   }
+  const translation = findTranslation(allBlogs, post)
+  const canonical = `${siteMetadata.siteUrl}/blog/${post.slug}/`
 
   const publishedAt = new Date(post.date).toISOString()
   const modifiedAt = new Date(post.lastmod || post.date).toISOString()
@@ -52,6 +57,17 @@ export async function generateMetadata(props: {
   return {
     title: post.title,
     description: post.summary,
+    alternates: {
+      canonical,
+      ...(translation
+        ? {
+            languages: {
+              en: canonical,
+              'zh-CN': `${siteMetadata.siteUrl}/zh-CN/blog/${translation.localizedSlug || translation.slug}/`,
+            },
+          }
+        : {}),
+    },
     openGraph: {
       title: post.title,
       description: post.summary,
@@ -74,7 +90,9 @@ export async function generateMetadata(props: {
 }
 
 export const generateStaticParams = async () => {
-  const paths = allBlogs.map((p) => ({ slug: p.slug.split('/') }))
+  const paths = allBlogs
+    .filter((post) => !isChineseBlog(post))
+    .map((p) => ({ slug: p.slug.split('/') }))
 
   return paths
 }
@@ -83,15 +101,16 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
   const params = await props.params
   const slug = decodeURI(params.slug.join('/'))
   // Filter out drafts in production
-  const sortedCoreContents = allCoreContent(sortPosts(allBlogs))
-  const postIndex = sortedCoreContents.findIndex((p) => p.slug === slug)
-  if (postIndex === -1) {
+  const sortedCoreContents = allCoreContent(sortPosts(canonicalBlogs(allBlogs)))
+  const post = allBlogs.find((p) => !isChineseBlog(p) && p.slug === slug) as Blog | undefined
+  if (!post) {
     return notFound()
   }
 
+  const postIndex = sortedCoreContents.findIndex((p) => p.slug === slug)
+
   const prev = sortedCoreContents[postIndex + 1]
   const next = sortedCoreContents[postIndex - 1]
-  const post = allBlogs.find((p) => p.slug === slug) as Blog
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)

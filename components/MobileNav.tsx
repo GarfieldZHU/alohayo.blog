@@ -6,11 +6,14 @@ import { createPortal } from 'react-dom'
 import Link from './Link'
 import headerNavLinks from '@/data/headerNavLinks'
 import siteMetadata from '@/data/siteMetadata'
+import { useLocale } from './LocaleProvider'
 
 const MobileNav = () => {
   const [mounted, setMounted] = useState(false)
   const [navShow, setNavShow] = useState(false)
   const pathname = usePathname() ?? '/'
+  const { locale, messages } = useLocale()
+  const prefix = locale === 'zh-CN' ? '/zh-CN' : ''
   const pathLabel = pathname === '/' ? '~/' : `~${pathname}`
 
   useEffect(() => {
@@ -44,7 +47,7 @@ const MobileNav = () => {
   return (
     <>
       <button
-        aria-label="Toggle Menu"
+        aria-label={messages.shell.toggleMenu}
         aria-controls="mobile-navigation-drawer"
         aria-expanded={navShow}
         onClick={onToggleNav}
@@ -71,7 +74,7 @@ const MobileNav = () => {
             }`}
           >
             <button
-              aria-label="Close Menu Backdrop"
+              aria-label={messages.shell.closeBackdrop}
               className="site-mobile-nav__backdrop absolute inset-0"
               onClick={onToggleNav}
             />
@@ -79,26 +82,26 @@ const MobileNav = () => {
               id="mobile-navigation-drawer"
               role="dialog"
               aria-modal="true"
-              aria-label="Site navigation"
+              aria-label={messages.shell.mobileNavigation}
               data-open={navShow}
               className="site-mobile-nav__drawer absolute"
             >
               <div className="site-mobile-nav__header">
                 <Link
-                  href="/"
+                  href={`${prefix}/`}
                   aria-label={siteMetadata.headerTitle}
                   className="site-mobile-nav__identity"
                   onClick={onToggleNav}
                 >
                   <span className="site-mobile-nav__context">
-                    <span className="site-mobile-nav__eyebrow">site map</span>
+                    <span className="site-mobile-nav__eyebrow">{messages.shell.siteMap}</span>
                     <span className="site-mobile-nav__wordmark">{siteMetadata.headerTitle}</span>
                     <span className="site-mobile-nav__path">{pathLabel}</span>
                   </span>
                 </Link>
                 <button
                   className="site-mobile-nav__close"
-                  aria-label="Close Menu"
+                  aria-label={messages.shell.closeMenu}
                   onClick={onToggleNav}
                 >
                   <svg
@@ -115,22 +118,23 @@ const MobileNav = () => {
                   </svg>
                 </button>
               </div>
-              <nav className="site-mobile-nav__links" aria-label="Mobile navigation">
+              <nav className="site-mobile-nav__links" aria-label={messages.shell.mobileNavigation}>
                 {headerNavLinks.map((link) => {
-                  const isCurrent =
-                    pathname === link.href ||
-                    (link.href !== '/' && pathname.startsWith(`${link.href}/`))
-                  const routeLabel = link.href === '/' ? '~/' : `~${link.href}/`
+                  const href = link.href === '/' ? `${prefix}/` : `${prefix}${link.href}`
+                  const isCurrent = pathname === href || pathname.startsWith(`${href}/`)
+                  const routeLabel = href === '/' ? '~/' : `~${href}/`
 
                   return (
                     <Link
                       key={link.title}
-                      href={link.href}
+                      href={href}
                       aria-current={isCurrent ? 'page' : undefined}
                       className={`site-mobile-nav__link ${isCurrent ? 'site-mobile-nav__link--current' : ''}`}
                       onClick={onToggleNav}
                     >
-                      <span className="site-mobile-nav__title">{link.title}</span>
+                      <span className="site-mobile-nav__title">
+                        {messages.nav[link.title.toLowerCase()] || link.title}
+                      </span>
                       <span className="site-mobile-nav__route">{routeLabel}</span>
                     </Link>
                   )

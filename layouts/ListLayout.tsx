@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { formatDate } from 'pliny/utils/formatDate'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
+import { getMessages, type LocaleCode } from '@/lib/i18n'
 
 interface PaginationProps {
   totalPages: number
@@ -18,41 +18,40 @@ interface ListLayoutProps {
   title: string
   initialDisplayPosts?: CoreContent<Blog>[]
   pagination?: PaginationProps
+  locale?: LocaleCode
 }
 
-function Pagination({ totalPages, currentPage }: PaginationProps) {
-  const pathname = usePathname()
-  const basePath = pathname.split('/')[1]
+function Pagination({
+  totalPages,
+  currentPage,
+  locale = 'en',
+}: PaginationProps & { locale?: LocaleCode }) {
+  const prefix = locale === 'zh-CN' ? '/zh-CN' : ''
+  const previous = locale === 'zh-CN' ? '上一篇' : 'Previous'
+  const next = locale === 'zh-CN' ? '下一篇' : 'Next'
   const prevPage = currentPage - 1 > 0
   const nextPage = currentPage + 1 <= totalPages
-
   return (
     <div className="space-y-2 pt-6 pb-8 md:space-y-5">
       <nav className="flex justify-between">
-        {!prevPage && (
-          <button className="cursor-auto disabled:opacity-50" disabled={!prevPage}>
-            Previous
-          </button>
-        )}
+        {!prevPage && <button disabled>{previous}</button>}
         {prevPage && (
           <Link
-            href={currentPage - 1 === 1 ? `/${basePath}/` : `/${basePath}/page/${currentPage - 1}`}
+            href={
+              currentPage - 1 === 1 ? `${prefix}/blog/` : `${prefix}/blog/page/${currentPage - 1}`
+            }
             rel="prev"
           >
-            Previous
+            {previous}
           </Link>
         )}
         <span>
-          {currentPage} of {totalPages}
+          {currentPage} / {totalPages}
         </span>
-        {!nextPage && (
-          <button className="cursor-auto disabled:opacity-50" disabled={!nextPage}>
-            Next
-          </button>
-        )}
+        {!nextPage && <button disabled>{next}</button>}
         {nextPage && (
-          <Link href={`/${basePath}/page/${currentPage + 1}`} rel="next">
-            Next
+          <Link href={`${prefix}/blog/page/${currentPage + 1}`} rel="next">
+            {next}
           </Link>
         )}
       </nav>
@@ -65,14 +64,15 @@ export default function ListLayout({
   title,
   initialDisplayPosts = [],
   pagination,
+  locale = 'en',
 }: ListLayoutProps) {
   const [searchValue, setSearchValue] = useState('')
+  const messages = getMessages(locale)
+  const prefix = locale === 'zh-CN' ? '/zh-CN' : ''
   const filteredBlogPosts = posts.filter((post) => {
     const searchContent = post.title + post.summary + post.tags?.join(' ')
     return searchContent.toLowerCase().includes(searchValue.toLowerCase())
   })
-
-  // If initialDisplayPosts exist, display it if no searchValue is specified
   const displayPosts =
     initialDisplayPosts.length > 0 && !searchValue ? initialDisplayPosts : filteredBlogPosts
 
@@ -85,12 +85,12 @@ export default function ListLayout({
           </h1>
           <div className="relative max-w-lg">
             <label>
-              <span className="sr-only">Search articles</span>
+              <span className="sr-only">{messages.blog.searchArticles}</span>
               <input
-                aria-label="Search articles"
+                aria-label={messages.blog.searchArticles}
                 type="text"
-                onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Search articles"
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder={messages.blog.searchArticles}
                 className="focus:border-primary-500 focus:ring-primary-500 block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-900 dark:bg-gray-800 dark:text-gray-100"
               />
             </label>
@@ -111,28 +111,33 @@ export default function ListLayout({
           </div>
         </div>
         <ul>
-          {!filteredBlogPosts.length && 'No posts found.'}
+          {!filteredBlogPosts.length && messages.blog.noPosts}
           {displayPosts.map((post) => {
-            const { path, date, title, summary, tags } = post
+            const { path, date, title: postTitle, summary, tags } = post
             return (
               <li key={path} className="py-4">
                 <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                   <dl>
-                    <dt className="sr-only">Published on</dt>
+                    <dt className="sr-only">{messages.blog.publishedOn}</dt>
                     <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
-                      <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
+                      <time dateTime={date}>
+                        {formatDate(date, locale === 'zh-CN' ? 'zh-CN' : siteMetadata.locale)}
+                      </time>
                     </dd>
                   </dl>
                   <div className="space-y-3 xl:col-span-3">
                     <div>
                       <h3 className="text-2xl leading-8 font-bold tracking-tight">
-                        <Link href={`/${path}`} className="text-gray-900 dark:text-gray-100">
-                          {title}
+                        <Link
+                          href={locale === 'zh-CN' ? `${prefix}/${path}` : `/${path}`}
+                          className="text-gray-900 dark:text-gray-100"
+                        >
+                          {postTitle}
                         </Link>
                       </h3>
                       <div className="flex flex-wrap">
                         {tags?.map((tag) => (
-                          <Tag key={tag} text={tag} />
+                          <Tag key={tag} text={tag} locale={locale} />
                         ))}
                       </div>
                     </div>
@@ -147,7 +152,11 @@ export default function ListLayout({
         </ul>
       </div>
       {pagination && pagination.totalPages > 1 && !searchValue && (
-        <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          locale={locale}
+        />
       )}
     </>
   )

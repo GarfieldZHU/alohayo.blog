@@ -99,7 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ThemeProviders>
         </LocaleProvider>
         <Script
-          src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@latest/autoload.js"
+          src="https://fastly.jsdelivr.net/gh/GarfieldZHU/live2d-widget@7db1a1484629631452daa14cae6565bdda640294/autoload.js"
           strategy="afterInteractive"
         />
         {/* console banner */}

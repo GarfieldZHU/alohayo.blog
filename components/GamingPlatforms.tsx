@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useLocale } from './LocaleProvider'
 
 const platforms = [
   {
@@ -97,11 +98,13 @@ const OPEN_DELAY_MS = 260
 const CLOSE_DELAY_MS = 420
 
 export function GamingPlatforms() {
+  const { messages } = useLocale()
+  const copy = messages.about
   const [isOpen, setIsOpen] = useState(false)
   const [isPinned, setIsPinned] = useState(false)
   const [activeId, setActiveId] = useState('steam')
-  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const openTimer = useRef<number | null>(null)
+  const closeTimer = useRef<number | null>(null)
 
   const clearOpenTimer = () => {
     if (openTimer.current) window.clearTimeout(openTimer.current)
@@ -143,6 +146,42 @@ export function GamingPlatforms() {
   )
 
   const activeDossier = dossiers.find((dossier) => dossier.id === activeId) ?? dossiers[0]
+  const dossierText = {
+    steam: {
+      eyebrow: copy.steamEyebrow,
+      title: copy.steamTitle,
+      detail: copy.steamDetail,
+      action: copy.steamAction,
+      stats: {
+        games: copy.games,
+        achievements: copy.achievements,
+        'perfect run': copy.perfectRun,
+        completion: copy.completion,
+      },
+    },
+    psn: {
+      eyebrow: copy.psnEyebrow,
+      title: copy.psnTitle,
+      detail: copy.psnDetail,
+      action: copy.psnAction,
+      stats: { 'sun praised': copy.sunPraised },
+    },
+    switch: {
+      eyebrow: copy.switchEyebrow,
+      title: copy.switchTitle,
+      detail: copy.switchDetail,
+      action: copy.switchAction,
+      stats: { 'friend code': copy.friendCode, 'co-op ready': copy.coOpReady },
+    },
+  }[activeDossier.id] ?? {
+    eyebrow: copy.steamEyebrow,
+    title: copy.steamTitle,
+    detail: copy.steamDetail,
+    action: copy.steamAction,
+    stats: {},
+  }
+  const localizedStats = dossierText.stats as Record<string, string>
+  const highlights = 'highlights' in activeDossier ? activeDossier.highlights : []
 
   return (
     <div className="not-prose my-9">
@@ -175,7 +214,7 @@ export function GamingPlatforms() {
         </div>
         <button
           type="button"
-          aria-label="Open gamer dossier"
+          aria-label={copy.dossierButton}
           aria-expanded={isOpen}
           onClick={() => {
             clearOpenTimer()
@@ -215,16 +254,16 @@ export function GamingPlatforms() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-cyan-700 uppercase dark:text-cyan-300">
-                    {activeDossier.eyebrow}
+                    {dossierText.eyebrow}
                   </p>
                   <h3 className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-white">
-                    {activeDossier.title}
+                    {dossierText.title}
                   </h3>
                 </div>
                 <span className="mt-0.5 inline-flex h-2 w-2 shrink-0 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(74,222,128,0.9)]" />
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-                {activeDossier.detail}
+                {dossierText.detail}
               </p>
             </div>
             <div className="px-4 py-3">
@@ -235,7 +274,7 @@ export function GamingPlatforms() {
                       {value}
                     </strong>
                     <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                      {label}
+                      {localizedStats[label] || label}
                     </span>
                   </span>
                 ))}
@@ -243,10 +282,10 @@ export function GamingPlatforms() {
               {'highlights' in activeDossier && (
                 <div className="mt-4">
                   <p className="mb-2 font-mono text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase dark:text-slate-500">
-                    Pinned to the shelf
+                    {copy.pinnedShelf}
                   </p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    {activeDossier.highlights.map((game) => (
+                    {highlights.map((game) => (
                       <a
                         key={game.href}
                         href={game.href}
@@ -277,7 +316,7 @@ export function GamingPlatforms() {
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 font-mono text-xs font-bold text-cyan-700 transition hover:gap-2 hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100"
                 >
-                  {activeDossier.action} <span aria-hidden="true">↗</span>
+                  {dossierText.action} <span aria-hidden="true">↗</span>
                 </a>
                 {activeDossier.id === 'steam' && (
                   <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">

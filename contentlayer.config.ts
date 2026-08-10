@@ -25,6 +25,7 @@ import rehypePresetMinify from 'rehype-preset-minify'
 import siteMetadata from './data/siteMetadata'
 import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer.js'
 import prettier from 'prettier'
+import { canonicalBlogs, localizedBlogs } from './lib/blogI18n'
 
 const root = process.cwd()
 const isProduction = process.env.NODE_ENV === 'production'
@@ -64,11 +65,17 @@ const computedFields: ComputedFields = {
   },
   translationKey: {
     type: 'string',
-    resolve: (doc) => doc._raw.flattenedPath.replace(/_cn(?=\.[^.]+$)/, '').replace(/\.[^.]+$/, ''),
+    resolve: (doc) => {
+      const withoutExtension = doc._raw.flattenedPath.replace(/\.[^.]+$/, '')
+      return withoutExtension.replace(/_cn$/, '').replace(/^blog\//, '')
+    },
   },
   localizedSlug: {
     type: 'string',
-    resolve: (doc) => doc._raw.flattenedPath.replace(/^.+?\//, '').replace(/\.[^.]+$/, ''),
+    resolve: (doc) => {
+      const withoutExtension = doc._raw.flattenedPath.replace(/\.[^.]+$/, '')
+      return withoutExtension.replace(/^.+?\//, '').replace(/_cn$/, '')
+    },
   },
   translationTest: { type: 'boolean', resolve: (doc) => doc.translationTest === true },
 }
@@ -78,7 +85,7 @@ const computedFields: ComputedFields = {
  */
 async function createTagCount(allBlogs) {
   const tagCount: Record<string, number> = {}
-  allBlogs.forEach((file) => {
+  canonicalBlogs(allBlogs).forEach((file) => {
     if (file.tags && (!isProduction || file.draft !== true)) {
       file.tags.forEach((tag) => {
         const formattedTag = slug(tag)
@@ -99,9 +106,14 @@ function createSearchIndex(allBlogs) {
     siteMetadata?.search?.provider === 'kbar' &&
     siteMetadata.search.kbarConfig.searchDocumentsPath
   ) {
+    const canonical = canonicalBlogs(allBlogs)
     writeFileSync(
       `public/${path.basename(siteMetadata.search.kbarConfig.searchDocumentsPath)}`,
-      JSON.stringify(allCoreContent(sortPosts(allBlogs)))
+      JSON.stringify(allCoreContent(sortPosts(canonical)))
+    )
+    writeFileSync(
+      'public/search.zh-CN.json',
+      JSON.stringify(allCoreContent(sortPosts(localizedBlogs(allBlogs, 'zh-CN'))))
     )
     console.log('Local search index generated...')
   }
@@ -123,6 +135,7 @@ export const Blog = defineDocumentType(() => ({
     layout: { type: 'string' },
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },
+    translationTest: { type: 'boolean' },
   },
   computedFields: {
     ...computedFields,

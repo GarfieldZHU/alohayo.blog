@@ -2,13 +2,16 @@ import { ReactNode } from 'react'
 import type { Authors } from 'contentlayer/generated'
 import SocialIcon from '@/components/social-icons'
 import QuantumAvatar from '@/components/QuantumAvatar'
+import { getMessages, type LocaleCode } from '@/lib/i18n'
 
 interface Props {
   children: ReactNode
   content: Omit<Authors, '_id' | '_raw' | 'body'>
+  locale?: LocaleCode
 }
 
-export default function AuthorLayout({ children, content }: Props) {
+export default function AuthorLayout({ children, content, locale = 'en' }: Props) {
+  const messages = getMessages(locale)
   const { name, avatar, occupation, company, email, twitter, linkedin, github } = content
 
   return (
@@ -17,7 +20,7 @@ export default function AuthorLayout({ children, content }: Props) {
         <aside className="author-card rounded-3xl border p-6 text-center xl:sticky xl:top-24">
           {avatar && <QuantumAvatar src={avatar} alt={`${name} avatar`} />}
           <p className="text-primary-600 dark:text-primary-300 mt-6 font-mono text-[10px] font-bold tracking-[0.18em] uppercase">
-            Hello, I&apos;m
+            {messages.about.hello}
           </p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             {name}

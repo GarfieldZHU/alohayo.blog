@@ -4,6 +4,7 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { useState } from 'react'
+import { useLocale } from './LocaleProvider'
 
 const embedUrls = {
   '3d': 'https://tokscale.ai/api/embed/GarfieldZHU/svg?view=3d',
@@ -14,6 +15,7 @@ type GraphView = (typeof graphViews)[number]
 const profileUrl = 'https://tokscale.ai/GarfieldZHU'
 
 export default function AgentUsageStats() {
+  const { messages } = useLocale()
   const [version, setVersion] = useState(0)
   const [graphView, setGraphView] = useState<GraphView>('3d')
 
@@ -25,7 +27,7 @@ export default function AgentUsageStats() {
           target="_blank"
           rel="noreferrer"
           className="group block overflow-hidden rounded-xl border border-gray-200 bg-[#f7faf9] p-3 transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-lg dark:border-white/10 dark:bg-black/20"
-          aria-label="Open GarfieldZHU token statistics on Tokscale"
+          aria-label={`${messages.agent.openTokscale}: GarfieldZHU token statistics`}
         >
           <img
             key={`${graphView}-${version}`}
@@ -37,7 +39,7 @@ export default function AgentUsageStats() {
         <aside className="flex flex-col rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-white/10 dark:bg-black/20">
           <div>
             <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-gray-400 uppercase">
-              Graph controls
+              {messages.agent.graphControls}
             </p>
             <div className="mt-4 space-y-2">
               <div
@@ -63,7 +65,7 @@ export default function AgentUsageStats() {
                 onClick={() => setVersion((current) => current + 1)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:-translate-y-0.5 hover:border-emerald-400 hover:text-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 dark:border-white/15 dark:bg-white/5 dark:text-gray-200 dark:hover:border-emerald-400 dark:hover:text-emerald-300"
               >
-                Refresh signal
+                {messages.agent.refreshSignal}
               </button>
               <a
                 href={profileUrl}
@@ -71,23 +73,23 @@ export default function AgentUsageStats() {
                 rel="noreferrer"
                 className="block w-full rounded-lg bg-gray-900 px-3 py-2 text-center text-xs font-semibold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 dark:bg-white dark:text-gray-950 dark:hover:bg-emerald-200"
               >
-                Open Tokscale <span aria-hidden="true">↗</span>
+                {messages.agent.openTokscale} <span aria-hidden="true">↗</span>
               </a>
             </div>
           </div>
           <div className="mt-6 border-t border-gray-200 pt-5 dark:border-white/10">
             <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-gray-400 uppercase">
-              Reading it
+              {messages.agent.readingIt}
             </p>
             <dl className="mt-5 space-y-4 text-sm">
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">What&apos;s visible</dt>
+                <dt className="text-gray-500 dark:text-gray-400">{messages.agent.visible}</dt>
                 <dd className="mt-1 font-semibold text-gray-900 dark:text-white">
                   Tokens, cost &amp; percentile
                 </dd>
               </div>
               <div>
-                <dt className="text-gray-500 dark:text-gray-400">Source</dt>
+                <dt className="text-gray-500 dark:text-gray-400">{messages.agent.source}</dt>
                 <dd className="mt-1 font-semibold text-gray-900 dark:text-white">
                   Tokscale public embed
                 </dd>

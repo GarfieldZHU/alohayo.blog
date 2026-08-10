@@ -1,3 +1,7 @@
+'use client'
+
+import { useLocale } from './LocaleProvider'
+
 type AboutSectionLabelProps = {
   label: 'engineer' | 'gamer'
 }
@@ -17,16 +21,29 @@ const variants = {
 
 export function AboutSectionLabel({ label }: AboutSectionLabelProps) {
   const variant = variants[label]
+  const { messages } = useLocale()
+  const localizedVariant =
+    label === 'engineer'
+      ? {
+          ...variant,
+          prefix: messages.about.engineerPrefix,
+          suffix: messages.about.engineerSuffix,
+        }
+      : {
+          ...variant,
+          prefix: messages.about.gamerPrefix,
+          suffix: messages.about.gamerSuffix,
+        }
 
   return (
     <h2 className="not-prose my-10 flex w-fit overflow-hidden rounded-sm shadow-[0_7px_24px_-14px_rgba(15,23,42,0.8)] ring-1 ring-black/5 dark:ring-white/10">
       <span className="bg-gray-700 px-4 py-2.5 font-mono text-xs font-medium tracking-[0.14em] text-gray-100 sm:text-sm dark:bg-gray-600">
-        {variant.prefix}
+        {localizedVariant.prefix}
       </span>
       <span
-        className={`px-4 py-2.5 font-mono text-xs font-bold tracking-[0.14em] sm:text-sm ${variant.accent}`}
+        className={`px-4 py-2.5 font-mono text-xs font-bold tracking-[0.14em] sm:text-sm ${localizedVariant.accent}`}
       >
-        {variant.suffix}
+        {localizedVariant.suffix}
       </span>
     </h2>
   )

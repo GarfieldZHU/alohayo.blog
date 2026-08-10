@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { useLocale as useSiteLocale } from '@/components/LocaleProvider'
 
 // Keep this hash aligned with the verified alohayo-world Pages commit.
 const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=5428a94'
@@ -101,20 +102,6 @@ const MESSAGES = {
   },
 } as const
 
-function normalizeLocale(input?: string | null): LocaleCode {
-  if (!input) return 'en'
-  const normalized = input.trim().toLowerCase()
-  if (
-    normalized === 'zh' ||
-    normalized === 'zh-cn' ||
-    normalized === 'zh-hans' ||
-    normalized.startsWith('zh-')
-  ) {
-    return 'zh-CN'
-  }
-  return 'en'
-}
-
 interface GameHandle {
   pause(): void
   resume(): void
@@ -178,6 +165,7 @@ export default function GameLauncher() {
   const TOP_RIGHT_HIDE_DELAY_MS = 3000
   const TOP_RIGHT_CLEARANCE_PX = 64
   const { resolvedTheme } = useTheme()
+  const { locale: siteLocale, setLocale: setSiteLocale } = useSiteLocale()
   const shellRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const overlayHideTimerRef = useRef<number | null>(null)
@@ -189,7 +177,7 @@ export default function GameLauncher() {
   const [seed, setSeed] = useState('alohayo')
   const [devMode, setDevMode] = useState(false)
   const [terrainShowcase, setTerrainShowcase] = useState(false)
-  const [locale, setLocale] = useState<LocaleCode>('en')
+  const [locale, setLocale] = useState<LocaleCode>(siteLocale)
   const [state, setState] = useState<LauncherState>('idle')
   const [error, setError] = useState('')
   const [hasWebGL2, setHasWebGL2] = useState<boolean | null>(null)
@@ -200,6 +188,10 @@ export default function GameLauncher() {
   const effectiveTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
   const activeTerrainShowcase = devMode && terrainShowcase
   const messages = MESSAGES[locale]
+
+  useEffect(() => {
+    setLocale(siteLocale)
+  }, [siteLocale])
   const secondaryButtonClass =
     'cursor-pointer rounded-xl border border-slate-300 bg-white/90 px-4 py-2.5 font-mono text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 hover:text-slate-950 disabled:cursor-default disabled:opacity-60 dark:border-cyan-800/50 dark:bg-cyan-950/60 dark:text-cyan-100 dark:hover:bg-cyan-900/70'
   const toggleLabelClass =
@@ -211,9 +203,6 @@ export default function GameLauncher() {
 
   useEffect(() => {
     setSeed(window.localStorage.getItem('alohayo-world:last-seed') || 'alohayo')
-    setLocale(
-      normalizeLocale(window.localStorage.getItem(LOCALE_STORAGE_KEY) || navigator.language)
-    )
     const canvas = document.createElement('canvas')
     setHasWebGL2(Boolean(canvas.getContext('webgl2')))
 
@@ -542,7 +531,10 @@ export default function GameLauncher() {
                     <button
                       key={option.code}
                       type="button"
-                      onClick={() => setLocale(option.code)}
+                      onClick={() => {
+                        setLocale(option.code)
+                        setSiteLocale(option.code)
+                      }}
                       aria-pressed={selected}
                       className={selected ? selectedLanguageClass : idleLanguageClass}
                     >

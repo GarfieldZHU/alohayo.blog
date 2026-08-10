@@ -8,16 +8,20 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import { getMessages, type LocaleCode } from '@/lib/i18n'
 
 interface LayoutProps {
   content: CoreContent<Blog>
   children: ReactNode
-  next?: { path: string; title: string }
-  prev?: { path: string; title: string }
+  next?: { path: string; title: string; localizedSlug?: string }
+  prev?: { path: string; title: string; localizedSlug?: string }
+  locale?: LocaleCode
 }
 
-export default function PostLayout({ content, next, prev, children }: LayoutProps) {
+export default function PostLayout({ content, next, prev, children, locale = 'en' }: LayoutProps) {
+  const messages = getMessages(locale)
   const { path, slug, date, title } = content
+  const localizedSlug = content.localizedSlug || slug
 
   return (
     <SectionContainer>
@@ -28,9 +32,11 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
             <div className="space-y-1 border-b border-gray-200 pb-10 text-center dark:border-gray-700">
               <dl>
                 <div>
-                  <dt className="sr-only">Published on</dt>
+                  <dt className="sr-only">{messages.blog.publishedOn}</dt>
                   <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
-                    <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
+                    <time dateTime={date}>
+                      {formatDate(date, locale === 'zh-CN' ? 'zh-CN' : siteMetadata.locale)}
+                    </time>
                   </dd>
                 </div>
               </dl>
@@ -45,7 +51,7 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
             </div>
             {siteMetadata.comments && (
               <div className="pt-6 pb-6 text-center text-gray-700 dark:text-gray-300" id="comment">
-                <Comments slug={slug} />
+                <Comments slug={localizedSlug} />
               </div>
             )}
             <footer>
@@ -53,9 +59,13 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
                 {prev && prev.path && (
                   <div className="pt-4 xl:pt-8">
                     <Link
-                      href={`/${prev.path}`}
+                      href={
+                        locale === 'zh-CN' && prev.localizedSlug
+                          ? `/zh-CN/blog/${prev.localizedSlug}`
+                          : `/${prev.path}`
+                      }
                       className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                      aria-label={`Previous post: ${prev.title}`}
+                      aria-label={`${messages.blog.previous}: ${prev.title}`}
                     >
                       &larr; {prev.title}
                     </Link>
@@ -64,9 +74,13 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
                 {next && next.path && (
                   <div className="pt-4 xl:pt-8">
                     <Link
-                      href={`/${next.path}`}
+                      href={
+                        locale === 'zh-CN' && next.localizedSlug
+                          ? `/zh-CN/blog/${next.localizedSlug}`
+                          : `/${next.path}`
+                      }
                       className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                      aria-label={`Next post: ${next.title}`}
+                      aria-label={`${messages.blog.next}: ${next.title}`}
                     >
                       {next.title} &rarr;
                     </Link>

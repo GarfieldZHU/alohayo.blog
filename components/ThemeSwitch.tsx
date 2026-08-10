@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { useLocale } from './LocaleProvider'
 
 const ThemeSwitch = () => {
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme, resolvedTheme } = useTheme()
+  const { messages } = useLocale()
 
   // When mounted on client, now we can show the UI
   useEffect(() => setMounted(true), [])
@@ -16,7 +18,7 @@ const ThemeSwitch = () => {
 
   return (
     <button
-      aria-label="Toggle Dark Mode"
+      aria-label={messages.shell.toggleDarkMode}
       onClick={() => setTheme(theme === 'dark' || resolvedTheme === 'dark' ? 'light' : 'dark')}
     >
       <svg
