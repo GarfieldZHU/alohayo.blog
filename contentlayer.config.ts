@@ -57,6 +57,20 @@ const computedFields: ComputedFields = {
     resolve: (doc) => doc._raw.sourceFilePath,
   },
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+  locale: {
+    type: 'string',
+    resolve: (doc) =>
+      /_cn$/.test(doc._raw.flattenedPath.replace(/\.[^.]+$/, '')) ? 'zh-CN' : 'en',
+  },
+  translationKey: {
+    type: 'string',
+    resolve: (doc) => doc._raw.flattenedPath.replace(/_cn(?=\.[^.]+$)/, '').replace(/\.[^.]+$/, ''),
+  },
+  localizedSlug: {
+    type: 'string',
+    resolve: (doc) => doc._raw.flattenedPath.replace(/^.+?\//, '').replace(/\.[^.]+$/, ''),
+  },
+  translationTest: { type: 'boolean', resolve: (doc) => doc.translationTest === true },
 }
 
 /**
