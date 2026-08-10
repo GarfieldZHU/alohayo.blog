@@ -5,13 +5,17 @@
 
 import { useState } from 'react'
 
-// const embedUrl =
-//   'https://tokscale.ai/api/embed/GarfieldZHU/svg?template=graph&color=YlGnBu&rank=percent&tokens=full&cost=full'
-const embedUrl = 'https://tokscale.ai/api/embed/GarfieldZHU/svg?view=3d'
+const embedUrls = {
+  '3d': 'https://tokscale.ai/api/embed/GarfieldZHU/svg?view=3d',
+  '2d': 'https://tokscale.ai/api/embed/GarfieldZHU/svg?template=graph&color=YlGnBu&rank=percent&tokens=full&cost=full',
+} as const
+const graphViews = ['3d', '2d'] as const
+type GraphView = (typeof graphViews)[number]
 const profileUrl = 'https://tokscale.ai/GarfieldZHU'
 
 export default function AgentUsageStats() {
   const [version, setVersion] = useState(0)
+  const [graphView, setGraphView] = useState<GraphView>('3d')
 
   return (
     <section className="not-prose mt-10 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_24px_75px_-52px_rgba(17,24,39,0.7)] dark:border-gray-700 dark:bg-[#17191c]">
@@ -27,7 +31,25 @@ export default function AgentUsageStats() {
             A public, continuously refreshed view of the tokens and cost behind the work.
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+          <div
+            className="inline-flex rounded-lg border border-gray-300 bg-white p-1 dark:border-white/15 dark:bg-white/5"
+            role="group"
+            aria-label="Graph view"
+          >
+            {graphViews.map((view) => (
+              <button
+                key={view}
+                type="button"
+                onClick={() => setGraphView(view)}
+                aria-label={`Show ${view.toUpperCase()} graph`}
+                aria-pressed={graphView === view}
+                className={`rounded-md px-2.5 py-1.5 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${graphView === view ? 'bg-gray-900 text-white shadow-sm dark:bg-white dark:text-gray-950' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'}`}
+              >
+                {view.toUpperCase()}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             onClick={() => setVersion((current) => current + 1)}
@@ -54,9 +76,9 @@ export default function AgentUsageStats() {
           aria-label="Open GarfieldZHU token statistics on Tokscale"
         >
           <img
-            key={version}
-            src={`${embedUrl}&v=${version}`}
-            alt="GarfieldZHU token statistics: graph, percentile rank, total tokens, and cost"
+            key={`${graphView}-${version}`}
+            src={`${embedUrls[graphView]}&v=${version}`}
+            alt={`GarfieldZHU token statistics: ${graphView.toUpperCase()} graph, percentile rank, total tokens, and cost`}
             className="h-auto w-full transition duration-300 group-hover:scale-[1.01]"
           />
         </a>
