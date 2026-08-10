@@ -55,11 +55,14 @@ export default function ChinesePoemView({
       >
         <div className="poetry-paper__edge pointer-events-none absolute inset-3 rounded-sm border" />
         <div className="relative">
-          <div className="mb-8 flex items-center justify-between gap-4">
+          <div className="mb-8 flex items-start justify-between gap-4">
             <span className="poetry-paper__seal" aria-hidden="true">
               {theme.seal}
             </span>
-            <span className="poetry-paper__source">{messages.terminal.poemSource}</span>
+            <div className="flex flex-col items-end gap-2">
+              {!loading && poem?.type && <span className="poetry-paper__type">{poem.type}</span>}
+              <span className="poetry-paper__source">{messages.terminal.poemSource}</span>
+            </div>
           </div>
 
           {loading && (
@@ -87,7 +90,6 @@ export default function ChinesePoemView({
               </h2>
               <p className="poetry-paper__author">
                 {poem.dynasty} · {poem.author}
-                {poem.type ? ` · ${poem.type}` : ''}
               </p>
               <div className="poetry-paper__body poetry-paper__body-scroll mt-8 space-y-2 text-center">
                 {poem.content.map((line, index) => (

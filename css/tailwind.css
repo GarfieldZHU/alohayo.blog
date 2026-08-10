@@ -322,6 +322,7 @@
     --poetry-edge: rgb(146 112 65 / 0.32);
     --poetry-accent: #a43d32;
     --poetry-accent-hover: #7d2c25;
+    --poetry-tag-bg: rgb(164 113 53 / 0.12);
     border-color: var(--poetry-line);
     background-color: var(--poetry-paper);
     background-image:
@@ -341,6 +342,7 @@
     --poetry-edge: rgb(214 174 111 / 0.28);
     --poetry-accent: #ee8d78;
     --poetry-accent-hover: #ffc1a9;
+    --poetry-tag-bg: rgb(255 210 137 / 0.14);
     border-color: var(--poetry-line);
     background-color: var(--poetry-paper);
     background-image:
@@ -360,6 +362,7 @@
     --poetry-edge: rgb(70 109 91 / 0.32);
     --poetry-accent: #477a67;
     --poetry-accent-hover: #315c4d;
+    --poetry-tag-bg: rgb(70 109 91 / 0.14);
     background-image:
       radial-gradient(circle at 15% 20%, rgb(66 126 100 / 0.14), transparent 28%),
       radial-gradient(circle at 82% 72%, rgb(166 119 71 / 0.1), transparent 30%),
@@ -376,6 +379,12 @@
     --poetry-edge: rgb(164 113 53 / 0.32);
     --poetry-accent: #b06b32;
     --poetry-accent-hover: #81491f;
+    --poetry-tag-bg: rgb(164 113 53 / 0.14);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(205 146 67 / 0.15), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(142 91 43 / 0.09), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.42), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(137 90 39 / 0.035) 0 1px, transparent 1px 4px);
   }
 
   .poetry-paper--yuan {
@@ -387,6 +396,12 @@
     --poetry-edge: rgb(122 91 130 / 0.3);
     --poetry-accent: #86527d;
     --poetry-accent-hover: #633a5d;
+    --poetry-tag-bg: rgb(122 91 130 / 0.14);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(173 127 183 / 0.16), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(214 132 147 / 0.12), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.46), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(122 91 130 / 0.035) 0 1px, transparent 1px 4px);
   }
 
   .poetry-paper--ming {
@@ -398,6 +413,12 @@
     --poetry-edge: rgb(164 86 67 / 0.3);
     --poetry-accent: #b24a3b;
     --poetry-accent-hover: #84342a;
+    --poetry-tag-bg: rgb(164 86 67 / 0.14);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(186 86 63 / 0.15), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(224 158 105 / 0.12), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.43), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(164 86 67 / 0.035) 0 1px, transparent 1px 4px);
   }
 
   .poetry-paper--qing {
@@ -409,6 +430,12 @@
     --poetry-edge: rgb(76 117 140 / 0.3);
     --poetry-accent: #3d738d;
     --poetry-accent-hover: #2b5367;
+    --poetry-tag-bg: rgb(76 117 140 / 0.14);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(83 143 170 / 0.15), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(161 184 193 / 0.14), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.48), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(76 117 140 / 0.035) 0 1px, transparent 1px 4px);
   }
 
   .poetry-paper--default {
@@ -424,6 +451,7 @@
     --poetry-edge: rgb(113 176 146 / 0.3);
     --poetry-accent: #8bd0ad;
     --poetry-accent-hover: #b8ead0;
+    --poetry-tag-bg: rgb(113 176 146 / 0.16);
     background-image:
       radial-gradient(circle at 15% 20%, rgb(87 182 137 / 0.14), transparent 28%),
       radial-gradient(circle at 82% 72%, rgb(232 170 97 / 0.1), transparent 30%),
@@ -440,6 +468,12 @@
     --poetry-edge: rgb(205 145 72 / 0.3);
     --poetry-accent: #e4a15d;
     --poetry-accent-hover: #ffd09a;
+    --poetry-tag-bg: rgb(205 145 72 / 0.16);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(205 145 72 / 0.11), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(160 92 43 / 0.08), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.07), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(255 207 132 / 0.03) 0 1px, transparent 1px 4px);
   }
 
   .dark .poetry-paper--yuan {
@@ -451,6 +485,12 @@
     --poetry-edge: rgb(174 127 183 / 0.3);
     --poetry-accent: #d09bc9;
     --poetry-accent-hover: #efc9e9;
+    --poetry-tag-bg: rgb(174 127 183 / 0.16);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(174 127 183 / 0.12), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(214 132 147 / 0.1), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.07), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(215 170 224 / 0.03) 0 1px, transparent 1px 4px);
   }
 
   .dark .poetry-paper--ming {
@@ -462,6 +502,12 @@
     --poetry-edge: rgb(209 117 98 / 0.3);
     --poetry-accent: #ef9d8b;
     --poetry-accent-hover: #ffc9bb;
+    --poetry-tag-bg: rgb(209 117 98 / 0.16);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(209 117 98 / 0.12), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(224 158 105 / 0.08), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.07), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(255 188 158 / 0.03) 0 1px, transparent 1px 4px);
   }
 
   .dark .poetry-paper--qing {
@@ -473,6 +519,12 @@
     --poetry-edge: rgb(113 168 194 / 0.3);
     --poetry-accent: #8ec9e2;
     --poetry-accent-hover: #c0e8f5;
+    --poetry-tag-bg: rgb(113 168 194 / 0.16);
+    background-image:
+      radial-gradient(circle at 14% 18%, rgb(113 168 194 / 0.12), transparent 27%),
+      radial-gradient(circle at 82% 76%, rgb(161 184 193 / 0.1), transparent 31%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.07), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(180 226 244 / 0.03) 0 1px, transparent 1px 4px);
   }
 
   .poetry-paper__edge {
@@ -496,7 +548,8 @@
   .poetry-paper__source,
   .poetry-paper__author,
   .poetry-paper__link,
-  .poetry-paper__action {
+  .poetry-paper__action,
+  .poetry-paper__type {
     font-family: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
   }
 
@@ -509,10 +562,10 @@
 
   .poetry-paper__title {
     color: var(--poetry-strong);
-    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif CJK SC', serif;
+    font-family: 'Songti SC', 'STSong', 'Noto Serif CJK SC', 'SimSun', serif;
     font-size: clamp(1.35rem, 3.5vw, 2.2rem);
     font-weight: 600;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
     line-height: 1.5;
     overflow-wrap: anywhere;
     text-align: center;
@@ -526,9 +579,23 @@
     text-align: center;
   }
 
+  .poetry-paper__type {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--poetry-accent);
+    border-radius: 9999px;
+    padding: 0.25rem 0.55rem;
+    background: var(--poetry-tag-bg);
+    color: var(--poetry-accent);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
   .poetry-paper__body {
     color: var(--poetry-ink);
-    font-family: 'STFangsong', 'FangSong', '仿宋', 'Noto Serif CJK SC', serif;
+    font-family: 'FZKai-Z03', 'STKaiti', 'Kaiti SC', 'BiauKai', 'KaiTi', serif;
     font-size: clamp(1.08rem, 2.3vw, 1.4rem);
     letter-spacing: 0.08em;
     line-height: 2.15;
