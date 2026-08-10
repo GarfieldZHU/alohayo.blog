@@ -41,6 +41,10 @@ const en: SiteMessages = {
     recommendDescription: 'click to discover random posts',
     quotes: 'Roll a quotes',
     quotesDescription: 'click to get a quote',
+    poemLoading: 'Fetching a poem from 诗泉…',
+    poemError: '诗泉 is taking a little break. Please try again.',
+    poemRetry: 'another poem',
+    poemSource: '诗泉 · random poem',
     pokemon: 'Roll a Pokemon today',
     pokemonDescription: 'click to catch a random Pokemon',
     game: 'Enter the World',
@@ -165,7 +169,12 @@ const en: SiteMessages = {
     backHome: 'Back to homepage',
   },
   search: { placeholder: 'Search' },
-  accessibility: { languageSwitch: 'Switch language' },
+  accessibility: {
+    languageSwitch: 'Switch language',
+    languageOptions: 'Language options',
+    languageEnglish: 'English',
+    languageChinese: '简体中文',
+  },
 }
 
 const zh: SiteMessages = {
@@ -192,7 +201,7 @@ const zh: SiteMessages = {
   home: {
     title: 'AlohaYo 博客',
     latest: '最近文章',
-    description: 'Garfield 的杂货铺博客',
+    description: 'Garfield的碎碎念杂货铺',
     noPosts: '还没有文章。',
     readMore: '继续阅读',
     allPosts: '全部文章',
@@ -207,8 +216,12 @@ const zh: SiteMessages = {
     introduceDescription: '点这里了解我',
     recommend: '推荐博客',
     recommendDescription: '随机发现几篇文章',
-    quotes: '抽一句话',
-    quotesDescription: '抽一句语录',
+    quotes: '今日随机诗词',
+    quotesDescription: '从诗泉取一首古诗',
+    poemLoading: '正在从诗泉取一首诗……',
+    poemError: '诗泉暂时走神了，再试一次吧。',
+    poemRetry: '再来一首',
+    poemSource: '诗泉 · 今日随机',
     pokemon: '今天抽一只宝可梦',
     pokemonDescription: '随机抓一只宝可梦',
     game: '进入世界',
@@ -328,7 +341,12 @@ const zh: SiteMessages = {
     backHome: '回到首页',
   },
   search: { placeholder: '搜索' },
-  accessibility: { languageSwitch: '切换语言' },
+  accessibility: {
+    languageSwitch: '切换语言',
+    languageOptions: '语言选项',
+    languageEnglish: 'English',
+    languageChinese: '简体中文',
+  },
 }
 
 export const MESSAGES: Record<'en' | 'zh-CN', SiteMessages> = { en, 'zh-CN': zh }

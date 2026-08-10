@@ -220,6 +220,246 @@
     background: rgb(100 116 139 / 0.2);
   }
 
+  .site-language-switcher {
+    position: relative;
+  }
+
+  .site-language-switch {
+    display: inline-flex;
+    min-height: 2.25rem;
+    align-items: center;
+    gap: 0.3rem;
+    border: 1px solid transparent;
+    border-radius: 0.7rem;
+    padding: 0.45rem 0.55rem;
+    color: var(--color-gray-700);
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    transition:
+      color 180ms ease,
+      background-color 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .dark .site-language-switch {
+    color: var(--color-gray-200);
+  }
+
+  .site-language-switch:hover,
+  .site-language-switch[aria-expanded='true'] {
+    border-color: rgb(190 120 166 / 0.38);
+    background: rgb(255 255 255 / 0.72);
+    color: var(--color-primary-500);
+  }
+
+  .dark .site-language-switch:hover,
+  .dark .site-language-switch[aria-expanded='true'] {
+    background: rgb(30 41 59 / 0.72);
+  }
+
+  .site-language-switch__chevron {
+    color: var(--color-gray-400);
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  .site-language-popover {
+    position: absolute;
+    top: calc(100% + 0.65rem);
+    right: 0;
+    z-index: 80;
+    width: 12rem;
+    overflow: hidden;
+    border: 1px solid rgb(100 116 139 / 0.22);
+    border-radius: 0.9rem;
+    background: rgb(255 255 255 / 0.96);
+    box-shadow: 0 1rem 2.4rem rgb(15 23 42 / 0.16);
+    padding: 0.4rem;
+    backdrop-filter: blur(18px);
+  }
+
+  .dark .site-language-popover {
+    border-color: rgb(148 163 184 / 0.2);
+    background: rgb(15 23 42 / 0.96);
+    box-shadow: 0 1rem 2.4rem rgb(0 0 0 / 0.32);
+  }
+
+  .site-language-popover__title {
+    padding: 0.55rem 0.7rem 0.4rem;
+    color: var(--color-gray-400);
+    font-size: 0.66rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .site-language-option {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 0.65rem;
+    padding: 0.6rem 0.7rem;
+    color: var(--color-gray-700);
+    font-size: 0.82rem;
+    text-align: left;
+    transition:
+      color 180ms ease,
+      background-color 180ms ease;
+  }
+
+  .dark .site-language-option {
+    color: var(--color-gray-200);
+  }
+
+  .site-language-option:hover,
+  .site-language-option[aria-selected='true'] {
+    background: rgb(236 72 153 / 0.1);
+    color: var(--color-primary-500);
+  }
+
+  .site-language-option__mark {
+    color: var(--color-gray-400);
+    font-family: var(--font-jetbrains-mono), monospace;
+    font-size: 0.68rem;
+  }
+
+  .site-language-option[aria-selected='true'] .site-language-option__mark {
+    color: var(--color-primary-500);
+  }
+
+  .poetry-paper {
+    border-color: rgb(146 112 65 / 0.42);
+    background-color: #f1e4c9;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgb(133 91 36 / 0.1), transparent 25%),
+      radial-gradient(circle at 80% 76%, rgb(133 91 36 / 0.08), transparent 30%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.36), transparent 44%),
+      repeating-linear-gradient(0deg, rgb(116 82 37 / 0.035) 0 1px, transparent 1px 4px);
+    color: #49351f;
+  }
+
+  .dark .poetry-paper {
+    border-color: rgb(214 174 111 / 0.44);
+    background-color: #3a2b1c;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgb(255 210 137 / 0.08), transparent 25%),
+      radial-gradient(circle at 80% 76%, rgb(255 210 137 / 0.06), transparent 30%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.06), transparent 44%),
+      repeating-linear-gradient(0deg, rgb(255 226 170 / 0.03) 0 1px, transparent 1px 4px);
+    color: #f2dfbd;
+  }
+
+  .poetry-paper__edge {
+    border-color: rgb(146 112 65 / 0.32);
+  }
+
+  .dark .poetry-paper__edge {
+    border-color: rgb(214 174 111 / 0.28);
+  }
+
+  .poetry-paper__seal {
+    display: grid;
+    width: 2.3rem;
+    height: 2.3rem;
+    place-items: center;
+    border: 1px solid currentColor;
+    color: #a43d32;
+    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', serif;
+    font-size: 1.2rem;
+    line-height: 1;
+    transform: rotate(-7deg);
+  }
+
+  .dark .poetry-paper__seal {
+    color: #ee8d78;
+  }
+
+  .poetry-paper__source,
+  .poetry-paper__author,
+  .poetry-paper__link,
+  .poetry-paper__action {
+    font-family: 'Songti SC', 'STSong', 'SimSun', 'Noto Serif CJK SC', serif;
+  }
+
+  .poetry-paper__source {
+    color: rgb(73 53 31 / 0.6);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+  }
+
+  .dark .poetry-paper__source {
+    color: rgb(242 223 189 / 0.62);
+  }
+
+  .poetry-paper__title {
+    color: #3f2a18;
+    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif CJK SC', serif;
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    line-height: 1.25;
+    text-align: center;
+  }
+
+  .dark .poetry-paper__title {
+    color: #f6e6c6;
+  }
+
+  .poetry-paper__author {
+    margin-top: 0.75rem;
+    color: rgb(73 53 31 / 0.68);
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  .dark .poetry-paper__author {
+    color: rgb(242 223 189 / 0.68);
+  }
+
+  .poetry-paper__body {
+    color: #49351f;
+    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif CJK SC', serif;
+    font-size: clamp(1.2rem, 2.8vw, 1.55rem);
+    letter-spacing: 0.12em;
+    line-height: 1.95;
+  }
+
+  .dark .poetry-paper__body {
+    color: #f2dfbd;
+  }
+
+  .poetry-paper__link,
+  .poetry-paper__action {
+    color: #a43d32;
+    font-size: 0.8rem;
+    transition: color 180ms ease;
+  }
+
+  .poetry-paper__link:hover,
+  .poetry-paper__action:hover {
+    color: #7d2c25;
+  }
+
+  .dark .poetry-paper__link,
+  .dark .poetry-paper__action {
+    color: #ee8d78;
+  }
+
+  .dark .poetry-paper__link:hover,
+  .dark .poetry-paper__action:hover {
+    color: #ffc1a9;
+  }
+
+  .poetry-paper__loading-mark {
+    color: #a43d32;
+    font-family: 'STKaiti', 'KaiTi', serif;
+    font-size: 2.4rem;
+    line-height: 1;
+    animation: poetry-pulse 1.4s ease-in-out infinite;
+  }
+
   .dark .site-header__divider {
     background: rgb(148 163 184 / 0.2);
   }
@@ -811,6 +1051,18 @@
     }
   }
 
+  @keyframes poetry-pulse {
+    0%,
+    100% {
+      opacity: 0.45;
+      transform: scale(0.92);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+  }
+
   @media (max-width: 639px) {
     .site-header__path {
       display: none;
@@ -838,6 +1090,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .site-header__cursor,
+    .poetry-paper__loading-mark,
     .quantum-avatar__particle,
     .quantum-avatar__particle-orbit,
     .quantum-avatar__atom-track {

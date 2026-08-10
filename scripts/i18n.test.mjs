@@ -27,6 +27,8 @@ test('locale contract', () => {
   assert.equal(getLocalePath('/zh-CN/blog/webgpu/?x=1#demo', 'en'), '/blog/webgpu/')
   assert.equal(getLocalePath('/blog/webgpu/', 'zh-CN'), '/zh-CN/blog/webgpu/')
   assert.deepEqual(collectMessageKeys(MESSAGES.en), collectMessageKeys(MESSAGES['zh-CN']))
+  assert.equal(MESSAGES.en.accessibility.languageEnglish, 'English')
+  assert.equal(MESSAGES['zh-CN'].accessibility.languageChinese, '简体中文')
   assert.ok(getMessages('xx').nav)
   assert.equal(siteMetadata.i18n.defaultLocale, 'en')
   assert.deepEqual(siteMetadata.i18n.locales, ['en', 'zh-CN'])

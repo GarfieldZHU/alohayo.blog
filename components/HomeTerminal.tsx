@@ -10,7 +10,9 @@ import {
 } from '@/data/splashes/home'
 import { quotes } from '@/data/quotes'
 import { useLocale } from './LocaleProvider'
-import { getLocalePath } from '@/lib/i18n'
+import { getLocalePath, getMessages } from '@/lib/i18n'
+import ChinesePoemView from './ChinesePoemView'
+import { fetchRandomChinesePoem, type ChinesePoem } from '@/lib/poetry'
 
 // --- Live2D interaction helper ---
 function showWaifuMessage(text: string, duration = 6000) {
@@ -204,7 +206,7 @@ const menuOptions: MenuOption[] = [
 const chineseMenuOptions: MenuOption[] = [
   { id: 'introduce', label: '认识 AlohaYo', description: '点这里了解我' },
   { id: 'recommend', label: '推荐博客', description: '随机发现几篇文章' },
-  { id: 'quotes', label: '抽一句话', description: '抽一句语录' },
+  { id: 'quotes', label: '今日随机诗词', description: '从诗泉取一首古诗' },
   { id: 'pokemon', label: '今天抽一只宝可梦', description: '随机抓一只宝可梦' },
   { id: 'game', label: '进入世界', description: '生成一片世界' },
 ]
@@ -709,7 +711,7 @@ function QuotesView({
 
 // --- Component ---
 
-type AppState = 'splash' | 'menu' | 'introduce' | 'recommend' | 'quotes'
+type AppState = 'splash' | 'menu' | 'introduce' | 'recommend' | 'quotes' | 'poem'
 
 interface HomeTerminalProps {
   posts: Array<{ slug: string; title: string; summary?: string; tags: string[] }>
@@ -719,8 +721,11 @@ interface HomeTerminalProps {
 const HOME_SPLASH_STORAGE_KEY = 'alohayo-home-splash'
 
 export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTerminalProps) {
-  const { locale: contextLocale, messages } = useLocale()
-  const locale = requestedLocale || contextLocale
+  const { locale: contextLocale } = useLocale()
+  const [localeHydrated, setLocaleHydrated] = useState(false)
+  useEffect(() => setLocaleHydrated(true), [])
+  const locale = localeHydrated ? contextLocale : requestedLocale || contextLocale
+  const messages = getMessages(locale)
   const activeMenuOptions = locale === 'zh-CN' ? chineseMenuOptions : menuOptions
   const menuPrompt = messages.terminal.prompt
   const router = useRouter()
@@ -738,6 +743,9 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
 
   const [recommendedPosts, setRecommendedPosts] = useState<typeof posts>([])
   const [currentQuote, setCurrentQuote] = useState(quotes[0])
+  const [currentPoem, setCurrentPoem] = useState<ChinesePoem | null>(null)
+  const [poemLoading, setPoemLoading] = useState(false)
+  const [poemError, setPoemError] = useState(false)
 
   const [pokemonModalOpen, setPokemonModalOpen] = useState(false)
   const [pokemonData, setPokemonData] = useState<PokemonData | null>(null)
@@ -755,6 +763,17 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
   const [carouselProgress, setCarouselProgress] = useState(0)
   const carouselPaused = useRef(false)
   const activeSplash = getHomeSplashById(activeSplashId) ?? visibleHomeSplashes[0]
+  const previousLocale = useRef(locale)
+
+  useEffect(() => {
+    if (previousLocale.current === locale) return
+    previousLocale.current = locale
+    setAppState('menu')
+    setMenuPromptTyped(menuPrompt)
+    setActiveOption(0)
+    setPoemLoading(false)
+    setPoemError(false)
+  }, [locale, menuPrompt])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -858,6 +877,19 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
     setCurrentQuote(q)
   }, [])
 
+  const fetchRandomPoem = useCallback(async () => {
+    setPoemLoading(true)
+    setPoemError(false)
+    try {
+      setCurrentPoem(await fetchRandomChinesePoem())
+    } catch {
+      setCurrentPoem(null)
+      setPoemError(true)
+    } finally {
+      setPoemLoading(false)
+    }
+  }, [])
+
   const fetchRandomPokemon = useCallback(async () => {
     setPokemonLoading(true)
     try {
@@ -909,8 +941,13 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
         pickRandomPosts()
         setAppState('recommend')
       } else if (id === 'quotes') {
-        pickRandomQuote()
-        setAppState('quotes')
+        if (locale === 'zh-CN') {
+          setAppState('poem')
+          fetchRandomPoem()
+        } else {
+          pickRandomQuote()
+          setAppState('quotes')
+        }
       } else if (id === 'pokemon') {
         setPokemonModalOpen(true)
         fetchRandomPokemon()
@@ -918,7 +955,7 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
         router.push(getLocalePath('/game', locale))
       }
     },
-    [pickRandomPosts, pickRandomQuote, fetchRandomPokemon, router, locale]
+    [pickRandomPosts, pickRandomQuote, fetchRandomPoem, fetchRandomPokemon, router, locale]
   )
 
   const goBack = useCallback(() => {
@@ -1132,6 +1169,17 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
                 {/* Quotes */}
                 {appState === 'quotes' && (
                   <QuotesView quote={currentQuote} onReroll={pickRandomQuote} goBack={goBack} />
+                )}
+
+                {/* Chinese poetry */}
+                {appState === 'poem' && (
+                  <ChinesePoemView
+                    poem={currentPoem}
+                    loading={poemLoading}
+                    error={poemError}
+                    onReroll={fetchRandomPoem}
+                    goBack={goBack}
+                  />
                 )}
               </div>
 
