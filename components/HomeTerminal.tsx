@@ -298,6 +298,7 @@ function getPokemonTypeStyle(type?: string) {
 
 interface PokemonData {
   name: string
+  localizedNames: { en: string; zh?: string }
   id: number
   sprite: string
   types: string[]
@@ -305,6 +306,42 @@ interface PokemonData {
   height: number
   weight: number
   abilities: string[]
+}
+
+const pokemonSpeciesNameCache = new Map<number, { en: string; zh?: string }>()
+
+async function fetchPokemonNames(id: number, fallback: string) {
+  const cached = pokemonSpeciesNameCache.get(id)
+  if (cached) return cached
+
+  const fallbackNames = {
+    en: fallback.charAt(0).toUpperCase() + fallback.slice(1),
+  }
+
+  try {
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${id}/`)
+    if (!response.ok) return fallbackNames
+    const species = await response.json()
+    const names = Array.isArray(species.names) ? species.names : []
+    const english = names.find(
+      (entry: { name?: unknown; language?: { name?: unknown } }) =>
+        entry.language?.name === 'en' && typeof entry.name === 'string'
+    )?.name
+    const simplifiedChinese = names.find(
+      (entry: { name?: unknown; language?: { name?: unknown } }) =>
+        typeof entry.language?.name === 'string' &&
+        entry.language.name.toLowerCase() === 'zh-hans' &&
+        typeof entry.name === 'string'
+    )?.name
+    const localizedNames = {
+      en: typeof english === 'string' ? english : fallbackNames.en,
+      ...(typeof simplifiedChinese === 'string' ? { zh: simplifiedChinese } : {}),
+    }
+    pokemonSpeciesNameCache.set(id, localizedNames)
+    return localizedNames
+  } catch {
+    return fallbackNames
+  }
 }
 
 function PokemonModal({
@@ -318,7 +355,7 @@ function PokemonModal({
   onReroll: () => void
   loading: boolean
 }) {
-  const { messages } = useLocale()
+  const { locale, messages } = useLocale()
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -329,6 +366,11 @@ function PokemonModal({
 
   const primaryType = pokemon?.types[0]
   const typeStyle = getPokemonTypeStyle(primaryType)
+  const displayName = pokemon
+    ? locale === 'zh-CN'
+      ? pokemon.localizedNames.zh || pokemon.localizedNames.en
+      : pokemon.localizedNames.en
+    : ''
 
   return (
     // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
@@ -375,7 +417,7 @@ function PokemonModal({
                   <div className="absolute inset-5 rounded-full border border-dashed border-slate-200 dark:border-slate-700" />
                   <img
                     src={pokemon.sprite}
-                    alt={pokemon.name}
+                    alt={displayName}
                     className="pixelated relative z-10 h-32 w-32 drop-shadow-[0_10px_20px_rgba(15,23,42,0.2)]"
                     style={{ imageRendering: 'pixelated' }}
                   />
@@ -416,7 +458,7 @@ function PokemonModal({
                     id="pokemon-modal-title"
                     className="text-3xl font-black text-slate-900 capitalize dark:text-white"
                   >
-                    {pokemon.name}
+                    {displayName}
                   </h3>
                   <p className="mt-1 font-mono text-sm text-slate-400 dark:text-slate-500">
                     #{pokemon.id.toString().padStart(4, '0')}
@@ -896,8 +938,10 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
       const id = Math.floor(Math.random() * 898) + 1
       const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
       const data = await res.json()
+      const localizedNames = await fetchPokemonNames(data.id, data.name)
       setPokemonData({
         name: data.name,
+        localizedNames,
         id: data.id,
         sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
         types: data.types.map((t: { type: { name: string } }) => t.type.name),
@@ -909,7 +953,8 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
         weight: data.weight,
         abilities: data.abilities.map((a: { ability: { name: string } }) => a.ability.name),
       })
-      const pokeName = data.name.charAt(0).toUpperCase() + data.name.slice(1)
+      const pokeName =
+        locale === 'zh-CN' ? localizedNames.zh || localizedNames.en : localizedNames.en
       const typeStr = data.types.map((t: { type: { name: string } }) => t.type.name).join('/')
       const pokeMsgs =
         locale === 'zh-CN'

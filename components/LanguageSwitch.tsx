@@ -47,9 +47,6 @@ export default function LanguageSwitch() {
         className="site-language-switch"
       >
         <span aria-hidden="true">文/A</span>
-        <span className="site-language-switch__chevron" aria-hidden="true">
-          {open ? '⌃' : '⌄'}
-        </span>
       </button>
       {open && (
         <div
@@ -57,7 +54,6 @@ export default function LanguageSwitch() {
           role="listbox"
           aria-label={messages.accessibility.languageOptions}
         >
-          <div className="site-language-popover__title">{messages.shell.language}</div>
           <button
             type="button"
             role="option"

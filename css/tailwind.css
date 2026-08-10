@@ -258,12 +258,6 @@
     background: rgb(30 41 59 / 0.72);
   }
 
-  .site-language-switch__chevron {
-    color: var(--color-gray-400);
-    font-size: 0.72rem;
-    line-height: 1;
-  }
-
   .site-language-popover {
     position: absolute;
     top: calc(100% + 0.65rem);
@@ -283,14 +277,6 @@
     border-color: rgb(148 163 184 / 0.2);
     background: rgb(15 23 42 / 0.96);
     box-shadow: 0 1rem 2.4rem rgb(0 0 0 / 0.32);
-  }
-
-  .site-language-popover__title {
-    padding: 0.55rem 0.7rem 0.4rem;
-    color: var(--color-gray-400);
-    font-size: 0.66rem;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
   }
 
   .site-language-option {
