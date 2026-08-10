@@ -79,6 +79,8 @@ type GpuState = {
   uniformBuffer: unknown
 }
 
+type GpuStatus = 'checking' | 'ready' | 'unavailable' | 'error'
+
 const colorFor = (value: number) => {
   const hue = ((value % 360) + 360) % 360
   return `hsl(${hue} 82% 56%)`
@@ -113,6 +115,8 @@ export default function WebGpuWasmPlayground() {
   const [result, setResult] = useState<number | null>(null)
   const [status, setStatus] = useState('Preparing the browser runtime…')
   const [error, setError] = useState('')
+  const [gpuStatus, setGpuStatus] = useState<GpuStatus>('checking')
+  const [isRunning, setIsRunning] = useState(false)
 
   const draw = useCallback((value: number) => {
     const gpu = gpuRef.current
@@ -139,6 +143,35 @@ export default function WebGpuWasmPlayground() {
     gpu.device.queue.submit([encoder.finish()])
   }, [])
 
+  const execute = useCallback(
+    async (program: string, value: number) => {
+      setIsRunning(true)
+      setError('')
+
+      try {
+        const bytes = compileEditableWat(program)
+        const { instance } = await WebAssembly.instantiate(bytes)
+        const shade = (instance.exports as { shade?: unknown }).shade
+        if (typeof shade !== 'function') throw new Error('The module did not export `shade`.')
+
+        const output = Number((shade as (input: number) => number)(value))
+        setResult(output)
+        draw(output)
+        setStatus(
+          gpuRef.current
+            ? `WASM returned ${output}; WebGPU painted the triangle.`
+            : `WASM returned ${output}; the WebGPU preview is unavailable.`
+        )
+      } catch (reason) {
+        setError(reason instanceof Error ? reason.message : String(reason))
+        setStatus('The program did not run. Fix the WAT and try again.')
+      } finally {
+        setIsRunning(false)
+      }
+    },
+    [draw]
+  )
+
   useEffect(() => {
     let active = true
 
@@ -147,13 +180,17 @@ export default function WebGpuWasmPlayground() {
       const webgpu = (navigator as unknown as { gpu?: WebGpuApi }).gpu
 
       if (!canvas || !webgpu) {
-        setStatus('WebGPU is not available here. The WASM part still works below.')
+        setGpuStatus('unavailable')
+        setStatus('WebGPU is not available here. The WASM result still works below.')
+        void execute(DEFAULT_WAT, 12)
         return
       }
 
       const adapter = await webgpu.requestAdapter()
       if (!adapter) {
-        setStatus('No WebGPU adapter was offered. The WASM part still works below.')
+        setGpuStatus('unavailable')
+        setStatus('No WebGPU adapter was offered. The WASM result still works below.')
+        void execute(DEFAULT_WAT, 12)
         return
       }
 
@@ -187,9 +224,13 @@ export default function WebGpuWasmPlayground() {
       })
 
       gpuRef.current = { context, device, pipeline, bindGroup, uniformBuffer }
+      setGpuStatus('ready')
 
       device.lost.then(() => {
-        if (active) setStatus('The WebGPU device was lost. Try reloading the page.')
+        if (active) {
+          setGpuStatus('error')
+          setStatus('The WebGPU device was lost. Try reloading the page.')
+        }
       })
 
       if (active) {
@@ -197,13 +238,17 @@ export default function WebGpuWasmPlayground() {
       }
 
       draw(0)
+      void execute(DEFAULT_WAT, 12)
     }
 
     setup().catch((reason) => {
-      if (active)
+      if (active) {
+        setGpuStatus('error')
         setStatus(
           `WebGPU setup failed: ${reason instanceof Error ? reason.message : String(reason)}`
         )
+        void execute(DEFAULT_WAT, 12)
+      }
     })
 
     return () => {
@@ -211,49 +256,58 @@ export default function WebGpuWasmPlayground() {
       gpuRef.current?.device?.destroy?.()
       gpuRef.current = null
     }
-  }, [draw])
-
-  const run = async () => {
-    setError('')
-    try {
-      const bytes = compileEditableWat(source)
-      const { instance } = await WebAssembly.instantiate(bytes)
-      const shade = (instance.exports as { shade?: unknown }).shade
-      if (typeof shade !== 'function') throw new Error('The module did not export `shade`.')
-      const value = Number((shade as (value: number) => number)(input))
-      setResult(value)
-      draw(value)
-      setStatus(
-        gpuRef.current
-          ? `WASM returned ${value}; WebGPU painted the triangle.`
-          : `WASM returned ${value}.`
-      )
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason))
-      setStatus('The program did not run. Fix the WAT and try again.')
-    }
-  }
+  }, [draw, execute])
 
   return (
     <section className="not-prose my-8 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-950">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,0.8fr)]">
         <div className="space-y-3">
-          <div>
-            <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-              Editable WASM instruction block
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              This tiny runner accepts one exported <code>i32 → i32</code> function. No imports, no
-              DOM, no surprise.
-            </p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Edit the WASM, then run it
+              </p>
+              <p id="wasm-playground-help" className="text-xs text-gray-600 dark:text-gray-400">
+                One exported <code>i32 → i32</code> function. No imports, no DOM, no surprise.
+              </p>
+            </div>
+            <span
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                gpuStatus === 'ready'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                  : gpuStatus === 'checking'
+                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                    : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+              }`}
+            >
+              {gpuStatus === 'ready'
+                ? 'WebGPU ready'
+                : gpuStatus === 'checking'
+                  ? 'Checking WebGPU'
+                  : 'WASM fallback'}
+            </span>
           </div>
           <textarea
             aria-label="Editable WebAssembly text module"
+            aria-describedby="wasm-playground-help"
             className="ring-primary-500 min-h-64 w-full rounded-lg border border-gray-300 bg-gray-950 p-3 font-mono text-xs leading-5 text-emerald-200 outline-none focus:ring-2 dark:border-gray-700"
             spellCheck={false}
             value={source}
-            onChange={(event) => setSource(event.target.value)}
+            onChange={(event) => {
+              setSource(event.target.value)
+              setError('')
+            }}
+            onKeyDown={(event) => {
+              if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                event.preventDefault()
+                void execute(source, input)
+              }
+            }}
           />
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            Try changing <code>i32.const 7</code> to <code>i32.const 3</code>, then press{' '}
+            <strong>Run WASM</strong> (or <kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd>).
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
               input
@@ -266,19 +320,35 @@ export default function WebGpuWasmPlayground() {
                 value={input}
                 onChange={(event) => setInput(Number(event.target.value))}
               />
-              <output className="w-6 font-mono">{input}</output>
+              <input
+                aria-label="WASM input value"
+                className="w-14 rounded border border-gray-300 bg-white px-1.5 py-1 text-center font-mono text-xs dark:border-gray-700 dark:bg-gray-900"
+                type="number"
+                min="0"
+                max="64"
+                value={input}
+                onChange={(event) => {
+                  const next = event.target.valueAsNumber
+                  if (Number.isFinite(next)) setInput(Math.min(64, Math.max(0, next)))
+                }}
+              />
             </label>
             <button
-              className="bg-primary-500 hover:bg-primary-600 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition"
+              className="bg-primary-500 hover:bg-primary-600 rounded-md px-3 py-1.5 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
-              onClick={run}
+              disabled={isRunning}
+              onClick={() => void execute(source, input)}
             >
-              Run WASM
+              {isRunning ? 'Running…' : 'Run WASM'}
             </button>
             <button
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 transition hover:bg-white dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
+              className="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-900"
               type="button"
-              onClick={() => setSource(DEFAULT_WAT)}
+              disabled={isRunning}
+              onClick={() => {
+                setSource(DEFAULT_WAT)
+                void execute(DEFAULT_WAT, input)
+              }}
             >
               Reset code
             </button>
@@ -297,15 +367,35 @@ export default function WebGpuWasmPlayground() {
         </div>
 
         <div className="space-y-3">
-          <canvas
-            ref={canvasRef}
-            aria-label="WebGPU triangle preview"
-            className="block aspect-video w-full rounded-lg bg-slate-950"
-            height="360"
-            width="640"
-          />
+          <div className="relative overflow-hidden rounded-lg bg-slate-950">
+            <canvas
+              ref={canvasRef}
+              aria-label="WebGPU triangle preview"
+              className={`block aspect-video w-full ${gpuStatus === 'ready' ? '' : 'opacity-0'}`}
+              height="360"
+              width="640"
+            />
+            {gpuStatus !== 'ready' && (
+              <div className="absolute inset-0 flex aspect-video items-center justify-center p-6 text-center">
+                <div>
+                  <div
+                    className="mx-auto mb-3 h-14 w-14 rounded-full border-4 border-white/20 shadow-lg"
+                    style={{ backgroundColor: result === null ? '#334155' : colorFor(result) }}
+                  />
+                  <p className="text-sm font-semibold text-white">
+                    {gpuStatus === 'checking' ? 'Preparing the preview…' : 'WASM result preview'}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-300">
+                    {gpuStatus === 'checking'
+                      ? 'The code can still run while WebGPU is checked.'
+                      : 'WebGPU is unavailable in this browser, so the color is shown here.'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 text-xs dark:border-gray-800 dark:bg-gray-900">
-            <span className="text-gray-600 dark:text-gray-400">WASM result</span>
+            <span className="text-gray-600 dark:text-gray-400">shade({input})</span>
             <span
               className="font-mono font-semibold"
               style={{ color: result === null ? undefined : colorFor(result) }}

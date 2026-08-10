@@ -2,7 +2,7 @@
 title: 'WebGPU and Rust/WASM: a small playground'
 date: '2024-07-12'
 tags: ['webgpu', 'web', 'wasm', 'Rust', 'Graphics', 'WGSL', 'Frontend', 'LEARNINGS']
-draft: true
+draft: false
 summary: A small WebGPU canvas, a Rust-shaped WASM boundary, and an editable WAT runner inside MDX.
 ---
 
@@ -10,7 +10,7 @@ summary: A small WebGPU canvas, a Rust-shaped WASM boundary, and an editable WAT
 
 # WebGPU and Rust/WASM: a small playground
 
-My old [GPU notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/GPU/README.md#webgl--webgpu) say WebGPU is the modern browser door to the GPU. My [WASM notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/wasm/README.md) say Rust can bring another runtime into the browser.
+I keep two sets of notes. The [GPU notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/GPU/README.md#webgl--webgpu) lead to WebGPU. The [WASM notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/wasm/README.md) lead to Rust running in the browser.
 
 Putting the two together sounds very serious. It is mostly one triangle and a color. The triangle is not impressed by my architecture diagram.
 
@@ -29,17 +29,17 @@ pub fn shade(input: i32) -> i32 {
 }
 ```
 
-Then `wasm-pack build --target web` creates the browser package. The generated module is loaded with `init()`, and JavaScript calls `shade(input)`. The [wasm-bindgen deployment guide](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html) explains why the `web` target is useful when there is no bundler in the middle.
+`wasm-pack build --target web` creates the browser package. JavaScript loads it with `init()` and calls `shade(input)`. The [wasm-bindgen deployment guide](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html) explains the no-bundler `web` target.
 
 WebGPU starts in a different place: check `navigator.gpu`, request an adapter and a device, configure a canvas, then submit a render pass. [MDN's WebGPU guide](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API) is the useful reference here. The shader is WGSL, not Rust. Every language gets its own little kingdom.
 
 ## Try the playground
 
-Edit the instruction block, change the input, and run it. The return value from WASM becomes a color in a WebGPU uniform buffer.
+Start with the default code, press **Run WASM**, then change `i32.const 7` to `i32.const 3` and run it again. For input `12`, the number changes from `84` to `36`. The return value becomes a color in a WebGPU uniform buffer.
 
 <WebGpuWasmPlayground />
 
-The editor is WAT-shaped and deliberately small. It compiles a real WebAssembly binary in the browser, then uses `WebAssembly.instantiate()` to call the exported function. It has no imports, memory, DOM access, or arbitrary JavaScript. A tiny fence is better than letting my blog page become a tiny compiler-hosting company.
+The editor is WAT-shaped and deliberately small. It compiles a real WebAssembly binary in the browser, then uses `WebAssembly.instantiate()` to call the export. No imports, memory, DOM access, or arbitrary JavaScript. A tiny fence is better than turning my blog into a tiny compiler-hosting company.
 
 The real Rust path is still the one above. Editing arbitrary Rust in a static article would mean shipping a Rust compiler or a remote build service. That is possible, but it is a different project with a much larger security and download bill. The WAT editor keeps the interesting part visible: edit instructions, compile bytes, call an export, pass a value to the GPU.
 
@@ -55,7 +55,7 @@ The data flow is small:
 4. The result is converted to a color and written to a WebGPU uniform buffer.
 5. A WGSL vertex/fragment pair draws the triangle.
 
-The WebGPU branch is progressive enhancement. If `navigator.gpu` or the adapter is missing, the WASM result still appears and the page explains why the canvas is quiet. WebGPU is a secure-context API and browser/device support still varies, so “works on my Mac” is not a compatibility plan.
+The WebGPU branch is progressive enhancement. If `navigator.gpu` or the adapter is missing, the WASM result still appears in a visible fallback card. WebGPU is a secure-context API and browser/device support varies, so “works on my Mac” is not a compatibility plan.
 
 ## Build it from scratch
 

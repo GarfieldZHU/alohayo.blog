@@ -1,6 +1,6 @@
 # WebGPU + WASM MDX runner
 
-This repository now has a small, client-only playground for the draft WebGPU article at `data/blog/webgpu.mdx`.
+This repository now has a small, client-only playground for the WebGPU article at `data/blog/webgpu.mdx`.
 
 ## What it demonstrates
 
@@ -93,7 +93,7 @@ yarn prettier --check components/WebGpuWasmPlayground.tsx lib/wasmWatRunner.mjs 
 yarn build
 ```
 
-For browser verification, open the draft route in a WebGPU-capable browser, change `i32.const 7` to another integer, press **Run WASM**, and confirm both the numeric result and the triangle color change. Then repeat with WebGPU disabled: the result should still appear and the status should explain why the canvas did not render.
+For browser verification, open the article route in a WebGPU-capable browser, change `i32.const 7` to another integer, press **Run WASM**, and confirm both the numeric result and the triangle color change. Then repeat with WebGPU disabled: the result should still appear and the status should explain why the canvas did not render.
 
 ## Useful references
 
