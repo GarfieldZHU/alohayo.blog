@@ -1,24 +1,24 @@
 ---
 title: WASM Quick Tour
-date: '2022-04-05'
+date: '2021-04-20'
 tags: ['Rust', 'wasm', 'Web', 'Frontend', 'LEARNINGS']
 draft: false
-summary: A quick tour of Rust, WebAssembly, and the Game of Life playground.
+summary: Some notes about WASM, Rust, frontend, and the Game of Life playground.
 ---
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
 # WASM Quick Tour
 
-WASM interests me because it gives the browser another place to run code without giving up the Web platform. I like the boundary: Rust can hold the data and do the tight loops, while JavaScript still owns events, the canvas, and the animation loop.
+WASM is interesting to me because it puts another runtime into the browser. It does not need to replace JavaScript. Rust can keep the data and do the calculation, JavaScript can still do the browser things.
 
-The old [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/) is still a useful map, even though it is a legacy guide now. It shows the shape I care about: `wasm-bindgen` exposes a Rust API, `wasm-pack` builds the package, and the browser stays in charge of the user interface.
+The old [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/) is still useful. It is a legacy book now, but the flow is easy to follow: `wasm-bindgen` exports the Rust API, `wasm-pack` makes the package, and JavaScript connects it with the canvas and events.
 
-The [Game of Life project](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life) is a small example of that split. Rust keeps the universe and advances each generation. JavaScript draws the cells on a canvas. The interesting part is seeing a Rust data structure become something I can click and play with in a browser.
+The [Game of Life project](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life) is a good small example. Rust owns the universe and moves it to the next generation. JavaScript reads the memory and paints the cells. Click a cell, pause it, reset it. The boundary becomes visible.
 
 ## The playground
 
-This is the little playground I like. Click cells to make a pattern, pause it, and reset the world when it becomes too chaotic. The frame counter makes the split visible: the WebAssembly module updates the state, while JavaScript schedules and paints each frame.
+This is the little playground I like. Click cells to make a pattern, pause it, and reset the world when it becomes too chaotic. The frame counter shows the split. WASM updates the state, JavaScript schedules and paints each frame.
 
 <div className="not-prose my-8 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
   <iframe
@@ -33,22 +33,24 @@ This is the little playground I like. Click cells to make a pattern, pause it, a
 
 If the embedded view does not load, open the [playground directly](https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/). The source is in the [`wasm-game-of-life` folder](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life).
 
-## How the WASM fits into this MDX page
+## How I put WASM in this MDX page
 
-This first version keeps the Rust project separate from the blog. The GitHub Actions workflow runs `wasm-pack --target web`, copies the generated package into a static GitHub Pages site, and the MDX page embeds that site with an `<iframe>`. The blog only needs a fixed URL, `garfieldzhu.github.io` in `frame-src`, and a normal link for browsers that block the frame. The `not-prose` wrapper keeps the playground's layout out of the article typography.
+I did not put the Rust package inside Next.js for this demo. I build it in the `Aloha.zone.io` repository with `wasm-pack --target web`. GitHub Actions copies the package and the small web page to GitHub Pages. Then the MDX uses an `<iframe>` to show that page.
 
-That split is useful for now. The WASM app can have its own build and release cycle, and the blog does not need to understand the Rust package or load it during server rendering.
+For the blog, I only need three things: a fixed URL, `garfieldzhu.github.io` in `frame-src`, and a normal link if the iframe cannot load. The `not-prose` wrapper keeps the game layout away from the article style.
 
-## A plan for a more interactive article
+This split is simple. The WASM app has its own build. The blog does not load Rust during server rendering. It is another page, but it works.
 
-If I want the WASM to feel like part of the article instead of a separate page, I would make it a real MDX component:
+## Next plan: WASM inside MDX
 
-1. Keep the Rust crate and `wasm-pack --target web` output small and browser-friendly.
-2. Add a client-only `WasmGameOfLife` React component, then register it in `components/MDXComponents.tsx`.
-3. Let the component own loading, the canvas, controls, and errors; expose only a small API such as `<WasmGameOfLife />` to the MDX.
-4. Put the component between short explanations so each step in the article can change the Rust state and show the result immediately.
-5. Keep a fallback link and test the production build, mobile layout, and a browser with WebAssembly disabled.
+The iframe works, but it is still another page. For a more interactive article, I want to make the WASM a real MDX component:
 
-The iframe is the safe boundary for this demo. A first-class component would make the article more playful, but it would also couple the MDX build, the browser-only React code, and the WASM package more closely.
+1. Keep the Rust crate and `wasm-pack --target web` output small.
+2. Add a client-only `WasmGameOfLife` React component and register it in `components/MDXComponents.tsx`.
+3. Let the component handle loading, canvas, buttons, and errors. The MDX only uses something like `<WasmGameOfLife />`.
+4. Put the component between short explanations. Each step can change the Rust state and show the result right away.
+5. Keep a fallback link. Test the production build, mobile layout, and a browser with WebAssembly disabled.
 
-My current mental model is simple: WASM is not a replacement for the Web platform. It is a compact place to run the part of a program that benefits from Rust, while the frontend remains responsible for the browser experience.
+This will make the article more playful. It also couples the MDX build, browser React code, and WASM package together. I think that is a good trade for the next version.
+
+My current idea is simple: WASM is not a replacement for the Web. It is one place to run the part that benefits from Rust. The frontend still owns the browser experience.
