@@ -1035,6 +1035,8 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
     }
   }, [appState, menuPromptTyped, menuPrompt])
 
+  const poetryOpen = appState === 'poem'
+
   return (
     <>
       {!isClosed && (
@@ -1052,10 +1054,12 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
             tabIndex={0}
             onKeyDown={handleKeyDown}
             style={{
-              maxHeight: isFullscreen ? '100vh' : collapsed ? '0px' : '600px',
+              // The poetry reader has variable height. A fixed terminal cap used to
+              // cut its paper card in half when a long title or verse arrived.
+              maxHeight: isFullscreen ? '100vh' : poetryOpen ? 'none' : collapsed ? '0px' : '600px',
               height: isFullscreen ? '100vh' : 'auto',
-              opacity: collapsed && !isFullscreen ? 0 : isMinimized ? 0 : 1,
-              marginBottom: collapsed && !isFullscreen ? '0px' : '2rem',
+              opacity: collapsed && !isFullscreen && !poetryOpen ? 0 : isMinimized ? 0 : 1,
+              marginBottom: collapsed && !isFullscreen && !poetryOpen ? '0px' : '2rem',
               transform: isMinimized ? 'scale(0.15) translate(50vw, 50vh)' : 'none',
               transformOrigin: 'bottom right',
             }}

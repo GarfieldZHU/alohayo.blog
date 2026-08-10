@@ -11,6 +11,28 @@ interface ChinesePoemViewProps {
   goBack: () => void
 }
 
+type PoetryTheme = {
+  className: string
+  seal: string
+}
+
+const DYNASTY_THEMES: Array<{ match: string; theme: PoetryTheme }> = [
+  { match: '唐', theme: { className: 'poetry-paper--tang', seal: '唐' } },
+  { match: '宋', theme: { className: 'poetry-paper--song', seal: '宋' } },
+  { match: '元', theme: { className: 'poetry-paper--yuan', seal: '元' } },
+  { match: '明', theme: { className: 'poetry-paper--ming', seal: '明' } },
+  { match: '清', theme: { className: 'poetry-paper--qing', seal: '清' } },
+]
+
+function getPoetryTheme(dynasty: string): PoetryTheme {
+  return (
+    DYNASTY_THEMES.find(({ match }) => dynasty.includes(match))?.theme ?? {
+      className: 'poetry-paper--default',
+      seal: '詩',
+    }
+  )
+}
+
 export default function ChinesePoemView({
   poem,
   loading,
@@ -19,6 +41,7 @@ export default function ChinesePoemView({
   goBack,
 }: ChinesePoemViewProps) {
   const { messages } = useLocale()
+  const theme = getPoetryTheme(poem?.dynasty ?? '')
 
   return (
     <div className="space-y-4">
@@ -27,12 +50,14 @@ export default function ChinesePoemView({
         {messages.terminal.quotes}
       </p>
 
-      <article className="poetry-paper relative overflow-hidden rounded-sm border px-6 py-8 shadow-xl sm:px-10">
+      <article
+        className={`poetry-paper ${theme.className} relative mx-auto w-full max-w-3xl overflow-hidden rounded-sm border px-5 py-6 shadow-xl sm:px-8 sm:py-8`}
+      >
         <div className="poetry-paper__edge pointer-events-none absolute inset-3 rounded-sm border" />
         <div className="relative">
           <div className="mb-8 flex items-center justify-between gap-4">
             <span className="poetry-paper__seal" aria-hidden="true">
-              詩
+              {theme.seal}
             </span>
             <span className="poetry-paper__source">{messages.terminal.poemSource}</span>
           </div>
@@ -57,12 +82,14 @@ export default function ChinesePoemView({
 
           {!loading && !error && poem && (
             <div aria-live="polite">
-              <h2 className="poetry-paper__title">{poem.title}</h2>
+              <h2 className="poetry-paper__title mx-auto max-w-2xl text-balance break-words">
+                {poem.title}
+              </h2>
               <p className="poetry-paper__author">
                 {poem.dynasty} · {poem.author}
                 {poem.type ? ` · ${poem.type}` : ''}
               </p>
-              <div className="poetry-paper__body mt-8 space-y-2 text-center">
+              <div className="poetry-paper__body poetry-paper__body-scroll mt-8 space-y-2 text-center">
                 {poem.content.map((line, index) => (
                   <p key={`${line}-${index}`}>{line}</p>
                 ))}

@@ -315,33 +315,169 @@
   }
 
   .poetry-paper {
-    border-color: rgb(146 112 65 / 0.42);
-    background-color: #f1e4c9;
+    --poetry-paper: #f1e4c9;
+    --poetry-ink: #49351f;
+    --poetry-strong: #3f2a18;
+    --poetry-muted: rgb(73 53 31 / 0.68);
+    --poetry-line: rgb(146 112 65 / 0.42);
+    --poetry-edge: rgb(146 112 65 / 0.32);
+    --poetry-accent: #a43d32;
+    --poetry-accent-hover: #7d2c25;
+    border-color: var(--poetry-line);
+    background-color: var(--poetry-paper);
     background-image:
       radial-gradient(circle at 12% 18%, rgb(133 91 36 / 0.1), transparent 25%),
       radial-gradient(circle at 80% 76%, rgb(133 91 36 / 0.08), transparent 30%),
       linear-gradient(135deg, rgb(255 255 255 / 0.36), transparent 44%),
       repeating-linear-gradient(0deg, rgb(116 82 37 / 0.035) 0 1px, transparent 1px 4px);
-    color: #49351f;
+    color: var(--poetry-ink);
   }
 
   .dark .poetry-paper {
-    border-color: rgb(214 174 111 / 0.44);
-    background-color: #3a2b1c;
+    --poetry-paper: #3a2b1c;
+    --poetry-ink: #f2dfbd;
+    --poetry-strong: #f6e6c6;
+    --poetry-muted: rgb(242 223 189 / 0.68);
+    --poetry-line: rgb(214 174 111 / 0.44);
+    --poetry-edge: rgb(214 174 111 / 0.28);
+    --poetry-accent: #ee8d78;
+    --poetry-accent-hover: #ffc1a9;
+    border-color: var(--poetry-line);
+    background-color: var(--poetry-paper);
     background-image:
       radial-gradient(circle at 12% 18%, rgb(255 210 137 / 0.08), transparent 25%),
       radial-gradient(circle at 80% 76%, rgb(255 210 137 / 0.06), transparent 30%),
       linear-gradient(135deg, rgb(255 255 255 / 0.06), transparent 44%),
       repeating-linear-gradient(0deg, rgb(255 226 170 / 0.03) 0 1px, transparent 1px 4px);
-    color: #f2dfbd;
+    color: var(--poetry-ink);
+  }
+
+  .poetry-paper--tang {
+    --poetry-paper: #dfe9e1;
+    --poetry-ink: #294238;
+    --poetry-strong: #1e332b;
+    --poetry-muted: rgb(41 66 56 / 0.7);
+    --poetry-line: rgb(70 109 91 / 0.5);
+    --poetry-edge: rgb(70 109 91 / 0.32);
+    --poetry-accent: #477a67;
+    --poetry-accent-hover: #315c4d;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgb(66 126 100 / 0.14), transparent 28%),
+      radial-gradient(circle at 82% 72%, rgb(166 119 71 / 0.1), transparent 30%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.42), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(55 96 76 / 0.04) 0 1px, transparent 1px 4px);
+  }
+
+  .poetry-paper--song {
+    --poetry-paper: #f1e0bf;
+    --poetry-ink: #5a3b24;
+    --poetry-strong: #442a1b;
+    --poetry-muted: rgb(90 59 36 / 0.7);
+    --poetry-line: rgb(164 113 53 / 0.5);
+    --poetry-edge: rgb(164 113 53 / 0.32);
+    --poetry-accent: #b06b32;
+    --poetry-accent-hover: #81491f;
+  }
+
+  .poetry-paper--yuan {
+    --poetry-paper: #eadfea;
+    --poetry-ink: #4b3b50;
+    --poetry-strong: #37283d;
+    --poetry-muted: rgb(75 59 80 / 0.7);
+    --poetry-line: rgb(122 91 130 / 0.46);
+    --poetry-edge: rgb(122 91 130 / 0.3);
+    --poetry-accent: #86527d;
+    --poetry-accent-hover: #633a5d;
+  }
+
+  .poetry-paper--ming {
+    --poetry-paper: #eedbd0;
+    --poetry-ink: #59352c;
+    --poetry-strong: #43251f;
+    --poetry-muted: rgb(89 53 44 / 0.7);
+    --poetry-line: rgb(164 86 67 / 0.48);
+    --poetry-edge: rgb(164 86 67 / 0.3);
+    --poetry-accent: #b24a3b;
+    --poetry-accent-hover: #84342a;
+  }
+
+  .poetry-paper--qing {
+    --poetry-paper: #dce7ed;
+    --poetry-ink: #2f4654;
+    --poetry-strong: #223743;
+    --poetry-muted: rgb(47 70 84 / 0.7);
+    --poetry-line: rgb(76 117 140 / 0.48);
+    --poetry-edge: rgb(76 117 140 / 0.3);
+    --poetry-accent: #3d738d;
+    --poetry-accent-hover: #2b5367;
+  }
+
+  .poetry-paper--default {
+    --poetry-paper: #f1e4c9;
+  }
+
+  .dark .poetry-paper--tang {
+    --poetry-paper: #203a32;
+    --poetry-ink: #d9efe1;
+    --poetry-strong: #e7f8ec;
+    --poetry-muted: rgb(217 239 225 / 0.72);
+    --poetry-line: rgb(113 176 146 / 0.5);
+    --poetry-edge: rgb(113 176 146 / 0.3);
+    --poetry-accent: #8bd0ad;
+    --poetry-accent-hover: #b8ead0;
+    background-image:
+      radial-gradient(circle at 15% 20%, rgb(87 182 137 / 0.14), transparent 28%),
+      radial-gradient(circle at 82% 72%, rgb(232 170 97 / 0.1), transparent 30%),
+      linear-gradient(135deg, rgb(255 255 255 / 0.07), transparent 46%),
+      repeating-linear-gradient(0deg, rgb(158 222 184 / 0.04) 0 1px, transparent 1px 4px);
+  }
+
+  .dark .poetry-paper--song {
+    --poetry-paper: #422f1f;
+    --poetry-ink: #f3dfba;
+    --poetry-strong: #ffedc9;
+    --poetry-muted: rgb(243 223 186 / 0.72);
+    --poetry-line: rgb(205 145 72 / 0.5);
+    --poetry-edge: rgb(205 145 72 / 0.3);
+    --poetry-accent: #e4a15d;
+    --poetry-accent-hover: #ffd09a;
+  }
+
+  .dark .poetry-paper--yuan {
+    --poetry-paper: #3b2d43;
+    --poetry-ink: #eadbf0;
+    --poetry-strong: #f6e9fb;
+    --poetry-muted: rgb(234 219 240 / 0.72);
+    --poetry-line: rgb(174 127 183 / 0.5);
+    --poetry-edge: rgb(174 127 183 / 0.3);
+    --poetry-accent: #d09bc9;
+    --poetry-accent-hover: #efc9e9;
+  }
+
+  .dark .poetry-paper--ming {
+    --poetry-paper: #472b2b;
+    --poetry-ink: #f5dcd2;
+    --poetry-strong: #ffeae0;
+    --poetry-muted: rgb(245 220 210 / 0.72);
+    --poetry-line: rgb(209 117 98 / 0.5);
+    --poetry-edge: rgb(209 117 98 / 0.3);
+    --poetry-accent: #ef9d8b;
+    --poetry-accent-hover: #ffc9bb;
+  }
+
+  .dark .poetry-paper--qing {
+    --poetry-paper: #233844;
+    --poetry-ink: #d7e9f1;
+    --poetry-strong: #e9f7fc;
+    --poetry-muted: rgb(215 233 241 / 0.72);
+    --poetry-line: rgb(113 168 194 / 0.5);
+    --poetry-edge: rgb(113 168 194 / 0.3);
+    --poetry-accent: #8ec9e2;
+    --poetry-accent-hover: #c0e8f5;
   }
 
   .poetry-paper__edge {
-    border-color: rgb(146 112 65 / 0.32);
-  }
-
-  .dark .poetry-paper__edge {
-    border-color: rgb(214 174 111 / 0.28);
+    border-color: var(--poetry-edge);
   }
 
   .poetry-paper__seal {
@@ -350,15 +486,12 @@
     height: 2.3rem;
     place-items: center;
     border: 1px solid currentColor;
-    color: #a43d32;
-    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', serif;
-    font-size: 1.2rem;
+    color: var(--poetry-accent);
+    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif CJK SC', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
     line-height: 1;
     transform: rotate(-7deg);
-  }
-
-  .dark .poetry-paper__seal {
-    color: #ee8d78;
   }
 
   .poetry-paper__source,
@@ -369,77 +502,62 @@
   }
 
   .poetry-paper__source {
-    color: rgb(73 53 31 / 0.6);
-    font-size: 0.75rem;
-    letter-spacing: 0.12em;
-  }
-
-  .dark .poetry-paper__source {
-    color: rgb(242 223 189 / 0.62);
+    color: var(--poetry-muted);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-align: right;
   }
 
   .poetry-paper__title {
-    color: #3f2a18;
+    color: var(--poetry-strong);
     font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif CJK SC', serif;
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-size: clamp(1.35rem, 3.5vw, 2.2rem);
     font-weight: 600;
-    letter-spacing: 0.16em;
-    line-height: 1.25;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
     text-align: center;
-  }
-
-  .dark .poetry-paper__title {
-    color: #f6e6c6;
   }
 
   .poetry-paper__author {
     margin-top: 0.75rem;
-    color: rgb(73 53 31 / 0.68);
+    color: var(--poetry-muted);
     font-size: 0.82rem;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
     text-align: center;
   }
 
-  .dark .poetry-paper__author {
-    color: rgb(242 223 189 / 0.68);
-  }
-
   .poetry-paper__body {
-    color: #49351f;
-    font-family: 'STKaiti', 'KaiTi', 'Kaiti SC', 'Noto Serif CJK SC', serif;
-    font-size: clamp(1.2rem, 2.8vw, 1.55rem);
-    letter-spacing: 0.12em;
-    line-height: 1.95;
+    color: var(--poetry-ink);
+    font-family: 'STFangsong', 'FangSong', '仿宋', 'Noto Serif CJK SC', serif;
+    font-size: clamp(1.08rem, 2.3vw, 1.4rem);
+    letter-spacing: 0.08em;
+    line-height: 2.15;
+    overflow-wrap: anywhere;
   }
 
-  .dark .poetry-paper__body {
-    color: #f2dfbd;
+  .poetry-paper__body-scroll {
+    max-height: min(56vh, 34rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.5rem;
+    scrollbar-color: var(--poetry-accent) transparent;
   }
 
   .poetry-paper__link,
   .poetry-paper__action {
-    color: #a43d32;
+    color: var(--poetry-accent);
     font-size: 0.8rem;
     transition: color 180ms ease;
   }
 
   .poetry-paper__link:hover,
   .poetry-paper__action:hover {
-    color: #7d2c25;
-  }
-
-  .dark .poetry-paper__link,
-  .dark .poetry-paper__action {
-    color: #ee8d78;
-  }
-
-  .dark .poetry-paper__link:hover,
-  .dark .poetry-paper__action:hover {
-    color: #ffc1a9;
+    color: var(--poetry-accent-hover);
   }
 
   .poetry-paper__loading-mark {
-    color: #a43d32;
+    color: var(--poetry-accent);
     font-family: 'STKaiti', 'KaiTi', serif;
     font-size: 2.4rem;
     line-height: 1;
