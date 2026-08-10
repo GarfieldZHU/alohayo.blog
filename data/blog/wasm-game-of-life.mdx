@@ -49,9 +49,26 @@ The story in [Wasmer issue #142](https://github.com/wasmerio/wasmer/issues/142) 
 
 Then came the benchmark episode. Wasmer showed faster numbers with LLVM. Other people showed Wasmtime winning with Cranelift. Then someone said the chart was being read wrong. Coremark, startup time, compiler backend — every actor had a graph. Not exactly a calm family dinner.
 
-My old note says Wasmer had less WASI documentation and Wasmtime was easier to start with. That was my impression then, not a permanent fact. The issue is from 2019; both projects have changed. The useful part is the question behind the drama: do I care more about a pluggable runtime, or about a conservative standards path? The answer changes with the product.
+The current comparison is less dramatic but more useful: Wasmtime leans toward a standards-led runtime for WASI, the Component Model, and production embedding. Wasmer leans toward a wider deployment ecosystem and more runtime choices, including Singlepass, Cranelift, LLVM, and SDK/registry workflows. My major conclusion is simple: pick Wasmtime for the calmer standards road, Wasmer when the configurable backends or product ecosystem are the point. This is my personal preference, not an objective ranking. Run your own workload before turning an old benchmark into a religion.
 
-My personal society preference: for a shared project, I would start with [Wasmtime](https://docs.wasmtime.dev/). The Bytecode Alliance home and the standards-first feeling make it seem like a calmer public road. This is only my taste, not an objective ranking. If a product needs Wasmer's backend choices or deployment model, use Wasmer. A runtime is a tool, not a football team. (The issue comments tried very hard to make it one.)
+<details>
+<summary>GPT investigation result: Wasmer vs. Wasmtime</summary>
+
+This is a GPT-assisted comparison checked against the linked project documentation. It is a reading aid, not an independent benchmark or an objective winner announcement.
+
+| Question            | Wasmtime                                                                                                   | Wasmer                                                                                                                |
+| ------------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Main shape          | A focused standalone runtime and embedding library, backed by the Bytecode Alliance.                       | A runtime plus a broader package, registry, SDK, browser, and edge deployment ecosystem.                              |
+| Compiler choices    | Cranelift is the normal optimizing compiler; Winch and other strategies cover fast startup or portability. | Singlepass, Cranelift, LLVM, and other engine choices are exposed for different speed/startup tradeoffs.              |
+| WASI and components | Strong emphasis on WASI, the Component Model, standards, and conformance.                                  | Supports WASI-oriented workflows and its WAI/bindgen ecosystem, with more freedom in how the application is packaged. |
+| Embedding           | Rust, C/C++, Python, .NET, Go, Ruby, and other host integrations are first-class documentation paths.      | SDKs and host integrations are part of the product story, alongside the standalone CLI.                               |
+| The tradeoff        | Less product surface to think about; a good default when the runtime itself should stay boring.            | More knobs and deployment options; useful when those options are the actual requirement.                              |
+
+The old [Wasmer issue #142](https://github.com/wasmerio/wasmer/issues/142) is useful as history: it captures the projects explaining why they were not the same project, followed by a very enthusiastic benchmark argument. It is from 2019, so I would not use its numbers as current facts.
+
+Sources: [Wasmtime](https://docs.wasmtime.dev/), [Wasmtime compiler strategies](https://docs.wasmtime.dev/api/wasmtime/struct.Config.html), [Wasmer runtime features](https://docs.wasmer.io/runtime/features/), [Wasmer CLI](https://docs.wasmer.io/runtime/cli/), [WASI releases](https://wasi.dev/releases), and the [Aloha.zone.io runtime notes](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm#runtime).
+
+</details>
 
 ## Next plan: WASM inside MDX
 
