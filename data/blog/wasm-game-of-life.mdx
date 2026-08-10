@@ -41,6 +41,18 @@ For the blog, I only need three things: a fixed URL, `garfieldzhu.github.io` in 
 
 This split is simple. The WASM app has its own build. The blog does not load Rust during server rendering. It is another page, but it works.
 
+## Runtime soap opera: Wasmer vs. Wasmtime
+
+The old [runtime notes](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm#runtime) have a small soap opera too. The two names are Wasmer and Wasmtime. Both run WASM outside the browser, both want WASI to be useful, and both think their way is the sensible way. So, naturally, there are two.
+
+The story in [Wasmer issue #142](https://github.com/wasmerio/wasmer/issues/142) is basically this: the Wasmer team tried Wasmtime early, felt it was hard to use and quiet, then started Wasmer. Later, the projects grew in different directions. Wasmer wanted a universal and pluggable runtime: different compiler backends, custom ABIs, and an easy library for other apps. Wasmtime moved with the Bytecode Alliance, putting more weight on standards, WASI, correctness, and a clear embedding story.
+
+Then came the benchmark episode. Wasmer showed faster numbers with LLVM. Other people showed Wasmtime winning with Cranelift. Then someone said the chart was being read wrong. Coremark, startup time, compiler backend — every actor had a graph. Not exactly a calm family dinner.
+
+My old note says Wasmer had less WASI documentation and Wasmtime was easier to start with. That was my impression then, not a permanent fact. The issue is from 2019; both projects have changed. The useful part is the question behind the drama: do I care more about a pluggable runtime, or about a conservative standards path? The answer changes with the product.
+
+My personal society preference: for a shared project, I would start with [Wasmtime](https://docs.wasmtime.dev/). The Bytecode Alliance home and the standards-first feeling make it seem like a calmer public road. This is only my taste, not an objective ranking. If a product needs Wasmer's backend choices or deployment model, use Wasmer. A runtime is a tool, not a football team. (The issue comments tried very hard to make it one.)
+
 ## Next plan: WASM inside MDX
 
 The iframe works, but it is still another page. For a more interactive article, I want to make the WASM a real MDX component:
