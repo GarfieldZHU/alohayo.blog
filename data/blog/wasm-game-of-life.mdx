@@ -1,22 +1,24 @@
 ---
-title: WASM Game of Life
+title: WASM Quick Tour
 date: '2022-04-05'
 tags: ['Rust', 'wasm', 'Web', 'Frontend', 'LEARNINGS']
 draft: false
-summary: A small 2021–2022 note on Rust, WebAssembly, and the Game of Life playground.
+summary: A quick tour of Rust, WebAssembly, and the Game of Life playground.
 ---
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
-# WASM Game of Life
+# WASM Quick Tour
 
-Around 2021 and 2022, I was trying to understand where Rust could fit into the Web. The old [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/) was my map. It is a legacy guide now, but it still explains the important shape of the problem very well: let Rust do the computation, let JavaScript own the browser, and use WebAssembly as the boundary.
+WASM interests me because it gives the browser another place to run code without giving up the Web platform. I like the boundary: Rust can hold the data and do the tight loops, while JavaScript still owns events, the canvas, and the animation loop.
 
-The [Game of Life project](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life) was the part that made the idea concrete for me. Rust keeps the universe and advances each generation. `wasm-bindgen` exposes the Rust API, `wasm-pack` builds the package, and a small JavaScript loop draws the cells on a canvas. The interesting part is not the rules of Conway's game. It is watching a Rust data structure become something I can click and play with in a browser.
+The old [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/) is still a useful map, even though it is a legacy guide now. It shows the shape I care about: `wasm-bindgen` exposes a Rust API, `wasm-pack` builds the package, and the browser stays in charge of the user interface.
+
+The [Game of Life project](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life) is a small example of that split. Rust keeps the universe and advances each generation. JavaScript draws the cells on a canvas. The interesting part is seeing a Rust data structure become something I can click and play with in a browser.
 
 ## The playground
 
-This is the little build I kept coming back to. Click cells to make a pattern, pause it, and reset the world when it becomes too chaotic. The frame counter is a nice reminder that this is still a browser program: the WebAssembly module does the state update, while JavaScript schedules and paints the frames.
+This is the little playground I like. Click cells to make a pattern, pause it, and reset the world when it becomes too chaotic. The frame counter makes the split visible: the WebAssembly module updates the state, while JavaScript schedules and paints each frame.
 
 <div className="not-prose my-8 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
   <iframe
@@ -31,4 +33,4 @@ This is the little build I kept coming back to. Click cells to make a pattern, p
 
 If the embedded view does not load, open the [playground directly](https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/). The source is in the [`wasm-game-of-life` folder](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life).
 
-The code is small, but it gave me a useful mental model: WASM is not a replacement for the Web platform. It is a compact place to run the part of the program that benefits from Rust, while the frontend still handles the canvas, events, and animation loop.
+My current mental model is simple: WASM is not a replacement for the Web platform. It is a compact place to run the part of a program that benefits from Rust, while the frontend remains responsible for the browser experience.
