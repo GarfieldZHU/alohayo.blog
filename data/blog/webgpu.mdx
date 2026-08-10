@@ -10,13 +10,19 @@ summary: A small WebGPU canvas, a Rust-shaped WASM boundary, and an editable WAT
 
 # WebGPU and Rust/WASM: a small playground
 
-I keep two sets of notes. The [GPU notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/GPU/README.md#webgl--webgpu) lead to WebGPU. The [WASM notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/wasm/README.md) lead to Rust running in the browser.
+I keep two sets of notes. The [GPU notes](/blog/gpu/) lead to WebGPU. The [WASM Quick Tour](/blog/wasm-game-of-life/) leads to Rust running in the browser.
 
 Putting the two together sounds very serious. It is mostly one triangle and a color. The triangle is not impressed by my architecture diagram.
 
 ## The split I want
 
-Rust/WASM should do the small, deterministic calculation. JavaScript should own the browser APIs. WebGPU should own the canvas and shader. This is close to the split in the [Rust Game of Life example](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life): Rust owns the state, JavaScript reads the boundary and paints it.
+Rust/WASM should do the small, deterministic calculation. JavaScript should own the browser APIs. WebGPU should own the canvas and shader. This is close to the split in the [WASM Game of Life note](/blog/wasm-game-of-life/): Rust owns the state, JavaScript reads the boundary and paints it.
+
+<HoverIframeTooltip
+  text={<a href="/blog/wasm-game-of-life/">Hover for the Game of Life preview</a>}
+  iframeSrc="https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/"
+  title="Live WASM Game of Life preview"
+/>
 
 A real Rust crate can expose a tiny function like this:
 
@@ -35,7 +41,11 @@ WebGPU starts in a different place: check `navigator.gpu`, request an adapter an
 
 ## Try the playground
 
-Start with the default code, press **Run WASM**, then change `i32.const 7` to `i32.const 3` and run it again. For input `12`, the number changes from `84` to `36`. The return value becomes a color in a WebGPU uniform buffer.
+Start with the default code and press **Run WASM**. The comments in the editor are the map:
+
+- `local.get 0` reads the input control.
+- `i32.const 7` is the multiplier. Change it to `3`, run again, and `shade(12)` changes from `84` to `36`.
+- The number is also the hue, so the triangle changes from green-ish to orange-ish.
 
 <WebGpuWasmPlayground />
 
@@ -93,8 +103,8 @@ The point is not “WASM plus WebGPU everywhere.” It is a clean boundary I can
 
 ## References
 
-- [Aloha.zone.io WebGPU notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/GPU/README.md#webgl--webgpu)
-- [Aloha.zone.io WASM notes](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/wasm/README.md)
+- [GPU Basics](/blog/gpu/)
+- [WASM Quick Tour](/blog/wasm-game-of-life/)
 - [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/)
 - [wasm-bindgen deployment guide](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html)
 - [MDN WebGPU API](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)

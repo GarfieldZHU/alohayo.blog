@@ -288,7 +288,7 @@ export default function WebGpuWasmPlayground() {
             </span>
           </div>
           <textarea
-            aria-label="Editable WebAssembly text module"
+            aria-label="Editable WASM color program"
             aria-describedby="wasm-playground-help"
             className="ring-primary-500 min-h-64 w-full rounded-lg border border-gray-300 bg-gray-950 p-3 font-mono text-xs leading-5 text-emerald-200 outline-none focus:ring-2 dark:border-gray-700"
             spellCheck={false}
@@ -305,8 +305,10 @@ export default function WebGpuWasmPlayground() {
             }}
           />
           <p className="text-xs text-gray-600 dark:text-gray-400">
-            Try changing <code>i32.const 7</code> to <code>i32.const 3</code>, then press{' '}
-            <strong>Run WASM</strong> (or <kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd>).
+            Change <code>i32.const 7</code> to <code>i32.const 3</code>, then press{' '}
+            <strong>Run WASM</strong>. With input <code>12</code>, the result goes from{' '}
+            <code>84</code> to <code>36</code>, so the triangle changes color. <kbd>⌘/Ctrl</kbd> +{' '}
+            <kbd>Enter</kbd> works too.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">

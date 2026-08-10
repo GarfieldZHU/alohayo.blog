@@ -6,6 +6,7 @@ import Image from './Image'
 import CustomLink from './Link'
 import { NeonFlicker } from './NeonFlicker'
 import { HoverImageTooltip } from './HoverImageTooltip'
+import HoverIframeTooltip from './HoverIframeTooltip'
 import { GamingPlatforms } from './GamingPlatforms'
 import { AboutSectionLabel } from './AboutSectionLabel'
 import WebGpuWasmPlayground from './WebGpuWasmPlayground'
@@ -18,6 +19,7 @@ export const components: MDXComponents = {
   BlogNewsletterForm,
   NeonFlicker,
   HoverImageTooltip,
+  HoverIframeTooltip,
   GamingPlatforms,
   AboutSectionLabel,
   WebGpuWasmPlayground,
