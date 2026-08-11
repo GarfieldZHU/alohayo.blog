@@ -237,7 +237,7 @@
     color: var(--color-gray-700);
     cursor: pointer;
     font-family: var(--font-jetbrains-mono), monospace;
-    font-size: 0.88rem;
+    font-size: 1rem;
     font-weight: 600;
     letter-spacing: -0.06em;
     transition:
