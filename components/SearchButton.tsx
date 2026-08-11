@@ -13,7 +13,10 @@ const SearchButton = () => {
       siteMetadata.search.provider === 'algolia' ? AlgoliaButton : KBarButton
 
     return (
-      <SearchButtonWrapper aria-label={messages.shell.search} className="cursor-pointer">
+      <SearchButtonWrapper
+        aria-label={messages.shell.search}
+        className="site-header__icon-button cursor-pointer"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"

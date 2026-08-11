@@ -44,7 +44,7 @@ export default function LanguageSwitch() {
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="site-language-switch"
+        className="site-language-switch site-header__icon-button"
       >
         <span aria-hidden="true">文/A</span>
       </button>

@@ -51,7 +51,7 @@ const MobileNav = () => {
         aria-controls="mobile-navigation-drawer"
         aria-expanded={navShow}
         onClick={onToggleNav}
-        className="site-mobile-nav__trigger xl:hidden"
+        className="site-mobile-nav__trigger site-header__icon-button xl:hidden"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

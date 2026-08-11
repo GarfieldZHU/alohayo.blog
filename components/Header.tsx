@@ -39,7 +39,7 @@ const Header = () => {
           </div>
         </Link>
       </div>
-      <div className="flex shrink-0 items-center gap-3 leading-5 sm:gap-5 lg:gap-6">
+      <div className="site-header__actions">
         <nav
           className="hidden items-center gap-5 xl:flex xl:gap-7"
           aria-label={messages.shell.primaryNavigation}
@@ -64,8 +64,8 @@ const Header = () => {
         </nav>
         <span className="site-header__divider" aria-hidden="true" />
         <SearchButton />
-        <LanguageSwitch />
         <ThemeSwitch />
+        <LanguageSwitch />
         <MobileNav />
       </div>
     </header>
