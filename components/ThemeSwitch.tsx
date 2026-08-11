@@ -19,6 +19,7 @@ const ThemeSwitch = () => {
   return (
     <button
       aria-label={messages.shell.toggleDarkMode}
+      className="cursor-pointer"
       onClick={() => setTheme(theme === 'dark' || resolvedTheme === 'dark' ? 'light' : 'dark')}
     >
       <svg
