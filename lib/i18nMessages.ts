@@ -308,9 +308,9 @@ const zh: SiteMessages = {
   about: {
     title: '关于',
     hello: '你好，我是',
-    engineerPrefix: '空栈',
+    engineerPrefix: 'NULL-STACK',
     engineerSuffix: '工程师',
-    gamerPrefix: '全栈',
+    gamerPrefix: 'FULL-STACK',
     gamerSuffix: '玩家',
     dossierButton: '打开玩家档案',
     pinnedShelf: '收藏架上的游戏',

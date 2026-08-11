@@ -1064,7 +1064,7 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
               transformOrigin: 'bottom right',
             }}
             className={`mx-auto overflow-hidden font-mono text-sm transition-all duration-500 ease-in-out outline-none md:text-base ${
-              isFullscreen ? 'h-full w-full max-w-none' : 'w-full max-w-4xl'
+              isFullscreen ? 'h-full w-full max-w-none' : 'w-full max-w-5xl'
             } ${isMinimized ? 'pointer-events-none' : ''}`}
           >
             <div
