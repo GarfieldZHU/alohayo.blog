@@ -63,10 +63,12 @@ const Header = () => {
             })}
         </nav>
         <span className="site-header__divider" aria-hidden="true" />
-        <SearchButton />
-        <ThemeSwitch />
-        <LanguageSwitch />
-        <MobileNav />
+        <div className="site-header__icon-actions">
+          <SearchButton />
+          <ThemeSwitch />
+          <LanguageSwitch />
+          <MobileNav />
+        </div>
       </div>
     </header>
   )

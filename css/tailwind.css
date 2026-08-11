@@ -224,8 +224,14 @@
     display: flex;
     flex-shrink: 0;
     align-items: center;
-    gap: 0.35rem;
+    gap: 1.25rem;
     line-height: 1;
+  }
+
+  .site-header__icon-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
   .site-header__icon-button {
