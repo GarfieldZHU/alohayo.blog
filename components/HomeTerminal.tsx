@@ -201,7 +201,7 @@ const introContent: Record<'en' | 'zh-CN', IntroContent> = {
     topics: [
       {
         id: 'identity',
-        label: '身份',
+        label: '我是谁？',
         lines: [
           '我只是 MSTR 里一个普通又有点懒散的软件工程师。',
           '每天靠拿铁和写点新鲜、有趣的代码续命。',
@@ -235,7 +235,7 @@ const introContent: Record<'en' | 'zh-CN', IntroContent> = {
       },
       {
         id: 'attitude',
-        label: '作为习惯',
+        label: '作为Agent Skill',
         lines: [
           '要有自己的判断，而且要坚定。错了就承认——前提是真的错。',
           '直接回答，少一点铺垫。简洁是美德。',
