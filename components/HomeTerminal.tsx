@@ -831,12 +831,8 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
   const [appState, setAppState] = useState<AppState>('splash')
   const [splashStage, setSplashStage] = useState<'typing-cmd' | 'showing' | 'done'>('typing-cmd')
   const [typedCmd, setTypedCmd] = useState('')
-  const [activeSplashId, setActiveSplashId] = useState(() => {
-    if (typeof window === 'undefined') return DEFAULT_HOME_SPLASH_ID
-    const stored = window.localStorage.getItem(HOME_SPLASH_STORAGE_KEY)
-    const resolved = getHomeSplashById(stored || '')
-    return resolved && !resolved.hidden ? resolved.id : DEFAULT_HOME_SPLASH_ID
-  })
+  const [activeSplashId, setActiveSplashId] = useState(DEFAULT_HOME_SPLASH_ID)
+  const [splashStorageReady, setSplashStorageReady] = useState(false)
   const [activeOption, setActiveOption] = useState(0)
   const [menuPromptTyped, setMenuPromptTyped] = useState('')
 
@@ -892,8 +888,16 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem(HOME_SPLASH_STORAGE_KEY)
+    const resolved = getHomeSplashById(stored || '')
+    if (resolved && !resolved.hidden) setActiveSplashId(resolved.id)
+    setSplashStorageReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !splashStorageReady) return
     window.localStorage.setItem(HOME_SPLASH_STORAGE_KEY, activeSplash.id)
-  }, [activeSplash.id])
+  }, [activeSplash.id, splashStorageReady])
 
   useEffect(() => {
     if (appState !== 'menu' || menuPromptTyped !== menuPrompt) return
