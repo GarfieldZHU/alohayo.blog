@@ -358,6 +358,7 @@ interface PokemonData {
   id: number
   sprite: string
   types: string[]
+  localizedTypes: Record<string, { en: string; zh?: string }>
   stats: { name: string; value: number }[]
   height: number
   weight: number
@@ -365,6 +366,7 @@ interface PokemonData {
 }
 
 const pokemonSpeciesNameCache = new Map<number, { en: string; zh?: string }>()
+const pokemonTypeNameCache = new Map<string, { en: string; zh?: string }>()
 
 async function fetchPokemonNames(id: number, fallback: string) {
   const cached = pokemonSpeciesNameCache.get(id)
@@ -398,6 +400,52 @@ async function fetchPokemonNames(id: number, fallback: string) {
   } catch {
     return fallbackNames
   }
+}
+
+async function fetchPokemonTypeNames(
+  typeName: string,
+  typeUrl?: string
+): Promise<{ en: string; zh?: string }> {
+  const cached = pokemonTypeNameCache.get(typeName)
+  if (cached) return cached
+
+  const fallbackNames = {
+    en: typeName.charAt(0).toUpperCase() + typeName.slice(1),
+  }
+
+  try {
+    const response = await fetch(typeUrl || `https://pokeapi.co/api/v2/type/${typeName}/`)
+    if (!response.ok) return fallbackNames
+    const type = await response.json()
+    const names = Array.isArray(type.names) ? type.names : []
+    const english = names.find(
+      (entry: { name?: unknown; language?: { name?: unknown } }) =>
+        entry.language?.name === 'en' && typeof entry.name === 'string'
+    )?.name
+    const simplifiedChinese = names.find(
+      (entry: { name?: unknown; language?: { name?: unknown } }) =>
+        typeof entry.language?.name === 'string' &&
+        entry.language.name.toLowerCase() === 'zh-hans' &&
+        typeof entry.name === 'string'
+    )?.name
+    const localizedNames = {
+      en: typeof english === 'string' ? english : fallbackNames.en,
+      ...(typeof simplifiedChinese === 'string' ? { zh: simplifiedChinese } : {}),
+    }
+    pokemonTypeNameCache.set(typeName, localizedNames)
+    return localizedNames
+  } catch {
+    return fallbackNames
+  }
+}
+
+function getPokemonTypeLabel(
+  type: string,
+  localizedTypes: Record<string, { en: string; zh?: string }>,
+  locale: 'en' | 'zh-CN'
+) {
+  const names = localizedTypes[type]
+  return locale === 'zh-CN' ? names?.zh || names?.en || type : names?.en || type
 }
 
 function PokemonModal({
@@ -525,7 +573,7 @@ function PokemonModal({
                         key={type}
                         className={`rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.18em] uppercase ${typeColors[type] || 'bg-gray-400 text-white'}`}
                       >
-                        {type}
+                        {getPokemonTypeLabel(type, pokemon.localizedTypes, locale)}
                       </span>
                     ))}
                   </div>
@@ -1000,12 +1048,27 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
       const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`)
       const data = await res.json()
       const localizedNames = await fetchPokemonNames(data.id, data.name)
+      const typeRefs = data.types.map(
+        (entry: { type: { name: string; url?: string } }) => entry.type
+      )
+      const localizedTypeEntries = await Promise.all(
+        typeRefs.map(async (type: { name: string; url?: string }) => [
+          type.name,
+          await fetchPokemonTypeNames(type.name, type.url),
+        ])
+      )
+      const localizedTypes = Object.fromEntries(localizedTypeEntries) as Record<
+        string,
+        { en: string; zh?: string }
+      >
+      const types = typeRefs.map((type: { name: string }) => type.name)
       setPokemonData({
         name: data.name,
         localizedNames,
         id: data.id,
         sprite: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
-        types: data.types.map((t: { type: { name: string } }) => t.type.name),
+        types,
+        localizedTypes,
         stats: data.stats.map((s: { stat: { name: string }; base_stat: number }) => ({
           name: s.stat.name,
           value: s.base_stat,
@@ -1016,7 +1079,9 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
       })
       const pokeName =
         locale === 'zh-CN' ? localizedNames.zh || localizedNames.en : localizedNames.en
-      const typeStr = data.types.map((t: { type: { name: string } }) => t.type.name).join('/')
+      const typeStr = types
+        .map((type: string) => getPokemonTypeLabel(type, localizedTypes, locale))
+        .join('/')
       const pokeMsgs =
         locale === 'zh-CN'
           ? [
