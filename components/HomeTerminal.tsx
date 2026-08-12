@@ -142,56 +142,112 @@ import { renderNeonText, renderGamerText } from './NeonFlicker'
 
 type IntroTopic = { id: string; label: string; lines: string[] }
 
-const introGreeting = "Hey, I'm AlohaYo (Garfield Zhu) — a full-stack engineer based in Hangzhou."
+type IntroContent = { greeting: string; topics: IntroTopic[] }
 
-const introTopics: IntroTopic[] = [
-  {
-    id: 'identity',
-    label: 'Identity',
-    lines: [
-      "I'm an ordinary yet laid-back software engineer at MSTR.",
-      'My drive stems from the thrill of crafting fresh and engaging code, fueled by daily lattes.',
-      'I find joy in basking in the afternoon sun, exploring video games, and animation.',
-      "Nowadays, summoning agents to building stuffs is part of my work and life. But in my heart, I'd love more to summon a Pokemon.",
+const introContent: Record<'en' | 'zh-CN', IntroContent> = {
+  en: {
+    greeting: "Hey, I'm AlohaYo (Garfield Zhu) — a full-stack engineer based in Hangzhou.",
+    topics: [
+      {
+        id: 'identity',
+        label: 'Identity',
+        lines: [
+          "I'm an ordinary yet laid-back software engineer at MSTR.",
+          'My drive stems from the thrill of crafting fresh and engaging code, fueled by daily lattes.',
+          'I find joy in basking in the afternoon sun, exploring video games, and animation.',
+          "Nowadays, summoning agents to building stuffs is part of my work and life. But in my heart, I'd love more to summon a Pokemon.",
+        ],
+      },
+      {
+        id: 'gamer',
+        label: 'As a Gamer',
+        lines: [
+          "I'm a full-stack gamer and huge fan of Hidetaka Miyazaki.",
+          "I've traveled from Boletaria to the Lands Between, linked the fire from Lordran to Lothric.",
+          'Strolled through the alleys of Yharnam to beneath the walls of Ashina Castle.',
+          "If you conquer a Souls-like game, you'll embrace every moment of life differently.",
+          'Long may the sun shine! ☀️',
+          '"If you can\'t find me on GitHub or Teams, explore my footsteps in the gaming world."',
+        ],
+      },
+      {
+        id: 'stack',
+        label: 'As a Developer',
+        lines: [
+          'TypeScript, Java, Python, Go, Rust, C++ — whatever gets the job done.',
+          'Primary env: React + TypeScript, Spring + Java, Kubernetes + k9s',
+          'Was passionate about debating which stack is superior...',
+          'Now I realize my stack is surprisingly FULL.',
+          'In the LLM age, crafting software feels less like engineering and more like art.',
+          'Agents are 3D printers — I draw a blueprints, they craft stuffs. Still, my chisel is useful to carve and polish the artifacts.',
+        ],
+      },
+      {
+        id: 'attitude',
+        label: 'As a Skill',
+        lines: [
+          'Have opinions, and be firm. Admit when wrong — but only when actually wrong.',
+          'Answer directly, no preamble. Brevity is a virtue.',
+          'Code should be readable cold six months later.',
+          'Structure reveals intent without comments. Edge cases handled, not ignored.',
+          'Start with the simplest hypothesis — most bugs are embarrassingly simple.',
+          'Humor is allowed. Call out problems — charming, not cruel.',
+        ],
+      },
     ],
   },
-  {
-    id: 'gamer',
-    label: 'As a Gamer',
-    lines: [
-      "I'm a full-stack gamer and huge fan of Hidetaka Miyazaki.",
-      "I've traveled from Boletaria to the Lands Between, linked the fire from Lordran to Lothric.",
-      'Strolled through the alleys of Yharnam to beneath the walls of Ashina Castle.',
-      "If you conquer a Souls-like game, you'll embrace every moment of life differently.",
-      'Long may the sun shine! ☀️',
-      '"If you can\'t find me on GitHub or Teams, explore my footsteps in the gaming world."',
+  'zh-CN': {
+    greeting: '嗨，我是 AlohaYo（Garfield Zhu）——一个在杭州生活的 full-stack 工程师。',
+    topics: [
+      {
+        id: 'identity',
+        label: '身份',
+        lines: [
+          '我只是 MSTR 里一个普通又有点懒散的软件工程师。',
+          '每天靠拿铁和写点新鲜、有趣的代码续命。',
+          '下午晒晒太阳，玩游戏，看动画，这些都是快乐。',
+          '现在召唤智能体做东西已经是工作和生活的一部分了。不过说真的，我还是更想召唤一只宝可梦。',
+        ],
+      },
+      {
+        id: 'gamer',
+        label: '作为玩家',
+        lines: [
+          '我是一个 full-stack 玩家，也是宫崎英高桑和他的魂血狼环的粉丝。',
+          '我从 Boletaria 走到 Lands Between，把 Lordran 的火传到 Lothric。',
+          '也穿过 Yharnam 的小巷，走到 Ashina Castle 的城墙下。',
+          '如果你打通一款魂血狼环，大概会用不一样的眼光拥抱生活。',
+          '太阳啊，永远照耀！☀️',
+          '“如果你在 GitHub 或 Teams 找不到我，就去游戏世界里找我的脚印。”',
+        ],
+      },
+      {
+        id: 'stack',
+        label: '作为开发者',
+        lines: [
+          'TypeScript、Java、Python、Go、Rust、C++——能把事情做完就行。',
+          '主力环境：React + TypeScript、Spring + Java、Kubernetes + k9s。',
+          '以前也很热衷争论哪个技术栈更好……',
+          '现在我发现，我的技术栈意外地很 FULL。',
+          'LLM 时代，做软件越来越不像硬邦邦的工程，更像一种手艺，甚至有点艺术。',
+          '智能体像 3D 打印机——我画蓝图，它们做东西。不过最后的凿子和打磨，还是得我来。',
+        ],
+      },
+      {
+        id: 'attitude',
+        label: '作为习惯',
+        lines: [
+          '要有自己的判断，而且要坚定。错了就承认——前提是真的错。',
+          '直接回答，少一点铺垫。简洁是美德。',
+          '代码要能让六个月后的自己读懂。',
+          '结构应该自己说明意图，边界情况要处理，不要装作不存在。',
+          '先从最简单的假设开始——大多数 bug 都简单得有点尴尬。',
+          '可以幽默，但要指出问题；可爱一点，不要刻薄。',
+        ],
+      },
     ],
   },
-  {
-    id: 'stack',
-    label: 'As a Developer',
-    lines: [
-      'TypeScript, Java, Python, Go, Rust, C++ — whatever gets the job done.',
-      'Primary env: React + TypeScript, Spring + Java, Kubernetes + k9s',
-      'Was passionate about debating which stack is superior...',
-      'Now I realize my stack is surprisingly FULL.',
-      'In the LLM age, crafting software feels less like engineering and more like art.',
-      'Agents are 3D printers — I draw a blueprints, they craft stuffs. Still, my chisel is useful to carve and polish the artifacts.',
-    ],
-  },
-  {
-    id: 'attitude',
-    label: 'As a Skill',
-    lines: [
-      'Have opinions, and be firm. Admit when wrong — but only when actually wrong.',
-      'Answer directly, no preamble. Brevity is a virtue.',
-      'Code should be readable cold six months later.',
-      'Structure reveals intent without comments. Edge cases handled, not ignored.',
-      'Start with the simplest hypothesis — most bugs are embarrassingly simple.',
-      'Humor is allowed. Call out problems — charming, not cruel.',
-    ],
-  },
-]
+}
 
 type MenuOption = { id: string; label: string; description: string; hidden?: boolean }
 
@@ -552,8 +608,9 @@ function PokemonModal({
 
 // --- Feature Views ---
 
-function IntroduceView({ goBack }: { goBack: () => void }) {
+function IntroduceView({ goBack, locale }: { goBack: () => void; locale: 'en' | 'zh-CN' }) {
   const { messages } = useLocale()
+  const intro = introContent[locale]
   const [subState, setSubState] = useState<'menu' | 'detail'>('menu')
   const [activeTopic, setActiveTopic] = useState(0)
   const [selectedTopic, setSelectedTopic] = useState<IntroTopic | null>(null)
@@ -604,12 +661,12 @@ function IntroduceView({ goBack }: { goBack: () => void }) {
 
       {subState === 'menu' && (
         <>
-          <p className="mb-3 text-gray-700 dark:text-gray-300">{renderNeonText(introGreeting)}</p>
+          <p className="mb-3 text-gray-700 dark:text-gray-300">{renderNeonText(intro.greeting)}</p>
           <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
             {messages.terminal.whatToKnow}
           </p>
           <div className="space-y-1">
-            {introTopics.map((topic, i) => (
+            {intro.topics.map((topic, i) => (
               <button
                 key={topic.id}
                 className="relative block w-full cursor-pointer text-left text-gray-700 transition-colors hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
@@ -1204,7 +1261,7 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
                 )}
 
                 {/* Introduce */}
-                {appState === 'introduce' && <IntroduceView goBack={goBack} />}
+                {appState === 'introduce' && <IntroduceView goBack={goBack} locale={locale} />}
 
                 {/* Recommend */}
                 {appState === 'recommend' && (
