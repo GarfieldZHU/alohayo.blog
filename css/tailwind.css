@@ -265,10 +265,10 @@
 
   .site-language-switch {
     display: inline-flex;
-    width: 2.5rem;
+    width: 2rem;
     height: 2rem;
-    min-width: 2.5rem;
-    flex: 0 0 2.5rem;
+    min-width: 2rem;
+    flex: 0 0 2rem;
     align-items: center;
     justify-content: center;
     border: 0;
@@ -277,12 +277,6 @@
     background: transparent;
     color: var(--color-gray-700);
     cursor: pointer;
-    font-family: var(--font-jetbrains-mono), monospace;
-    font-size: 1.2rem;
-    font-weight: 600;
-    letter-spacing: -0.1em;
-    white-space: nowrap;
-    overflow: visible;
     transition:
       color 180ms ease,
       opacity 180ms ease;
