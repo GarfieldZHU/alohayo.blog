@@ -9,7 +9,9 @@ import Image from '@/components/Image'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import TranslationNotice from '@/components/TranslationNotice'
 import { getMessages, type LocaleCode } from '@/lib/i18n'
+import type { TranslationSource } from '@/lib/blogI18n'
 
 const editUrl = (path) => `${siteMetadata.siteRepo}/blob/main/data/${path}`
 const discussUrl = (path) =>
@@ -29,6 +31,7 @@ interface LayoutProps {
   prev?: { path: string; title: string; localizedSlug?: string }
   children: ReactNode
   locale?: LocaleCode
+  translationSource?: TranslationSource
 }
 
 export default function PostLayout({
@@ -38,6 +41,7 @@ export default function PostLayout({
   prev,
   children,
   locale = 'en',
+  translationSource,
 }: LayoutProps) {
   const messages = getMessages(locale)
   const { filePath, path, slug, date, title, tags } = content
@@ -73,6 +77,9 @@ export default function PostLayout({
               </dl>
               <div>
                 <PageTitle>{title}</PageTitle>
+                {translationSource && (
+                  <TranslationNotice locale={locale} source={translationSource} />
+                )}
               </div>
             </div>
           </header>

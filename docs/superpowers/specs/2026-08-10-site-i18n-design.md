@@ -89,6 +89,23 @@ The English detail route serves English documents only. `_cn` is never exposed a
 
 The Chinese route resolves `translationKey` to the `_cn` document. If it exists, the public URL is `/zh-CN/blog/webgpu/`. If it does not exist, the locale switch returns to or remains on `/blog/webgpu/` and renders the original English MDX; the surrounding client UI may remain Chinese according to the saved locale.
 
+The current content model also accepts explicit provenance metadata for posts that
+need more than the legacy filename convention:
+
+```yaml
+locale: zh-CN
+translationKey: stable-post-id
+translationKind: original | ai-translation | bilingual
+translationSourceLocale: en
+```
+
+`locale` and `translationKey` preserve the existing `_cn` inference when omitted.
+An `ai-translation` document must name its source locale so the detail header can
+link to the original and explain the provenance in the active UI language. A
+`bilingual` document is intentionally not labeled as an AI translation. This lets
+Chinese originals pair with future English translations, while keeping legacy
+English-first posts and URLs unchanged.
+
 All aggregate content operations use canonical English posts as their base set:
 
 - English home/blog/tag lists never show `_cn` as a duplicate.

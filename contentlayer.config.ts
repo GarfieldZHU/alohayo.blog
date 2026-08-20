@@ -60,12 +60,17 @@ const computedFields: ComputedFields = {
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
   locale: {
     type: 'string',
-    resolve: (doc) =>
-      /_cn$/.test(doc._raw.flattenedPath.replace(/\.[^.]+$/, '')) ? 'zh-CN' : 'en',
+    resolve: (doc) => {
+      if (doc.locale === 'zh-CN' || doc.locale === 'en') return doc.locale
+      return /_cn$/.test(doc._raw.flattenedPath.replace(/\.[^.]+$/, '')) ? 'zh-CN' : 'en'
+    },
   },
   translationKey: {
     type: 'string',
     resolve: (doc) => {
+      if (typeof doc.translationKey === 'string' && doc.translationKey.trim()) {
+        return doc.translationKey.trim()
+      }
       const withoutExtension = doc._raw.flattenedPath.replace(/\.[^.]+$/, '')
       return withoutExtension.replace(/_cn$/, '').replace(/^blog\//, '')
     },
@@ -113,7 +118,22 @@ function createSearchIndex(allBlogs) {
     )
     writeFileSync(
       'public/search.zh-CN.json',
-      JSON.stringify(allCoreContent(sortPosts(localizedBlogs(allBlogs, 'zh-CN'))))
+      JSON.stringify(
+        allCoreContent(sortPosts(localizedBlogs(allBlogs, 'zh-CN'))).map((post) => {
+          const localizedSlug = post.localizedSlug || post.slug
+          return {
+            ...post,
+            slug: localizedSlug,
+            path: `zh-CN/blog/${localizedSlug}`,
+            structuredData: post.structuredData
+              ? {
+                  ...post.structuredData,
+                  url: `${siteMetadata.siteUrl}/zh-CN/blog/${localizedSlug}`,
+                }
+              : post.structuredData,
+          }
+        })
+      )
     )
     console.log('Local search index generated...')
   }
@@ -136,21 +156,33 @@ export const Blog = defineDocumentType(() => ({
     bibliography: { type: 'string' },
     canonicalUrl: { type: 'string' },
     translationTest: { type: 'boolean' },
+    locale: { type: 'string' },
+    translationKey: { type: 'string' },
+    translationKind: { type: 'string' },
+    translationSourceLocale: { type: 'string' },
   },
   computedFields: {
     ...computedFields,
     structuredData: {
       type: 'json',
-      resolve: (doc) => ({
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: doc.title,
-        datePublished: doc.date,
-        dateModified: doc.lastmod || doc.date,
-        description: doc.summary,
-        image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
-        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
-      }),
+      resolve: (doc) => {
+        const withoutExtension = doc._raw.flattenedPath.replace(/\.[^.]+$/, '')
+        const rawSlug = withoutExtension.replace(/^.+?\//, '')
+        const isChinese = doc.locale === 'zh-CN' || /_cn$/.test(rawSlug)
+        const localizedSlug = rawSlug.replace(/_cn$/, '')
+        const urlPath = isChinese ? `zh-CN/blog/${localizedSlug}` : `blog/${rawSlug}`
+
+        return {
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: doc.title,
+          datePublished: doc.date,
+          dateModified: doc.lastmod || doc.date,
+          description: doc.summary,
+          image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
+          url: `${siteMetadata.siteUrl}/${urlPath}`,
+        }
+      },
     },
   },
 }))

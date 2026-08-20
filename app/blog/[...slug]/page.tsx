@@ -13,7 +13,14 @@ import PostBanner from '@/layouts/PostBanner'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
-import { canonicalBlogs, findTranslation, isChineseBlog } from '@/lib/blogI18n'
+import {
+  canonicalBlogs,
+  findTranslation,
+  findTranslationSource,
+  getBlogHref,
+  getBlogLocale,
+  isChineseBlog,
+} from '@/lib/blogI18n'
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -91,7 +98,7 @@ export async function generateMetadata(props: {
 
 export const generateStaticParams = async () => {
   const paths = allBlogs
-    .filter((post) => !isChineseBlog(post))
+    .filter((post) => !isChineseBlog(post) && post.translationTest !== true)
     .map((p) => ({ slug: p.slug.split('/') }))
 
   return paths
@@ -126,6 +133,10 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
   })
 
   const Layout = layouts[post.layout || defaultLayout]
+  const translationSource = findTranslationSource(allBlogs, post)
+  const translationSourceNotice = translationSource
+    ? { href: getBlogHref(translationSource), locale: getBlogLocale(translationSource) }
+    : undefined
 
   return (
     <>
@@ -133,7 +144,13 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev}>
+      <Layout
+        content={mainContent}
+        authorDetails={authorDetails}
+        next={next}
+        prev={prev}
+        translationSource={translationSourceNotice}
+      >
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
     </>

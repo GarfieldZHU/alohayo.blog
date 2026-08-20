@@ -120,6 +120,10 @@ const en: SiteMessages = {
     previousArticle: 'Previous Article',
     nextArticle: 'Next Article',
     back: 'Back to the blog',
+    aiTranslationFromEnglish: 'AI-assisted translation from English',
+    aiTranslationFromChinese: 'AI-assisted translation from Chinese',
+    readOriginalInEnglish: 'Read the original in English',
+    readOriginalInChinese: 'Read the original in Chinese',
   },
   tags: {
     title: 'Tags',
@@ -297,6 +301,10 @@ const zh: SiteMessages = {
     previousArticle: '上一篇文章',
     nextArticle: '下一篇文章',
     back: '回到博客',
+    aiTranslationFromEnglish: 'AI 辅助翻译自英文',
+    aiTranslationFromChinese: 'AI 辅助翻译自中文',
+    readOriginalInEnglish: '阅读英文原文',
+    readOriginalInChinese: '阅读中文原文',
   },
   tags: {
     title: '标签',

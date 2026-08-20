@@ -1,0 +1,115 @@
+---
+title: 'WebGPU 与 Rust/WASM：一个小型 playground'
+date: '2024-07-12'
+locale: zh-CN
+translationKey: webgpu
+translationKind: ai-translation
+translationSourceLocale: en
+tags: ['webgpu', 'web', 'wasm', 'Rust', 'Graphics', 'WGSL', 'Frontend', 'LEARNINGS']
+draft: false
+summary: 一个小型 WebGPU 画布、Rust 风格的 WASM 边界，以及嵌入 MDX 的可编辑 WAT 运行器。
+---
+
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+# WebGPU 与 Rust/WASM：一个小型 playground
+
+我有两组笔记。[GPU 基础](/zh-CN/blog/gpu/)通向 WebGPU，[WASM 快速导览](/zh-CN/blog/wasm-game-of-life/)通向在浏览器里运行的 Rust。
+
+把两者放在一起听起来很严肃。实际上大多只是一个三角形和一种颜色。三角形对我的架构图并不感到佩服。
+
+## 我想要的分工
+
+Rust/WASM 负责小而确定的计算。JavaScript 负责浏览器 API。WebGPU 负责画布和着色器。这和[WASM 生命游戏笔记](/zh-CN/blog/wasm-game-of-life/)里的分工很接近：Rust 持有状态，JavaScript 读取边界并把它画出来。
+
+<HoverIframeTooltip
+  text={<a href="/zh-CN/blog/wasm-game-of-life/">Rust 生命游戏示例——悬停预览</a>}
+  iframeSrc="https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/"
+  title="Rust WASM 生命游戏实时预览"
+/>
+
+真正的 Rust crate 可以暴露这样一个小函数：
+
+```rust
+use wasm_bindgen::prelude::*;
+
+#[wasm_bindgen]
+pub fn shade(input: i32) -> i32 {
+    (input * 7).rem_euclid(255)
+}
+```
+
+`wasm-pack build --target web` 会创建浏览器包。JavaScript 用 `init()` 加载它，再调用 `shade(input)`。[wasm-bindgen 部署指南](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html)解释了不需要 bundler 的 `web` 目标。
+
+WebGPU 从另一个入口开始：检查 `navigator.gpu`，请求 adapter 和 device，配置画布，然后提交一个 render pass。[MDN 的 WebGPU 指南](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)是很实用的参考。着色器使用 WGSL，而不是 Rust。每种语言都有自己的小王国。
+
+## 试试这个 playground
+
+先使用默认代码，然后按 **Run WASM**。编辑器里的注释就是地图：
+
+- `local.get 0` 读取输入控件。
+- `i32.const 7` 是乘数。把它改成 `3`，再运行一次，`shade(12)` 就会从 `84` 变成 `36`。
+- 这个数字同时也是色相，所以三角形会从偏绿色变成偏橙色。
+
+<WebGpuWasmPlayground />
+
+编辑器采用 WAT 的风格，而且刻意保持很小。它会在浏览器里编译出真正的 WebAssembly 二进制，然后用 `WebAssembly.instantiate()` 调用导出函数。没有 imports、memory、DOM 访问，也没有任意 JavaScript。小小的围栏，总比把博客变成一家小型编译器托管公司好。
+
+上面说的 Rust 路径仍然是真正的路径。在静态文章里编辑任意 Rust，意味着要打包 Rust 编译器或远程构建服务。这当然可以做，但那是另一个项目，安全成本和下载账单也会大很多。WAT 编辑器保留了有趣的部分，而且一切都看得见：编辑指令、编译字节、调用导出函数，再把一个值交给 GPU。
+
+## playground 如何接入 MDX
+
+组件在 `components/MDXComponents.tsx` 中注册，所以文章可以直接使用 `<WebGpuWasmPlayground />`，不需要在文章里导入 React。
+
+数据流很小：
+
+1. 文本框保存一个安全的 WAT 模块，其中有一个名为 `shade`、类型为 `i32 -> i32` 的导出函数。
+2. 一个小型 assembler 把支持的指令转换成 WebAssembly 二进制。
+3. `WebAssembly.instantiate()` 创建实例并运行 `shade(input)`。
+4. 结果被转换成颜色，并写入 WebGPU uniform buffer。
+5. 一对 WGSL 顶点/片段着色器绘制三角形。
+
+WebGPU 分支采用渐进增强。如果没有 `navigator.gpu` 或 adapter，WASM 结果仍会出现在一个清晰可见的 fallback 卡片里。WebGPU 是 secure-context API，浏览器和设备的支持情况也各不相同，所以“在我的 Mac 上能跑”不能算兼容性方案。
+
+## 从零开始构建
+
+Rust 部分可以从老牌的 [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/) 和 [wasm-pack quickstart](https://drager.github.io/wasm-pack/) 开始：
+
+```bash
+cargo new --lib shade
+wasm-pack build --target web
+```
+
+给 crate 配置 `cdylib` target，用 `#[wasm_bindgen]` 导出函数，并让 JavaScript/WASM 边界保持类型明确、朴素无聊。生命游戏项目是比第一天就发明框架更好的下一个练习。
+
+WebGPU 部分的第一版刻意使用普通 JavaScript：
+
+```js
+if (!navigator.gpu) throw new Error('WebGPU is not available')
+
+const adapter = await navigator.gpu.requestAdapter()
+const device = await adapter.requestDevice()
+const context = canvas.getContext('webgpu')
+context.configure({ device, format: navigator.gpu.getPreferredCanvasFormat() })
+```
+
+接下来创建 shader module、pipeline、uniform buffer 和 command encoder。不需要框架。这是个好消息，也有点不客气，因为这下犯错的人就是我自己。
+
+## 下一步实验
+
+- 把 WASM 调用移到 worker 里，测量消息和 transfer 的成本。
+- 只有在文章真的需要时，才把这个小 assembler 换成完整的 WAT parser。
+- 在 CI 中构建 Rust crate，把 `--target web` 的输出作为有版本的资源加载。
+- 用 compute shader 做一个小型粒子或 reaction-diffusion 步骤，再和同一步骤的 Rust/WASM 实现比较。
+- 保留 CPU fallback，并展示能力检测结果，而不是把空白画布藏起来。
+
+重点不是“到处都用 WASM 加 WebGPU”。重点是一个我可以检查的干净边界：Rust 负责计算，WebGPU 负责绘制，MDX 解释这次交接，而且不把整个博客吞进去。
+
+## 参考资料
+
+- [GPU 基础](/zh-CN/blog/gpu/)
+- [WASM 快速导览](/zh-CN/blog/wasm-game-of-life/)
+- [Rust and WebAssembly book](https://rustwasm.github.io/docs/book/)
+- [wasm-bindgen 部署指南](https://wasm-bindgen.github.io/wasm-bindgen/reference/deployment.html)
+- [MDN WebGPU API](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)
+- [MDN WebAssembly.instantiate](https://developer.mozilla.org/en-US/docs/WebAssembly/Reference/JavaScript_interface/instantiate_static)

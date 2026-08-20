@@ -9,7 +9,9 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import TranslationNotice from '@/components/TranslationNotice'
 import { getMessages, type LocaleCode } from '@/lib/i18n'
+import type { TranslationSource } from '@/lib/blogI18n'
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -17,9 +19,17 @@ interface LayoutProps {
   next?: { path: string; title: string; localizedSlug?: string }
   prev?: { path: string; title: string; localizedSlug?: string }
   locale?: LocaleCode
+  translationSource?: TranslationSource
 }
 
-export default function PostMinimal({ content, next, prev, children, locale = 'en' }: LayoutProps) {
+export default function PostMinimal({
+  content,
+  next,
+  prev,
+  children,
+  locale = 'en',
+  translationSource,
+}: LayoutProps) {
   const messages = getMessages(locale)
   const { slug, title, images } = content
   const localizedSlug = content.localizedSlug || slug
@@ -41,6 +51,9 @@ export default function PostMinimal({ content, next, prev, children, locale = 'e
             </div>
             <div className="relative pt-10">
               <PageTitle>{title}</PageTitle>
+              {translationSource && (
+                <TranslationNotice locale={locale} source={translationSource} />
+              )}
             </div>
           </div>
           <div className="prose dark:prose-invert max-w-none py-4">{children}</div>

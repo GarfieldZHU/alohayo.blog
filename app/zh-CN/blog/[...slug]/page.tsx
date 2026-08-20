@@ -12,7 +12,15 @@ import PostBanner from '@/layouts/PostBanner'
 import type { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound, redirect } from 'next/navigation'
-import { findLocalizedBlog, isChineseBlog, localizedBlogs } from '@/lib/blogI18n'
+import {
+  findLocalizedBlog,
+  findTranslation,
+  findTranslationSource,
+  getBlogHref,
+  getBlogLocale,
+  isChineseBlog,
+  localizedBlogs,
+} from '@/lib/blogI18n'
 
 const defaultLayout = 'PostLayout'
 const layouts = { PostSimple, PostLayout, PostBanner }
@@ -26,7 +34,7 @@ export async function generateMetadata(props: {
   const slug = getSlug(params)
   const post = findLocalizedBlog(allBlogs, 'zh-CN', slug)
   if (!post) return
-  const english = findLocalizedBlog(allBlogs, 'en', post.localizedSlug || slug)
+  const english = findTranslation(allBlogs, post)
   const publishedAt = new Date(post.date).toISOString()
   const modifiedAt = new Date(post.lastmod || post.date).toISOString()
   const imageList = post.images
@@ -74,7 +82,7 @@ export async function generateMetadata(props: {
 
 export const generateStaticParams = async () =>
   allBlogs
-    .filter((post) => isChineseBlog(post))
+    .filter((post) => isChineseBlog(post) && post.translationTest !== true)
     .map((post) => ({ slug: (post.localizedSlug || post.slug).split('/') }))
 
 export default async function ChineseBlogPost(props: { params: Promise<{ slug: string[] }> }) {
@@ -100,6 +108,10 @@ export default async function ChineseBlogPost(props: { params: Promise<{ slug: s
   }
   jsonLd.author = authorDetails.map((author) => ({ '@type': 'Person', name: author.name }))
   const Layout = layouts[post.layout || defaultLayout]
+  const translationSource = findTranslationSource(allBlogs, post)
+  const translationSourceNotice = translationSource
+    ? { href: getBlogHref(translationSource), locale: getBlogLocale(translationSource) }
+    : undefined
   return (
     <>
       <script
@@ -112,6 +124,7 @@ export default async function ChineseBlogPost(props: { params: Promise<{ slug: s
         next={next}
         prev={prev}
         locale="zh-CN"
+        translationSource={translationSourceNotice}
       >
         <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
       </Layout>
