@@ -1,0 +1,143 @@
+---
+title: Web 中的身份认证 4——CSRF
+date: '2025-02-03'
+tags: ['Web Server', 'CSRF', 'security', 'Web', 'token', 'auth', 'Learning']
+draft: false
+summary: 一系列关于 Web 服务器身份认证关键要点的文章。本文聚焦于 CSRF。
+locale: zh-CN
+translationKey: auth-in-web-server-4
+translationKind: ai-translation
+translationSourceLocale: en
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+# Web 应用身份认证（4）——CSRF
+
+我原本没计划写这页，它只是[本系列第一篇文章](https://alohayo.me/blog/auth-in-web-server-1)中的一个小节。但实践更多之后，我发现其中遗漏了太多（可能并非最佳、却很必要的）网站安全实践。
+
+因此，我想展开讨论 CSRF 这个主题。
+
+---
+
+## 什么是 CSRF
+
+CSRF 代表跨站请求伪造（Cross-Site Request Forgery）。这个名称相当直白地描述了攻击：恶意网站触发向你的网站发出的请求，并伪装成用户主动发起。
+
+CSRF 成为可能的关键在于浏览器处理 Cookie 的方式。用户登录网站后，会话 Cookie 存在浏览器中。任何请求发往你的域名时——即使请求完全由其他网站发起——浏览器也会自动附加该 Cookie。服务器看到有效会话，就会接受请求。
+
+攻击者不需要用户凭据，只需让用户在已登录某处的情况下访问他们的页面。
+
+## 攻击如何运作
+
+举个具体例子。假设银行网站有端点：
+
+```
+POST /transfer
+Body: { to: "account_id", amount: 1000 }
+```
+
+认证通过浏览器自动发送的会话 Cookie 处理。
+
+攻击者创建带有以下隐藏表单的页面：
+
+```html
+<form action="https://yourbank.com/transfer" method="POST" id="evil">
+  <input type="hidden" name="to" value="attacker_account" />
+  <input type="hidden" name="amount" value="10000" />
+</form>
+<script>document.getElementById("evil").submit()</script>
+```
+
+如果你登录银行时访问该页面，表单会自动提交，浏览器会随请求发送会话 Cookie。服务器看到来自已认证用户的合法请求，就会处理转账。
+
+攻击者从未接触你的凭据，也不需要接触。
+
+GET 请求也能这样工作，例如 `<img src="https://yourbank.com/transfer?to=attacker&amount=10000" />` 只需加载图片标签就能触发 GET 端点。
+
+## 防御 1：CSRF 令牌
+
+经典防御方式：服务器生成随机且不可预测的令牌，将其嵌入表单（或提供给 JavaScript）。每次改变状态的请求都要求在请求体或自定义标头中携带令牌，而不是放在 Cookie 中。
+
+由于攻击者页面属于不同源，无法读取你的页面内容（同源策略会阻止它），因此不知道该在伪造请求中放入什么令牌。
+
+令牌必须：
+- 随机且不可预测（使用密码学安全的生成器）
+- 与用户会话绑定
+- 每个会话不同，最好每个请求都不同
+
+对于传统服务端渲染表单，可作为隐藏字段嵌入：
+
+```html
+<form method="POST" action="/transfer">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+  <!-- rest of form -->
+</form>
+```
+
+对于 JavaScript 使用的 API，通常将令牌放在 JavaScript 可读取的 Cookie 中（因此不能设置 `HttpOnly`），由 JS 读取后作为 `X-CSRF-Token` 等标头加入请求。服务器检查标头值是否与 Cookie 值匹配。
+
+这就是 Double Submit Cookie 模式，稍后会再说明。
+
+## 防御 2：SameSite Cookie 属性
+
+[SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value) Cookie 属性可能是现代防御 CSRF 最简洁的方式。它告诉浏览器不要在跨站请求中发送 Cookie。
+
+```
+Set-Cookie: session_id=abc123; SameSite=Strict; HttpOnly; Secure
+```
+
+它有三个值：
+- **`Strict`**：跨站请求一律不发送 Cookie，包括从其他网站点击链接进入你的网站；用户到达后不会保持登录。对多数应用而言过于严格。
+- **`Lax`**：跨站子请求（图片、iframe、AJAX）不发送，但用户通过链接直接导航到网站时发送。它是浏览器近几年的默认值，对多数会话 Cookie 都合理。
+- **`None`**：所有跨站请求都发送，且必须配合 `Secure`。只有明确需要跨站 Cookie 时才使用，例如嵌入式组件、跨域认证流程。
+
+对大多数应用，会话 Cookie 使用 `Lax` 是很好的默认选择。它能防护上述 CSRF 攻击，同时不破坏普通链接导航。即使主会话 Cookie 使用 `Lax`，与银行转账等高度敏感操作绑定的独立 Cookie 也值得使用 `Strict`。
+
+## 防御 3：Double Submit Cookie
+
+前面提到的模式思路如下：
+1. 在 Cookie 中设置随机 CSRF 令牌（可由 JavaScript 读取，因此不能设置 `HttpOnly`）
+2. 每次改变状态的请求中，JavaScript 读取 Cookie 并将令牌加入请求标头
+3. 服务器检查标头值是否与 Cookie 值匹配
+
+```javascript
+// On the client side
+const csrfToken = getCookie('csrf_token')
+fetch('/api/transfer', {
+  method: 'POST',
+  headers: {
+    'X-CSRF-Token': csrfToken,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ to: 'account', amount: 100 }),
+})
+```
+
+其有效原因是：不同源的攻击者可以让浏览器带 Cookie 发出请求，但无法读取 Cookie 值（同源策略），因此无法设置匹配的标头。
+
+需要注意：如果应用存在 XSS 漏洞，攻击者可通过 JavaScript 读取 Cookie，完全绕过这一防御。CSRF 令牌不能替代修复 XSS。
+
+## 与 CORS 的关系
+
+[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS)（跨源资源共享）与 CSRF 是相关但不同的问题。
+
+CORS 控制浏览器是否允许跨源脚本读取响应，并不能阻止请求发送。错误配置的 CORS 策略本身不会导致 CSRF，但意味着恶意脚本可以读取服务器响应，可能造成其他问题。
+
+`Access-Control-Allow-Origin: *` 与 `Access-Control-Allow-Credentials: true` 的宽松配置实际上无效（浏览器会拒绝），但允许任意来源携带凭据会破坏 Double Submit Cookie 模式赖以成立的假设。
+
+严格的 CORS 策略很重要，却不能取代 CSRF 防御，两者都应配置。
+
+## 实用检查清单
+
+- 在会话 Cookie 上使用 `SameSite=Lax` 或 `SameSite=Strict`
+- 对改变状态的端点（POST、PUT、DELETE）要求请求中的 CSRF 令牌，或验证 `Origin`/`Referer` 标头
+- 对传统服务端渲染表单，将 CSRF 令牌嵌入隐藏字段
+- 对 JavaScript 使用的 API，使用 Double Submit Cookie 模式或同步令牌
+- 不要只依赖 `Content-Type` 检查——`application/x-www-form-urlencoded` 和 `multipart/form-data` 属于简单请求，会绕过 CORS 预检
+- 在服务端额外检查 `Origin` 标头；当 `Origin` 与你的域名不匹配时拒绝请求
+
+## 参考
+- 以 [OWASP Top 10 Vulnerabilities](https://owasp.org/www-project-top-ten/) 为 Web 安全目标参考。
+- 阅读 [OWASP Cheetsheet](https://cheatsheetseries.owasp.org/index.html) 获取更多建议。
+- [OWASP CSRF Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html)
+- [MDN - SameSite cookies](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value)

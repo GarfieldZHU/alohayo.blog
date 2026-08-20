@@ -1,0 +1,326 @@
+---
+title: Rust tricks
+locale: zh-CN
+translationKey: rust-tricks
+translationKind: ai-translation
+translationSourceLocale: en
+date: '2021-01-19'
+tags: ['Rust', 'Program', 'Tricks', 'Learning', 'Type theory']
+draft: false
+summary: 学习 Rust 实践中掌握的一些技巧。
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+# Rust 技巧
+
+
+- [Rust 技巧](#rust-技巧)
+  - [结构体与 Trait](#结构体与-trait)
+      - [1. 结构体没有继承，而是使用组合](#1-结构体没有继承而是使用组合)
+      - [2. Trait 与 `dyn`](#2-trait-与-dyn)
+      - [3. Trait Bound 与 Supertrait](#3-trait-bound-与-supertrait)
+      - [4. 多态](#4-多态)
+      - [5. 将装箱/包装结构体委托给 trait 对象](#5-将装箱包装结构体委托给-trait-对象)
+  - [格式化器](#formatter)
+      - [填充 / 对齐](#填充--对齐)
+
+
+这里记录学习 Rust 时遇到的一些有趣事实和知识点。
+
+## 结构体与 Trait
+
+与 C++ 或 Java 中的 **class** 概念不同，Rust 将数据与方法分离。
+
+#### 1. 结构体没有继承，而是使用组合
+
+   对于结构体中的数据，Rust 没有继承，而是推荐使用组合。
+
+   假设结构体 B 由另一个结构体 A 组合而成：
+   ```rust
+   struct StructA {
+     x: i32;
+   };
+   struct StructB {
+     a: StructA,
+     // other fields...
+   };
+   ```
+   假设有一个 B 的实例 `let b: B;`，可以通过 `b.a.x;` 访问 A 的成员。
+
+   如果不喜欢这种间接方式，而希望像继承一样直接使用 `b.x`，可以使用 [Deref](https://doc.rust-lang.org/std/ops/trait.Deref.html) 和 [DerefMut](http://doc.rust-lang.org/std/ops/trait.DerefMut.html) trait。
+   ```rust
+   impl std::ops::Deref for StructB {
+     type Target = StructA;
+     fn deref(&self) -> &Self::Target {
+       &self.a
+     }
+   }
+   ```
+   这样就可以实现这种用法。
+   ```rust
+   let b = StructB { a: StructA };
+   println!("{}", b.x);
+   ```
+
+   * 参见 StackOverflow 上的[相关回答](https://stackoverflow.com/questions/32552593/is-it-possible-for-one-struct-to-extend-an-existing-struct-keeping-all-the-fiel)。
+
+
+#### 2. Trait 与 `dyn`
+
+   Trait 是一组共享行为，类似于 `interface` 概念。
+
+   通常使用 `implement Trait for Struct` 将方法附加到数据上。但从 1.0 开始，Trait 有两种使用语境。
+   - 作为 trait：这是最初的设计方式，例如：
+     ```rust
+     impl MyTrait for StructA {}
+     ```
+   - 作为类型：trait 本身也可以被实现，或为它实现其他 trait：
+     ```rust
+     impl MyTrait {}
+     impl AnotherTrait for MyTrait {}
+     ```
+     实现一个 trait 类似于在 Java 中定义“[接口默认方法](https://docs.oracle.com/javase/tutorial/java/IandI/defaultmethods.html)”。为 trait 实现另一个 trait，则可复用其方法。
+
+     不过 trait 实际上是无尺寸/动态尺寸的（也可以说是“抽象的”），直接将其作为类型会导致复杂的运行时问题。
+
+     为此，Rust 1.27 引入了 `dyn`。详情参见 [RFC 2113](https://github.com/rust-lang/rfcs/blob/master/text/2113-dyn-trait-syntax.md)。
+     <br/>
+     它使 trait 对象的真实类型通过[动态分派](https://en.wikipedia.org/wiki/Dynamic_dispatch)在运行时确定。
+
+     ```rust
+      trait Printable {
+          fn stringify(&self) -> String;
+      }
+
+      impl Printable for i32 {
+          fn stringify(&self) -> String { self.to_string() }
+      }
+
+      fn print(a: Box<dyn Printable>) {
+          println!("{}", a.stringify());
+      }
+
+      fn main() {
+          print(Box::new(10) as Box<dyn Printable>);
+      }
+
+     ```
+
+  * 参见 StackOverflow 上关于 *dyn* 的[回答](https://stackoverflow.com/questions/50650070/what-does-dyn-mean-in-a-type)。
+
+
+#### 3. Trait Bound 与 Supertrait
+
+- [Bounds](https://doc.rust-lang.org/rust-by-example/generics/bounds.html)
+
+   上节提到用 `dyn` 将 trait 修饰为类型。这很有用，但并不总是足够。
+
+   泛型能表达更丰富的类型定义，我们还可以规定泛型类型必须实现哪些功能。
+
+   Bounds 使用 trait 限制泛型必须实现的内容。
+
+   ```rust
+   // Bounds Sample:
+   fn printer<T: Display>(t: T) {
+    println!("{}", t);
+   }
+   ```
+   其他语言也有类似 bounds 的概念（通常使用 `extends` 关键字），例如 [Java 有界类型](https://docs.oracle.com/javase/tutorial/java/generics/bounded.html)和 [TypeScript 泛型约束](https://www.typescriptlang.org/docs/handbook/generics.html#generic-constraints)。
+
+   Bounds 支持通过 `+` 运算符指定多个 trait，也支持使用 `where` 子句增强表达力。
+
+- [Supertraits](https://doc.rust-lang.org/rust-by-example/trait/supertraits.html)
+
+  Rust 没有“继承”，但可以将一个 trait 定义为另一个 trait 的超集。
+
+  这类似 Java 中接口（不是类）的 `extends` 语法：1）实现子 trait（子接口）必须实现超 trait（父接口）的全部方法；2）一个 trait 可以有多个超 trait。
+
+  ```rust
+   trait Person {
+       fn name(&self) -> String;
+   }
+
+   // Person is a supertrait of Student.
+   // Implementing Student requires you to also impl Person.
+   trait Student: Person {
+       fn university(&self) -> String;
+   }
+
+   trait Programmer {
+       fn fav_language(&self) -> String;
+   }
+
+   // CompSciStudent (computer science student) is a subtrait of both Programmer
+   // and Student. Implementing CompSciStudent requires you to impl both supertraits.
+   trait CompSciStudent: Programmer + Student {
+       fn git_username(&self) -> String;
+   }
+
+   /** Showcase of using an object with multiple supertraits */
+   fn comp_sci_student_greeting(student: &dyn CompSciStudent) -> String {
+    format!(
+        "My name is {} and I attend {}. My favorite language is {}. My Git username is {}",
+        student.name(),
+        student.university(),
+        student.fav_language(),
+        student.git_username()
+    )
+  }
+  ```
+
+#### 4. 多态
+
+  无论在面向对象还是函数式编程中，多态都是实现抽象、减少重复代码的重要机制。虽然结构体没有继承，Rust 仍然支持多态。
+
+   上面两节提到：
+
+     a. `dyn`，运行动态分派机制。
+
+     b. 泛型 bounds，使用 trait 规定类型实现哪些功能。
+
+   这就是 Rust 中的多态。将签名类型写为 `t: dyn Trait` 后，`t.someMethod()` 会在运行时动态决定使用哪个 Trait 实现。
+
+   示例：
+   ```rust
+      struct Circle {
+        radius: f64
+      }
+      struct Rectangle {
+        height: f64,
+        width: f64
+      }
+
+      trait Shape {
+        fn area(&self) -> f64;
+      }
+
+      impl Shape for Circle {
+        fn area(&self) -> f64 {
+          PI * self.radius * self.radius
+        }
+      }
+      impl Shape for Rectangle {
+        fn area(&self) -> f64 {
+          self.height * self.width
+        }
+      }
+
+      // Polymorphism with "dyn" trait type
+      fn print_area(shape: &dyn Shape) {
+        println!("{}", shape.area());
+      }
+
+      // Polymorphism by bounds on generic type
+      fn print_area_generic<T: Shape> (shape: &T) {
+        println!("{}", shape.area());
+      }
+
+      fn main() {
+        let circle = Circle{radius: 2.0};
+        let rectangle = Rectangle{height: 3.0, width: 5.0};
+        print_area(&circle); // 12.5664
+        print_area(&rectangle); // 15
+        print_area_generic(&circle); // 12.5664
+        print_area_generic(&rectangle); // 15
+      }
+   ```
+
+
+
+#### 5. 将装箱/包装结构体委托给 trait 对象
+
+   * 参见 StackOverflow 上的[这个回答](https://stackoverflow.com/questions/33041736/trait-implementation-for-both-a-trait-object-and-for-direct-implementors-of-the)。
+
+   这种方式非常常见：结构体可能封装了已实现某 trait 的其他类型，而我们希望包装结构体也能使用该 trait。
+
+   最常见的例子是 `Box<T>`、`Rc<T>` 和 `Arc<T>`。
+
+   一种常见做法是为包装结构体实现 trait，并委托给内部对象：
+
+   ```rust
+   impl<S: Solid + ?Sized> Solid for Box<S> {
+       fn intersect(&self, ray: f32) -> f32 {
+           (**self).intersect(ray)
+           // Some people prefer this less-ambiguous form
+           // S::intersect(self, ray)
+       }
+   }
+   ```
+
+   注意：`?Sized` bound 必不可少，它允许 S 为动态尺寸，从而支持 S 是 trait 类型。
+
+
+
+## 格式化器
+
+ [Formatter](https://doc.rust-lang.org/std/fmt/struct.Formatter.html) trait 可以非常方便地构造特定格式的字符串。
+
+ 它对构造字符串和 CLI 工具都很有用。
+
+
+#### 填充 / 对齐
+
+ 有时需要将字符串左对齐或右对齐到指定长度，或用特定字符填充。
+
+ 使用 Formatter 的填充/对齐语法很方便，形式通常如 `{:0>8}`。
+
+ - 填充/对齐的格式语法：
+ ```rust
+   assert_eq!("00000110", format!("{:0>8}", "110"));
+   //                                |||
+   //                                ||+-- width
+   //                                |+--- align
+   //                                +---- fill
+ ```
+
+ 对齐符支持左对齐、居中和右对齐。
+ ```
+   < - the argument is left-aligned in width columns
+   ^ - the argument is center-aligned in width columns
+   > - the argument is right-aligned in width columns
+```
+
+
+ 示例场景：
+
+ 我们为日期时间结构体实现 `Display` trait，例如：
+ ```rust
+     struct MyDateTime {
+       year: i32,
+       month: i32,
+       day: i32,
+       hour: i32,
+       minute: i32,
+       seconds: i32,
+     }
+ ```
+ 数据使用 `i32`。为了按 “dd/MM/yyyy - hh:mm:ss” 的标准格式显示，需要为单位数值填充 “0”，例如 “__01/02/2000 - 03:04:05__”。
+
+ 因此可以按以下方式格式化数据：
+    1. 右对齐；
+    2. 日/月/时/分/秒长度设为 2，年份长度设为 4；
+    3. 用 “0” 填充至指定长度；
+
+ 现在可以使用下面的格式化器进行显示：
+  ```rust
+      impl fmt::Display for MyDateTime {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+          write!(f, "{:0>2}/{:0>2}/{:0>4} - {:0>2}:{:0>2}:{:0>2}",
+            self.day,
+            self.month,
+            self.year,
+            self.hour,
+            self.minute,
+            self.second,
+          )
+        }
+      }
+
+ ```
+
+
+
+#### 参考资料
+
+ - [Formatter](https://doc.rust-lang.org/std/fmt/struct.Formatter.html)
+ - [StackOverflow - “在左侧用 0 填充字符串的最简单方法是什么？”](https://stackoverflow.com/questions/50458144/what-is-the-easiest-way-to-pad-a-string-with-0-to-the-left)

@@ -1,0 +1,449 @@
+---
+locale: zh-CN
+translationKey: color-science
+translationKind: ai-translation
+translationSourceLocale: en
+title: 色彩科学 101
+date: '2020-12-07'
+tags: ['graphics', 'color', 'vision', 'display', 'screen']
+draft: false
+summary: 你真的了解什么是颜色吗？知道计算机如何处理颜色、显示器如何工作吗？让我们一起讨论计算机如何计算并显示颜色。
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+
+### 1. 色彩基础
+
+什么是颜色？我们如何描述颜色？
+
+- 可见光色谱
+
+![辐射光谱中的可见颜色](https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/EM_spectrum.svg/2560px-EM_spectrum.svg.png)
+
+![颜色显示光谱](https://upload.wikimedia.org/wikipedia/commons/c/c4/Rendered_Spectrum.png)
+
+<br/>
+<br/>
+<br/>
+
+- [三色视觉](https://en.wikipedia.org/wiki/Trichromacy)
+
+  <img align="left" width="450" src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/colorcell.jpg?raw=true" />
+
+  人类视网膜包含三种具有不同吸收光谱的感光受体（脊椎动物中称为视锥细胞）。
+
+  它们分别称为 S 锥、M 锥和 L 锥，主要由蓝、绿、红光激活。
+
+  它们就像光线的滤镜。
+
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+  <br/>
+
+
+<br/>
+<br/>
+
+- [Metamerism(同色异谱)](https://en.wikipedia.org/wiki/Metamerism_(color))
+
+  颜色是一种生物现象。人类只有三种用于自然光的颜色滤镜，因此不同的光组合可能在大脑中产生相同的接收波形。
+
+  如下所示：
+
+  <details>
+    <summary>同色异谱光谱示例</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Metamerism_spectrum_example.svg/600px-Metamerism_spectrum_example.svg.png" />
+  </details>
+
+- *紫色（品红）* 这种颜色并不存在吗？
+
+  我们看到颜色波长从蓝到红线性增加，但蓝和红之间还存在一些颜色。为什么？
+
+  理论上，紫色与红色之间的品红并不存在于自然光谱中，它是大脑“想象”出来的颜色，并使色相形成一个环。
+
+  <details>
+    <summary>色相环</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/huering.png?raw=true" />
+  </details>
+
+  更多内容请参见[色彩空间](#42-color-space)一节。
+
+<br/>
+<br/>
+<br/>
+
+- [Metamerism(同色异谱)](https://en.wikipedia.org/wiki/Metamerism_(color))
+
+  颜色是一种生物现象。由于人类只有三种用于自然光的颜色滤镜，不同的光组合可能在大脑中产生相同的接收波形。
+
+  情况如下：
+
+  <details>
+    <summary>同色异谱光谱示例</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Metamerism_spectrum_example.svg/600px-Metamerism_spectrum_example.svg.png" />
+  </details>
+
+
+- *紫色（品红）* 这种颜色并不存在吗？
+
+  我们看到颜色波长从蓝到红线性增加，但蓝和红之间还存在一些颜色。为什么？
+
+  理论上，紫色与红色之间的品红并不存在于自然光谱中，它是大脑“想象”出来的颜色，并使色相形成一个环。
+
+  <details>
+    <summary>色相环</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/huering.png?raw=true" />
+  </details>
+
+  更多内容请参见[色彩空间](#42-color-space)一节。
+
+<br/>
+<br/>
+<br/>
+
+
+### 2. 色觉
+
+#### 色彩相对性
+
+颜色是相对的，我们的眼睛很容易被欺骗。
+<details>
+  <summary>A 和 B 一样吗？</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_relative.png?raw=true" />
+</details>
+
+<details>
+  <summary>现在隐藏黑白方块。</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/relative_color.gif?raw=true" />
+</details>
+
+
+#### 色彩恒常性
+
+<details>
+  <summary>草莓是红色的吗？</summary>
+  不！它其实是灰色的！
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/strawberry.jpeg?raw=true" />
+</details>
+
+<br/>
+<br/>
+<br/>
+
+
+### 3. 色彩模型
+
+#### 3.1 RGB
+
+红、绿、蓝。
+
+- 加性色彩（混合）
+
+  ![RGB mixing](https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/AdditiveColor.svg/330px-AdditiveColor.svg.png)
+
+  加性色彩模型用于电子显示器的设计与测试：显示器通过发出有限几种基色光的荧光体，呈现包含多种颜色的逼真图像。
+
+#### 3.2 CYMK
+
+青色、黄色、品红、**黑色**。
+
+<img width="320" src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/cmyk.PNG?raw=true" />
+
+<br/>
+<br/>
+<br/>
+
+混合得越多，颜色越深。
+
+广泛用于印刷。
+
+<details>
+  <summary>使用 CMYK 颜料印刷：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_model_cmyk.png?raw=true" />
+</details>
+
+- 减性色彩（混合）
+
+  ![CMY mixing](https://upload.wikimedia.org/wikipedia/commons/thumb/1/19/SubtractiveColor.svg/330px-SubtractiveColor.svg.png)
+
+  这一理想化模型体现了彩色印刷和摄影中染料、油墨的基本原理：白光穿过由部分吸收介质组成的微观“堆叠”后，只有部分波长抵达眼睛，从而产生颜色感知。
+
+- 为什么要用黑色？
+
+为了降低成本。混合 C、M、Y 可以得到黑色，但印刷中通常直接使用黑色；始终混合 CMY 太昂贵，因此为非彩色内容引入黑色以降低印刷成本。
+
+
+<br/>
+<br/>
+<br/>
+
+
+### 4. 色彩空间与色域
+
+#### 4.1 CIE 1931
+
+[CIE 1931 色彩空间](https://en.wikipedia.org/wiki/CIE_1931_color_space) 首次定量定义了电磁可见光谱中的波长分布与人类色觉生理感知颜色之间的联系。定义这些色彩空间的数学关系是色彩管理的重要工具，适用于彩色油墨、发光显示器及数码相机等记录设备。
+
+<details>
+  <summary>CIE 1931 RGB 配色函数</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/CIE1931_RGBCMF.svg/488px-CIE1931_RGBCMF.svg.png" />
+
+  <p>它描述如何使用 RGB 混合不同波长的可见颜色，以匹配人眼所见。</p>
+  <p>负值表示仅以正值混合 RGB 无法呈现目标颜色；于是将颜色与目标色混合以匹配测试色，再从测试色中减去加入目标色的数值。</p>
+</details>
+
+<details>
+  <summary>CIE 1931 色彩空间色度图</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/CIE1931xy_blank.svg/450px-CIE1931xy_blank.svg.png" />
+</details>
+
+
+#### 4.2 色彩空间
+
+###### 读取色彩空间
+
+- 提示信息与波长
+<details>
+  <summary>读取色彩空间图的提示信息：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/colorspace_tooltips.PNG?raw=true" />
+
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/colorspace_wavelength.PNG?raw=true" />
+</details>
+
+
+
+- 紫色线
+<details>
+  <summary><a href="https://en.wikipedia.org/wiki/Line_of_purples">紫色线</a>：</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/90/Line_of_purples.png/300px-Line_of_purples.png" />
+  <p>如上所述，品红等紫色并不存在于光谱中。</p>
+</details>
+
+- 白平衡
+<details>
+  <summary>色温：</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/PlanckianLocus.png/450px-PlanckianLocus.png" />
+
+  <p>线性刻度上的普朗克轨迹色调（单位：开尔文）</p>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e9/Color_temperature_black_body_800-12200K.svg/768px-Color_temperature_black_body_800-12200K.svg.png" />
+
+</details>
+
+`白金，还是蓝黑？`
+
+![White balance](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/white_balance.jpg?raw=true)
+
+<details>
+  <summary>白平衡：</summary>
+  <img src="https://pic1.zhimg.com/80/v2-392c0561d35f056b10fb2ca5b0835fa4_1440w.png" />
+  <p>调整白平衡需要两个维度：色温（蓝到黄）和色调（绿到红）。</p>
+
+  <img src="https://pic4.zhimg.com/80/v2-f6e517ba429e6464a32786b4ba007513_1440w.png" />
+</details>
+
+
+##### RGB
+
+将红、绿、蓝定义为正交轴，就能得到立方体 RGB 空间。
+
+<details>
+  <summary>RGB 立方体空间：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_space_rgb.png?raw=true" />
+</details>
+
+
+##### HSL/HSV
+
+<details>
+  <summary>HSV 圆柱：</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/33/HSV_color_solid_cylinder_saturation_gray.png/296px-HSV_color_solid_cylinder_saturation_gray.png" />
+</details>
+
+<details>
+  <summary>HSV 圆锥：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_space_hsv.png?raw=true" />
+</details>
+
+###### a. 色相（Hue）
+
+- “种类”，不考虑其他属性
+- 色度学对应：主波长
+- 艺术家对应：所选颜料颜色
+
+- 牛顿色环与 CSS 色相环：
+
+
+  <img align="left" width="420" src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Newton%27s_color_circle.png" />
+
+  <img width="480" src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/hue_rgb.jpg?raw=true" />
+
+###### b. 饱和度（Saturation）
+
+- “彩度”
+- 色度学对应：纯度
+- 艺术家对应：彩色颜料占比
+
+###### c. 明度（或 Value）
+
+- 光的总体强度
+- 色度学对应：亮度
+- 艺术家对应：浅色更亮，深色更暗
+
+
+常见的颜色选择器基于 HSV/HSL。
+
+<details>
+  <summary>颜色选择器：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_picker.png?raw=true" />
+</details>
+
+它实际上是圆柱体的剖面图。
+
+
+#### 扩展——口红
+
+[口红颜色可视化](http://zhangwenli.com/lipstick/)
+
+
+#### 4.3 色域
+
+[Gamut](https://en.wikipedia.org/wiki/Gamut) 是一组基色所生成的色度集合。
+
+不同色彩空间代表不同的颜色范围。
+
+消费级显示器通常涉及四种标准：sRGB、DCI-P3、AdobeRGB 和 NTSC。
+
+<details>
+  <summary>常见色域：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/gamut.jfif?raw=true" />
+</details>
+
+- [sRGB](https://en.wikipedia.org/wiki/SRGB)
+  sRBG（又称标准 RGB）是当今计算机上应用最广泛的色彩空间。**HP** 与 **Microsoft** 于 1996 年合作创建，用于显示器、打印机和 Web。
+
+  - 常见的显示器 RGB 标准，其他色彩设备通过校准来模拟该显示器。
+  - R、G、B 通道使用 8 位整数。
+  - 当前现代浏览器标准仅支持 sRGB。
+  - 色域有限；目前正在讨论让标签“&lt;canvas&gt;”支持更宽的色域。
+
+- [NTSC](https://en.wikipedia.org/wiki/NTSC)
+  名称来自 **National Television System Committee**，是较早的电视标准。
+
+  - 始于 1952 年，面向模拟电视信号，如今不适用于数字显示器信号。
+  - 范围较宽，但不够准确。
+  - 72% NTSC ≈ 100% sRGB
+
+- [DCI-P3](https://en.wikipedia.org/wiki/DCI-P3)
+  由 Digital Cinema Initiatives（DCI）定义，预计用于电视系统和家庭影院领域。
+
+  - 现代标准（2010 年），色域宽，应用于电影行业。
+  - 使用略偏暖、偏绿的白点，相关色温约为 6300K。
+  - **Apple** 产品：iPhone、MacBook、iPad 等。
+
+- [AdobeRGB](https://en.wikipedia.org/wiki/Adobe_RGB_color_space)
+  由 **Adobe** Systems, Inc. 开发。
+
+  - 色域宽，适用于 **Adobe** 产品：PDF、PS、LR、PR、AE 等。
+  - 扩展了 sRGB 色彩空间的色域，主要增强***青绿色***色调。
+  - 印刷标准。如果需要打印颜色准确匹配屏幕显示，AdobeRGB 是必要的。
+
+###### 色域覆盖率与色域体积
+
+- 色域覆盖率：已覆盖色域面积 / 色域面积的百分比。
+
+- 色域体积：设备支持颜色的体积 / 某色域体积的百分比。
+
+“覆盖率”关注准确性，覆盖率越高，设备显示该色域越准确；“体积”关注数量，体积越大，设备能显示的颜色越多。
+
+
+###### [色差](https://en.wikipedia.org/wiki/Color_difference)
+
+- 欧氏距离
+  仅描述颜色之间的距离。
+
+  <details>
+    <summary>公式：</summary>
+    <img src="https://wikimedia.org/api/rest_v1/media/math/render/svg/06cdd86ced397bbf6fad505b4c4d91fa2438b567" />
+    <p>或者加权：</p>
+    <img src="https://wikimedia.org/api/rest_v1/media/math/render/svg/9e284ceb4c681bd7a3e6d690127d98c6eaf81adb" />
+  </details>
+
+- ΔE*（Delta-E）
+  人眼对不同色相和亮度的敏感度并不相同，因此 CIE 定义了 Delta-E，以更准确地表示色差。
+
+  - 基于 CIELAB 色彩空间。
+  - 对大多数人更准确，应用广泛。
+  - [麦克亚当椭圆](https://en.wikipedia.org/wiki/MacAdam_ellipse)定义不同颜色中的色彩容差。
+
+      <details>
+        <summary>麦克亚当椭圆（x10）：</summary>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f4/CIExy1931_MacAdam.png/488px-CIExy1931_MacAdam.png" />
+      </details>
+
+
+###### [色深](https://en.wikipedia.org/wiki/Color_depth)
+色深（又称位深）是用于表示单个（子）像素颜色的比特数。
+
+在 Web 中，RGB 通常指 R、G、B 通道各 8 位（也称 24 位真彩色），每个通道范围为 0~255。单个像素拥有 2^8 × 2^8 × 2^8 = 2^24 ≈ 1600 万种颜色。
+
+当颜色在短范围内渐变时，位深会明显产生影响。
+
+  <details>
+    <summary>颜色剧烈变化且色深不足时会出现色带：</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_banding.PNG?raw=true" />
+  </details>
+
+  <details>
+    <summary>8 位与 10 位对比：</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/color_depth.webp?raw=true" />
+  </details>
+
+- [FRC](https://en.wikipedia.org/wiki/Frame_rate_control)，帧率控制
+  FRC 是一种时间抖动技术，在每个新帧之间循环不同的颜色深浅，以模拟中间色阶。
+  通常，物理 6 位 + FRC 可模拟 8 位，物理 8 位 + FRC 可模拟 10 位。
+
+
+#### SP-4.4 显示器购买建议
+
+1. 分辨率：21、23/24、27 英寸显示器建议 2K，27、32 英寸建议 4K。
+               不推荐 1080P，8K 的性价比低。想要更大尺寸？不如购买电视。
+
+2. 刷新率：理论上越高越好。高刷新率对游戏有意义（90Hz+），尤其是 FPS（120Hz+）。
+               看电影和浏览网页时，60Hz 已经足够。
+
+3. 面板：IPS、VA、TN，直接选择 IPS。
+
+4. HDR：HDR10、HDR400、HDR600、HDR1000。
+        HDR10/HDR400 难以辨识，HDR600/HDR1000 非常昂贵。
+        除非有蓝光 HDR 电影，否则没有必要；如果确实需要，购买 HDR 电视更好。
+
+5. 色域（见产品详情/规格）：
+   - NTSC 已经过时。如果只标注 NTSC 覆盖率（通常为 72%），不要选择。
+   - 确认标注的是色域覆盖率而非色域体积。如果只写色域体积、不写覆盖率（通常 120% 甚至 140%），不要购买！
+     过高的色域体积反而会导致颜色不准确；不标覆盖率的原因也就不言而喻了。
+   - 99% sRGB 覆盖率足够应对所有常见用途，也是追求更高规格的前提。
+   - 如果使用 Apple 产品（iMac、MacBook、Mac mini、iPad 等），选择 P3。90%+ P3 已不错，价格合适可选 95%+ P3。
+   - AdobeRGB 覆盖率始终有益，但价格昂贵；摄影和照片打印爱好者可为此投入。
+
+
+6. 色差：Delta-E \<= 2 对非专业用户已经绰绰有余。越小越好，但没有必要刻意追求。
+
+7. 色深：查看颜色数量规格。10.7 亿色值得选择（通常为 8 位 + FRC，真正的 10 位更贵）。
+                对 1600 万色要谨慎，确认是 8 位还是 6 位 + FRC。如果没有明确说明是真 8 位，除非性价比极高，否则不推荐。
+
+* 使用测试图案检测屏幕：https://www.eizo.be/monitor-test/
+
+
+<br/>
+<br/>
+<br/>
+
+### 参考资料
+- [Wikipedia](https://en.wikipedia.org/)
+- [GAMES101 - Morden Computer Graphics - Lingqi Yan](https://www.bilibili.com/video/BV1X7411F744?p=1)
+- [Computational photography @ ZJU](http://www.cad.zju.edu.cn/home/gfzhang/course/computational-photography/)
+- [色彩与色彩管理基础](https://www.youtube.com/watch?v=fq-kNtwifFk&list=PLMsVycIbp_YsQVHP0CSjNDSBuaznyGC6l&index=3) @ [ColorPlaza TV](https://www.youtube.com/channel/UCIwTmFi6wFyHee9JNQ6YbTw)
+- [色彩工作空间：使用 sRGB 还是 AdobeRGB？](https://www.youtube.com/watch?v=UKfg8GtT75k) @ [ColorPlaza TV](https://www.youtube.com/channel/UCIwTmFi6wFyHee9JNQ6YbTw)

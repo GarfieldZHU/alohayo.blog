@@ -1,0 +1,486 @@
+---
+title: 计算机图形学中的变换与光栅化
+date: '2020-02-23'
+tags: ['graphics', 'rasterization', 'transformation', 'display', 'geometry', 'math']
+draft: false
+summary: 介绍计算机图形学基础：几何变换与光栅化。
+locale: zh-CN
+translationKey: graphics-basic
+translationKind: ai-translation
+translationSourceLocale: en
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+
+作为[计算机图形学](https://en.wikipedia.org/wiki/Computer_graphics)中最基础的概念，**变换**与**光栅化**是将图形内容显示为图像格式时的基本任务。
+
+让我们先了解这些基础知识，迈入图形学的大门。
+
+
+## 变换
+
+### 基本二维变换
+
+- 缩放
+  <details>
+    <summary>沿 x 轴缩放图像</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/scale.png?raw=true" />
+
+    <p>缩放后每个点 (x0, y0) 变为 (x1, y1)，有：</p>
+
+    <p>"<b><i>y1 = y0</i></b>"</p>
+    <p>"<b><i>x1 = x0 * 0.5 </i></b>"</p>
+
+    <p>于是定义缩放矩阵 S(x,y)：</p>
+
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/scale_matrix.png?raw=true" />
+
+    <p>本例中 Sx = 0.5，Sy = 1。</p>
+  </details>
+
+
+- 旋转
+  <details>
+    <summary>旋转图像（以原点为中心）</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rotation.png?raw=true" />
+    <p>设旋转矩阵 R(θ) 满足：</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rotate_condition.png?raw=true" />
+
+    <p><b>证明：</b></p>
+    <p>(1, 0) becomes (cosθ, sinθ)</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rotate_prove_1.png?raw=true" />
+    <p>(0, 1) becomes (-sinθ, cosθ)</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rotate_prove_2.png?raw=true" />
+
+    <p>因此得到 R 的定义：</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rotate_matrix.png?raw=true" />
+  </details>
+
+- 线性变换
+
+  缩放和旋转都可以表示为矩阵的线性形式。
+  <details>
+    <summary>线性变换</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/linear_1.png?raw=true" />
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/linear_2.png?raw=true" />
+  </details>
+
+- 平移
+
+  <details>
+    <summary>平移就是在坐标系中移动对象。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/translate.png?raw=true" />
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/translate_matrix.png?raw=true" />
+  </details>
+
+### 齐次坐标
+
+平移不同于线性变换。现在需要两个矩阵才能将它们组合起来：
+
+<details>
+  <summary>同时包含线性变换和平移的矩阵。</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/combined.png?raw=true" />
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/translate_matrix.png?raw=true" />
+</details>
+
+但我们希望用一个矩阵同时表示它们。为此引入新工具：[齐次坐标](https://en.wikipedia.org/wiki/Homogeneous_coordinates)。
+
+##### 定义
+
+简单来说，齐次坐标通过为矩阵增加一个维度，描述投影等会产生高维结果的变换。换句话说，n 维空间使用 n+1 维矩阵描述。
+
+这里讨论二维变换，因此用三元形式表示：
+
+- 2D point: (x, y, 1)
+- 2D vector: (x, y, 0)
+
+相应地，变换矩阵也是三维矩阵：
+
+<details>
+  <summary>齐次坐标中的变换矩阵：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/homogeneous.png?raw=true" />
+</details>
+
+齐次变换具有以下特性：
+
+1. 对向量而言，`w` 的值不会改变。
+  <details>
+    <summary>平移向量：</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/translate_vector.png?raw=true" />
+  </details>
+
+2. Vector + Vector = Vector
+  - [x1, y1, 0] + [x2, y2, 0] = [x1 + x2, y1 + y2, 0]
+
+3. Point - Point = Vector
+  - [x1, y1, 1] - [x2, y2, 1] = [x1 - x2, y1 - y2, 0]
+
+3. Point + Vector = Point
+  - [x1, y1, 1] + [x2, y2, 0] = [x1 - x2, y1 - y2, 1]
+
+
+##### 仿射变换
+
+应用齐次矩阵后得到的变换称为“[仿射变换](https://en.wikipedia.org/wiki/Affine_transformation)”。
+
+<details>
+  <summary>仿射变换：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/affine.png?raw=true" />
+</details>
+
+<details>
+  <summary>借助该工具，可以用齐次形式表示上述三种变换：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/transform_in_affine.png?raw=true" />
+
+  <p>当然，三种变换也可以合并为一个。</p>
+</details>
+
+### 变换链
+
+矩阵乘法按左结合计算，例如 `Matrix_1 x vector`。
+
+计算顺序是从右到左：
+
+> M4 x M3 x M2 x M1 x vector
+
+顺序为 M1、M2、M3、M4……也可以依据结合律计算。
+
+> (M4 x M3 x M2 x M1) x vector
+
+> -> M5 x vector
+
+### 实践
+
+二维仿射变换矩阵非常实用。在 UI 绘制元素时，通常传入该矩阵来应用变换。
+
+在三维变换矩阵中，第三行始终是 [0, 0, 1]，无需作为参数传入。
+
+因此二维绘图函数中的变换矩阵通常写作：
+
+[A, B, C, D, Tx, Ty]
+
+- PDF 变换：
+  ```java
+      Rect.transform(new Matrix(A, B, C, D, Tx, Ty))
+  ```
+- [SVG 变换](https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/transform#Matrix)：
+  ```xml
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="10" width="30" height="20" fill="red"
+            transform="matrix(3 1 -1 3 30 40)" />
+    </svg>
+  ```
+
+### 三维变换
+
+三维仿射变换与二维类似，只需将变换矩阵扩展为四维。
+
+#### 观察变换
+
+#### 视口变换
+
+#### 投影变换
+
+#### 透视变换
+
+待定
+
+---
+
+## 光栅化
+
+### 分辨率
+
+- 图像分辨率
+  <details>
+    <summary>以不同分辨率渲染的图像</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/f/f2/Resolution_illustration.png" />
+  </details>
+
+- 显示分辨率
+  <details>
+    <summary>显示分辨率标准：</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0c/Vector_Video_Standards8.svg/2880px-Vector_Video_Standards8.svg.png" />
+  </details>
+
+- 原生分辨率
+  显示设备的[原生分辨率](https://en.wikipedia.org/wiki/Native_resolution)由固定的物理像素决定。在固定的原生分辨率下，可以设置相同或更低的显示分辨率，也可以显示更低分辨率的图像；这本质上是缩放。
+
+  显卡将 800×600 图像发送到 1366×768 LCD 时，显示器必须插值（缩放）图像以填满屏幕。此例中宽高比（800×600 为 4:3，1366×768 为 16:9）不同，因此图像不仅会放大，还会变形。
+
+  - 位图受影响很大，矢量图表现更好。
+  - 原生分辨率越高，缩放的副作用越不明显。
+  - 建议将原生分辨率作为显示分辨率。
+
+  <details>
+    <summary>发送到 1024*768 原生分辨率的 800*600 内容。</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/en/f/f7/Native-resolution_800x600_on_1024x768.JPG" />
+  </details>
+
+
+
+- 屏幕空间
+  <details>
+    <summary>数字屏幕空间用二维矩阵描述，一个单位表示一个像素。</summary>
+    <img src="https://scarletsky.github.io/2020/06/10/games101-notes-rasterization/screen_space.png" />
+  </details>
+
+- 子像素布局
+  <details>
+    <summary>一个像素由 RGB 子像素组成，不同显示设备的条纹布局不同。</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Pixel_geometry_01_Pengo.jpg/330px-Pixel_geometry_01_Pengo.jpg" />
+
+    <p>P30 Pro</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/subpixels.png?raw=true" />
+
+    <p>Google Nexus One</p>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Nexus_one_screen_microscope.jpg/330px-Nexus_one_screen_microscope.jpg" />
+  </details>
+
+
+### 光栅（位图）与矢量图
+
+<details>
+  <summary>放大光栅图与矢量图</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/VectorBitmapExample.svg/220px-VectorBitmapExample.svg.png" />
+</details>
+
+
+#### 光栅图（位图）
+
+<details>
+  <summary>位图结构示例：</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Rgb-raster-image.svg/220px-Rgb-raster-image.svg.png" />
+</details>
+
+- [光栅图形](https://en.wikipedia.org/wiki/Raster_graphics)或位图是最常见的图形表示形式，采用点阵数据结构。
+- 典型数据结构：固定大小的二维矩阵
+- 显示算法：缩放
+- 典型格式：Jpeg、Png、WebP、Bmp、PPM 等
+- 用途：照片、图像、画布。
+
+  <details>
+    <summary>位图示例：</summary>
+    <a href="https://raw.githubusercontent.com/GarfieldZHU/ray-tracer-rs/master/image_sample/final_scene_high_resolution.ppm">原始文本 PPM 格式图像：</a>
+  </details>
+
+  <details>
+    <summary>对应的 PNG：</summary>
+    <img src="https://github.com/GarfieldZHU/ray-tracer-rs/blob/master/image_sample/final_scene_high_resolution.png?raw=true" />
+  </details>
+
+
+#### 矢量图
+
+- [矢量图形](https://en.wikipedia.org/wiki/Vector_graphics)通过笛卡尔平面上的点定义。
+- 典型数据结构：可绘制对象，如点、线、矩形、圆、曲线等。
+- 显示算法：变换、光栅化
+- 典型格式：SVG、EPS、PDF 等
+- 用途：几何图形、印刷、徽标、图标、插画。
+
+  <details>
+    <summary>SVG 示例：</summary>
+    <a href="https://dev.w3.org/SVG/tools/svgweb/samples/svg-files/">W3C SVG 文件示例：</a>
+  </details>
+
+
+
+#### 对比
+
+何时使用？
+
+- 对于高分辨率显示，矢量图形更高效；光栅图在高分辨率下可能很大。
+- 对于大量对象，光栅图形更高效。矢量图需要将每个对象存储为模型，而光栅图只存储整个画布。
+
+
+##### SVG 与 canvas
+
+[SVG](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics)，即 Scalable Vector Graphics（可缩放矢量图形）。
+
+- 它是 W3C 自 1999 年制定的基于 XML 的矢量图像格式。
+- 基于 XML，同时属于 DOM，可以直接操作。
+
+
+[Canvas](https://en.wikipedia.org/wiki/Canvas_element) 元素。
+
+- 它是 HTML5 标准的一部分，支持动态、可脚本化地渲染二维图形和位图（Apple 于 2004 年在 WebKit 中初始化）。
+- 基于脚本，绘制完成后浏览器不会持续关注它。
+- 操作元素后需要重新绘制。
+
+<details>
+  <summary>性能对比：</summary>
+  <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/svg_vs_canvas.png?raw=true" />
+</details>
+
+
+---
+
+### 基础光栅化
+
+什么是[光栅化](https://en.wikipedia.org/wiki/Rasterisation)？它是一种采样。
+
+举个简单例子：想象彩色墨水漂浮在水面上形成画面。将屏幕窗口沉入水中再慢慢取出，就得到一幅画，这与光栅化类似。
+
+[Bresenham 直线算法](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) 是把线（基本图元、矢量）绘制成位图的最基础光栅化算法。
+
+  <details>
+    <summary>Bresenham 直线算法结果示意。</summary>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/ab/Bresenham.svg/450px-Bresenham.svg.png" />
+  </details>
+
+- 第 1 步：
+  <details>
+    <summary>将几何图形（如三角形）放入屏幕空间。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rasterize_01.png?raw=true" />
+  </details>
+
+- 第 2 步：
+  <details>
+    <summary>采样：判断每个像素（像素空间中心）位于三角形内还是外。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rasterize_02.png?raw=true" />
+  </details>
+
+- 第 3 步：
+  <details>
+    <summary>使用包围盒缩小采样区域。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rasterize_03.png?raw=true" />
+  </details>
+
+- 第 4 步：
+  <details>
+    <summary>取得三角形内的像素。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rasterize_04.png?raw=true" />
+  </details>
+
+- 第 5 步：
+  <details>
+    <summary>显示这些像素的颜色以呈现三角形。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/rasterize_05.png?raw=true" />
+  </details>
+
+- 现在得到了一幅光栅化图形，但锯齿明显。提高分辨率可以改善效果（参见 `MSPaint`）。
+
+### 抗锯齿
+
+#### 原理
+
+- 糟糕的“采样”：
+  <details>
+    <summary>抗锯齿本质上是采样；对锐利图像进行低频采样会产生锯齿或[摩尔纹](https://en.wikipedia.org/wiki/Moir%C3%A9_pattern)。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_08.png?raw=true" />
+  </details>
+
+- 采样频率如何丢失原始信号：
+  <details>
+    <summary>分辨率不够高时，会看到“模糊”的图像。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_01.png?raw=true" />
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_02.png?raw=true" />
+  </details>
+
+
+- 采样前先模糊图像：
+  <details>
+    <summary>如果分辨率不够高，就会看到“模糊”的图像。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_00_a.png?raw=true" />
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_00_b.png?raw=true" />
+  </details>
+
+#### 抗锯齿方法
+
+- 使用[低通滤波器](https://en.wikipedia.org/wiki/Low-pass_filter)滤除高频信号：
+  <details>
+    <summary>使用卷积（或对单元内颜色取平均）。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_03.png?raw=true" />
+  </details>
+
+- SSAA/MSAA（超采样/多重采样抗锯齿）：
+  <details>
+    <summary>在单个像素中使用更高的采样比率。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_04.png?raw=true" />
+  </details>
+
+  <details>
+    <summary>比较不同采样效果。</summary>
+    <p>在像素中使用单次采样：</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_05.png?raw=true" />
+    <p>在像素中使用多重采样：</p>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_06.png?raw=true" />
+  </details>
+
+  <details>
+    <summary>通过卷积/平均降至低分辨率。</summary>
+    <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/AA_07.png?raw=true" />
+  </details>
+
+### 字体光栅化
+
+参见 Wiki 上的[字体光栅化](https://en.wikipedia.org/wiki/Font_rasterization)。
+
+如今字体是矢量图，可以从极小缩放到极大。字体光栅化就是将矢量路径映射到像素矩阵。
+
+![rasterization](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/font_rasterize.webp?raw=true)
+
+未经过抗锯齿的原始光栅字体：
+
+<details>
+  <summary>示例</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/Rasterization-simple.png/200px-Rasterization-simple.png" />
+</details>
+
+
+#### 字体抗锯齿
+
+- 不同的抗锯齿级别
+
+  - 不带 hint 的基础抗锯齿
+      <details>
+        <summary>示例</summary>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Rasterization-antialiasing-without-hinting-2.png/200px-Rasterization-antialiasing-without-hinting-2.png" />
+      </details>
+
+  - 带 hint 的抗锯齿
+      <details>
+        <summary>示例</summary>
+        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/e/ec/Rasterization-antialiasing.png/200px-Rasterization-antialiasing.png" />
+      </details>
+
+  - RGB 平板上的子像素渲染
+      <details>
+        <summary>示例</summary>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Rasterization-subpixel-RGB.png/200px-Rasterization-subpixel-RGB.png" />
+      </details>
+
+
+- [字体 Hinting](https://en.wikipedia.org/wiki/Font_hinting)
+
+  在屏幕文字显示中，字体 hinting 指定需要插值的基础像素，从而更清晰地渲染字体。
+
+  -> 字体编辑器可以自动执行 hinting。
+
+  -> 高质量商业字体通常会手动 hinting，以获得最清晰的外观。
+
+    <details>
+      <summary>示例</summary>
+      <img src="https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/Graphics/.assets/fonthinting.png?raw=true" />
+    </details>
+
+
+- 使白色显示的子像素渲染
+      <details>
+        <summary>示例</summary>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Subpixel-rendering-RGB.png/300px-Subpixel-rendering-RGB.png" />
+      </details>
+
+
+
+- 现代字体光栅化
+
+如今同时支持 Windows 和 macOS 的主流字体光栅化库是 [FreeType](https://en.wikipedia.org/wiki/FreeType)。
+
+
+- FreeType 中采用子像素渲染的小字号字符“e”。
+
+  <details>
+    <summary>子像素渲染的“e”</summary>
+  <img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/Subpixel_e.png" />
+  </details>

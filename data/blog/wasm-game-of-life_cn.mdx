@@ -1,0 +1,89 @@
+---
+title: WASM 快速导览
+date: '2021-04-20'
+tags: ['Rust', 'wasm', 'Web', 'Frontend', 'LEARNINGS']
+draft: false
+summary: 关于 WASM、Rust、前端和生命游戏互动演示的一些笔记。
+locale: zh-CN
+translationKey: wasm-game-of-life
+translationKind: ai-translation
+translationSourceLocale: en
+---
+
+> @作者：[Garfield Zhu](https://github.com/GarfieldZHU/)
+
+# WASM 快速导览
+
+WASM 之所以有趣，是因为它把另一种运行时带进了浏览器。它不需要取代 JavaScript：Rust 可以保存数据并执行计算，JavaScript 仍然负责浏览器相关的工作。
+
+旧版的 [Rust 与 WebAssembly 书籍](https://rustwasm.github.io/docs/book/) 依然有用。它现在已经是遗留文档，但流程很容易跟随：`wasm-bindgen` 导出 Rust API，`wasm-pack` 生成包，JavaScript 再把它与 canvas 和事件连接起来。
+
+[生命游戏项目](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life) 是一个很小但很好的例子。Rust 负责保存宇宙并推进到下一代，JavaScript 读取内存并绘制细胞。点击细胞、暂停、重置，边界就会显现出来。
+
+## 互动演示
+
+这是我喜欢的小互动演示。点击细胞创建图案，暂停它；当世界变得太混乱时，重置。帧计数器展示了两边的分工：WASM 更新状态，JavaScript 安排并绘制每一帧。
+
+<div className="not-prose my-8 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+  <iframe
+    src="https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/"
+    title="Rust 与 WebAssembly 生命游戏互动演示"
+    loading="lazy"
+    className="block h-[min(75vh,720px)] w-full"
+    sandbox="allow-scripts allow-same-origin"
+    referrerPolicy="strict-origin-when-cross-origin"
+  />
+</div>
+
+如果嵌入视图没有加载，请[直接打开互动演示](https://garfieldzhu.github.io/Aloha.zone.io/wasm-game-of-life/)。源代码位于 [`wasm-game-of-life` 文件夹](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm/rust-wasm/wasm-game-of-life)。
+
+## 我如何把 WASM 放进这个 MDX 页面
+
+这个示例没有把 Rust 包放进 Next.js。我在 `Aloha.zone.io` 仓库中使用 `wasm-pack --target web` 构建它。GitHub Actions 将包和小网页复制到 GitHub Pages，然后 MDX 用 `<iframe>` 展示该页面。
+
+博客只需要三件事：固定 URL、在 `frame-src` 中允许 `garfieldzhu.github.io`，以及 iframe 无法加载时的普通链接。`not-prose` 包装器让游戏布局不受文章样式影响。
+
+这种拆分很简单。WASM 应用有自己的构建流程，博客在服务端渲染时不加载 Rust。它是另一个页面，但确实能工作。
+
+## 运行时肥皂剧：Wasmer 对 Wasmtime
+
+旧的[运行时笔记](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm#runtime)也有一段小肥皂剧。两个名字是 Wasmer 和 Wasmtime。它们都能在浏览器外运行 WASM，都希望 WASI 实用，也都觉得自己的方式更合理。所以，自然就出现了两个项目。
+
+[Wasmer issue #142](https://github.com/wasmerio/wasmer/issues/142) 中的故事大致是：Wasmer 团队早期尝试 Wasmtime，觉得它难用且缺乏活力，于是开始了 Wasmer。后来项目朝不同方向发展。Wasmer 想做通用且可插拔的运行时：不同编译器后端、自定义 ABI，以及便于其他应用使用的库。Wasmtime 则随着 Bytecode Alliance 发展，更重视标准、WASI、正确性和清晰的嵌入故事。
+
+接着是基准测试插曲。Wasmer 用 LLVM 展示了更快的数字；其他人用 Cranelift 展示 Wasmtime 胜出；随后又有人指出图表读法不对。Coremark、启动时间、编译器后端——每个角色都有一张图。完全不像平静的家庭聚餐。
+
+现在的比较没那么戏剧化，却更有用：Wasmtime 倾向于以标准为先的 WASI、Component Model 和生产级嵌入运行时；Wasmer 倾向于更广的部署生态和更多运行时选择，包括 Singlepass、Cranelift、LLVM 以及 SDK/registry 工作流。我的主要结论很简单：想走更平稳的标准道路就选 Wasmtime；当可配置后端或产品生态才是重点时就选 Wasmer。这是个人偏好，不是客观排名。把旧基准测试奉为信条前，先在自己的工作负载上运行测试。
+
+<details>
+<summary>GPT 调研结果：Wasmer 对 Wasmtime</summary>
+
+这是根据链接项目文档核对过的 GPT 辅助比较，供阅读参考，不是独立基准测试，也不是宣布谁获胜。
+
+| 问题 | Wasmtime | Wasmer |
+| --- | --- | --- |
+| 主要形态 | 由 Bytecode Alliance 支持的专注型独立运行时和嵌入库。 | 运行时加上更广的包、registry、SDK、浏览器和边缘部署生态。 |
+| 编译器选择 | Cranelift 是常规优化编译器；Winch 等策略覆盖快速启动或可移植性。 | 提供 Singlepass、Cranelift、LLVM 等引擎选择，以权衡速度和启动时间。 |
+| WASI 与组件 | 强调 WASI、Component Model、标准和一致性。 | 支持面向 WASI 的工作流及 WAI/bindgen 生态，在应用打包方式上更自由。 |
+| 嵌入 | Rust、C/C++、Python、.NET、Go、Ruby 等主机集成都有一流文档。 | SDK 和主机集成属于产品故事，也提供独立 CLI。 |
+| 取舍 | 需要考虑的产品面更少；希望运行时保持简单无趣时是好默认值。 | 可调参数和部署选项更多；这些选项本身是需求时很有用。 |
+
+旧的 [Wasmer issue #142](https://github.com/wasmerio/wasmer/issues/142) 适合作为历史资料：它记录了两个项目解释为何不是同一个项目，随后是一场热烈的基准争论。它发表于 2019 年，不应把其中数字当作当前事实。
+
+来源：[Wasmtime](https://docs.wasmtime.dev/)、[Wasmtime 编译器策略](https://docs.wasmtime.dev/api/wasmtime/struct.Config.html)、[Wasmer 运行时特性](https://docs.wasmer.io/runtime/features/)、[Wasmer CLI](https://docs.wasmer.io/runtime/cli/)、[WASI 发布记录](https://wasi.dev/releases) 和 [Aloha.zone.io 运行时笔记](https://github.com/GarfieldZHU/Aloha.zone.io/tree/master/wasm#runtime)。
+
+</details>
+
+## 下一步计划：在 MDX 中使用 WASM
+
+iframe 可以工作，但它仍然是另一个页面。为了让文章更具互动性，我想把 WASM 做成真正的 MDX 组件：
+
+1. 保持 Rust crate 和 `wasm-pack --target web` 输出精简。
+2. 添加仅在客户端运行的 `WasmGameOfLife` React 组件，并在 `components/MDXComponents.tsx` 中注册。
+3. 让组件处理加载、canvas、按钮和错误；MDX 只需使用类似 `<WasmGameOfLife />` 的标签。
+4. 将组件放在简短说明之间，每一步都可以改变 Rust 状态并立即显示结果。
+5. 保留备用链接，测试生产构建、移动端布局，以及禁用 WebAssembly 的浏览器。
+
+这样文章会更有趣，但也会把 MDX 构建、浏览器 React 代码和 WASM 包耦合起来。我认为下一版值得这样取舍。
+
+我的当前想法很简单：WASM 不是 Web 的替代品，而是运行那些受益于 Rust 的部分的一个位置。前端仍然负责浏览器体验。

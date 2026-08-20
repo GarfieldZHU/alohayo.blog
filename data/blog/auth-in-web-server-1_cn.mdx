@@ -1,0 +1,138 @@
+---
+title: Web 中的身份认证 1——会话与令牌
+date: '2024-05-22'
+tags: ['Web Server', 'auth', 'Web', 'token', 'session', 'security', 'SQL', 'Learning']
+draft: false
+summary: 一系列关于 Web 服务器身份认证关键要点的文章。本文聚焦于令牌和会话。
+locale: zh-CN
+translationKey: auth-in-web-server-1
+translationKind: ai-translation
+translationSourceLocale: en
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+# Web 应用身份认证（1）——会话与令牌
+
+在 Web 世界中，身份认证通常是用户访问资源的第一步，也是守护数据与网站安全的关键环节。
+
+为了强调在 Web 服务器中实现身份认证时需要考虑的要点，我会用一系列文章来讨论这个主题。
+
+现在，让我们从最广为人知、最基础的概念开始：令牌与会话。
+
+## 会话
+
+### 会话如何工作
+
+用户登录：客户端将登录凭据（例如用户名和密码）发送给服务器。
+
+创建会话：认证成功后，服务器生成唯一的会话标识符（Session ID），并在内存或持久化存储（例如数据库、Redis）中将其与用户信息关联起来。
+
+跟踪会话：服务器将会话 ID 返回给客户端，通常存储在 Cookie 中。
+
+后续请求：客户端在每次请求中携带会话 ID。服务器验证该 ID，以获取用户状态。
+
+### [Cookie](https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/Cookies)
+
+Cookie 是在客户端存储会话标识符的主要方式。这些小型数据包会随每个 HTTP 请求自动发送到服务器。
+
+发起新请求时，浏览器通常会在 Cookie HTTP 标头中，将当前域名此前保存的 Cookie 发回服务器，因此把会话信息与 Cookie 一起携带非常自然。
+
+设置 Cookie 示例（HTTP 响应标头）：
+
+> Set-Cookie: session_id=abc123; HttpOnly; Secure; SameSite=Strict
+
+- [HttpOnly](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#httponly)：阻止 JavaScript 访问 Cookie，降低 [XSS 攻击](https://developer.mozilla.org/en-US/docs/Glossary/Cross-site_scripting)风险。
+
+- [Secure](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#secure)：确保 Cookie 只通过 HTTPS 发送。
+
+- [SameSite](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Set-Cookie#samesitesamesite-value)：控制 Cookie 是否随跨站请求发送（“Strict”会阻止跨站传输）。
+
+### 会话存储
+
+会话需要存储在服务器端以便验证。常见的存储方式包括：
+
+1. **内存**：速度快但易失，适合小规模应用（例如在 Spring Boot 中使用 HttpSession）。
+2. **数据库**：服务重启后仍持久可靠，适合较大型系统。
+3. **分布式缓存**：对于水平扩展的应用，可使用 Redis 或 Memcached 存储会话。
+
+### 会话过期与安全
+
+1. **过期**：设置合理的过期时间（例如闲置 30 分钟）并定期清理过期会话。
+2. **重新生成 ID**：在敏感操作后（例如登录后）刷新会话 ID，防止会话固定攻击。
+3. **安全 Cookie**：始终使用 HttpOnly、Secure 和 SameSite 属性来降低攻击风险。
+
+## 令牌
+
+令牌是表示某些唯一事物的长随机字符串，存储在服务器上，并且
+- 令牌通常应足够长且唯一，128~256 位应当足够。例如 [UUID](https://en.wikipedia.org/wiki/Universally_unique_identifier)。
+- 通常用于身份认证和验证，例如会话 ID、访问令牌。
+- 令牌必须使用密码学安全的随机生成器。Java 和 JS 中标准 Math 库的 `Math.random` 方法安全性很差，应改用加密方法，例如 Go 的 `crypto/rand`、JS 的 `Crypto.randomUUID()`。
+- 令牌应以哈希形式（如 SHA-256）存储。这样存储中不会暴露真实令牌，而是通过哈希值进行验证。
+
+例如，用于存储用户会话令牌的数据库表应当：
+1. 将哈希后的令牌设为非空唯一字符串；
+2. 每个令牌代表一个用户会话，并通过外键关联用户，以查询用户权限/访问权；
+3. 为每个令牌设置过期时间，以提高安全性；
+
+```SQL
+CREATE TABLE token (
+  token_key STRING NOT NULL UNIQUE,
+  user_id INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+
+  PRIMARY KEY (token_key),
+  FOREIGN KEY (user_id) REFERENCES user(id)
+)
+```
+
+### JWT
+
+正如会话一节所述，会话通常持久化在数据库或其他持久层中。它是有状态的，身份认证依赖持久化。
+
+为了使用无状态、去中心化的认证令牌，我们有了 JWT，即 JSON Web Token。它同样是令牌，但其中包含信息。
+
+JSON Web Token 是开放的行业标准 [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)，用于在双方之间安全地表示声明。
+
+#### JWT 数据结构
+
+JWT 令牌如下所示：
+![JWT 示例](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-sample.png?raw=true)
+
+它实际上由 3 部分组成，以点号 `.` 分隔，形式为 `{Header}.{Payload}.{Signature}`。每一部分都使用 [Base64URL](https://wiki.tcl-lang.org/page/base64url) 编码，与普通 **Base64** 略有不同，以支持在 HTTP 请求查询参数中使用 JWT。
+
+- 第一部分是 **Header（标头）**
+  ![header](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-header.png?raw=true)
+  标头包含：
+  - `alg`：签名算法，默认为 `HS256`（HMAC SHA256）。
+  - `typ`：令牌类型，JWT 中始终为 `JWT`。
+- 中间部分是 **Payload（载荷）**
+  ![header](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-payload.png?raw=true)
+  放入必要的真实载荷信息，相当于服务器上持久化的会话。使用 JWT 后，服务器不必从数据库查询会话数据，只需解码客户端传来的 JWT。
+  在 [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1) 中，JWT 载荷声明了 7 个注册声明名称，但并非必须使用。载荷也可使用自定义字段，不过**名称应尽量短**，因为 JWT 的核心目标是保持表示紧凑。
+- 最后一部分是 **Signature（签名）**
+  ![header](https://github.com/GarfieldZHU/alohayo.blog/blob/main/public/static/images/auth/jwt-sig.png?raw=true)
+  签名实际对前两部分进行签名。服务器维护用于签名的密钥，绝不向外部暴露。用户登录后，服务器生成 JWT，并使用该密钥按照 `alg` 对令牌签名。处理每个携带 JWT 的请求时，服务器通过签名验证载荷，避免载荷被恶意篡改。
+
+#### 优点与缺点
+- 👍 无状态，降低服务器获取会话信息的 IO 成本。
+- 👍 载荷不可变，除服务器外任何人都不能写入或修改 JWT 数据。
+- 👍 可进一步加密以提高安全性。
+- 👎 签名 JWT 过期前很难主动中止或撤销。
+- 👎 JWT 泄露后，权限信息可能泄露。
+
+#### 用法与场景
+JWT 通常用于 Web 和移动应用，因为它轻量且无状态。
+- 登录认证：在认证登录 API 中，服务器应生成 JWT，通常放在响应体中返回。
+- 携带 JWT 的请求：对于需要授权用户的请求，建议客户端在标头中携带 JWT：`Auhtorization: Bearer <token>`。这是最常见的做法，也可以使用 `X-Authorization-Token` 之类的自定义标头。虽然 Cookie 能自动携带它，但考虑到 CORS，不建议用 Cookie 携带 JWT。
+- 过期与协议：建议设置较短的过期时间，并配合刷新令牌；始终使用 HTTPS。
+
+#### 参考
+- [JWT encode/decode online: jwt.io](https://jwt.io/)
+
+### CSRF 令牌
+
+我认为这个主题值得单独成篇。请参阅[本系列第一篇文章](https://alohayo.me/blog/auth-in-web-server-1)，并移步[Web 应用身份认证（4）——CSRF](https://alohayo.me/blog/auth-in-web-server-4)。
+
+## 参考
+- 以 [OWASP Top 10 Vulnerabilities](https://owasp.org/www-project-top-ten/) 为 Web 安全目标参考。
+- 阅读 [OWASP Cheetsheet](https://cheatsheetseries.owasp.org/index.html) 获取更多建议。

@@ -1,0 +1,185 @@
+---
+title: 前端渲染优化技巧
+date: '2018-06-16'
+tags: ['frontend', 'Web', 'tricks', 'browser', 'TypeScript', 'JavaScript', 'React']
+draft: false
+summary: 理解渲染原理有助于优化网页渲染，包括 DOM 与 WebGL。
+locale: zh-CN
+translationKey: frontend-rendering-tricks
+translationKind: ai-translation
+translationSourceLocale: en
+
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+
+理解渲染原理有助于优化网页渲染，包括 DOM 与 WebGL。
+
+
+#### DOM 渲染
+
+通常浏览器以 60 fps 渲染，这意味着单帧计算应在约 16.67 ms 内完成。根据 [WebKit 渲染间隔控制](https://bugs.chromium.org/p/chromium/issues/detail?id=337617)，16.67 ms 间隔内的多次 DOM 变更会合并为**一帧**。
+
+在单帧中，浏览器依次执行脚本、应用样式、计算布局、绘制并合成图层：
+
+`JS->Style->Layout->Paint->Composite`
+
+因此，获得流畅页面体验的理想方式是尽量将计算阶段控制在 16ms 以下，确保每帧正确渲染。但现实中常会遇到无法满足浏览器时限的情况，例如*繁重计算*、*高频事件*等，这正是需要优化的地方。
+
+
+
+##### 防抖与节流
+
+有些事件会高频触发，例如 `resize`、`touchmove`、`scroll`、`dragover`。如果为这些事件绑定会操作 DOM 的“繁重”处理函数，刷新率就无法匹配事件频率，可能造成渲染延迟、卡顿甚至页面挂起。
+
+**防抖**和**节流**是两种相似（但不同）的技术，用于控制一段时间内允许函数执行的次数，帮助我们更好地处理高频事件。
+
+两种技术都能将连续的多次调用**“合并”为一次**。
+
+###### 防抖
+
+给定计时器 X，事件处理函数只在计时结束时执行；若计时期间再次触发事件，则重置计时器 X。也就是说，直到不再有新事件时，所有事件才会合并为一次调用。
+
+- 使用场景：
+
+  - 校验输入框内容（本地校验或发送请求校验）。
+    示例：
+
+    ```typescript
+    // -- InputValidator.tsx
+
+    const changeHandler = async (e: Event) => {
+      const resp = await fetch()
+      if (!resp.ack) {
+        // show warning
+      }
+    }
+
+    // Old React component without debouncing
+    const InputValidator = () => {
+      return <Input
+       onChange={changeHandler}
+        //...
+      />
+    }
+
+    // New React component
+    const DebouncedInput = () => {
+      return <Input
+       onChange={_.debounce(changeHandler)}
+       //...
+      >
+    }
+    ```
+
+
+
+- `debounce` 函数示例：
+
+```typescript
+function debounce(fn: Function, interval: number = 300) {
+    let timeout = null
+    return function () {
+        clearTimeout(timeout)
+        timeout = setTimeout(() => {
+            fn.apply(this, arguments)
+        }, interval)
+    };
+}
+```
+
+
+
+###### 节流（throttle）
+
+给定计时器 X，任务只会在计时结束时执行一次。
+
+它有助于降低频率并稳定不确定的触发频率。
+
+- 使用场景：
+
+  - 检查窗口是否滚动到底部，并获取要显示的更多元素。
+    示例：
+
+    ```typescript
+    // -- IncrList.tsx
+
+    // 滚动事件处理器：到达页面底部时发送请求获取下一批数据。
+    const scrollHandler = async (e: Event) => {
+      const pageHeight = body.height(),
+            scrollTop = window.scrollTop(),
+            winHeight = window.height(),
+            thresold = pageHeight - scrollTop - winHeight
+      if (thresold > -100 && thresold <= 20) {
+        const nextPage = await fetch()
+        // 显示下一页
+      }
+    }
+
+    // 原始列表，高频检查是否滚动到底部
+    const IncrList = () => {
+      return <ScrollableList
+       onScroll={scrollHandler}
+      />
+    }
+
+    // 原始列表，每 500ms 检查是否滚动到底部
+    const ThrottledIncrList = () => {
+      return <ScrollableList
+       onScroll={_.throttle(scrollHandler, 500)}
+      />
+    }
+    ```
+
+
+
+  - 检查对象是否仍被拖动到指定区域上方。
+
+- `throttle` 函数示例：
+
+  ```typescript
+  function throttle(fn: Function, interval: number = 300) {
+      let canRun = true
+      return function () {
+          if (!canRun) return
+          canRun = false
+          setTimeout(() => {
+              fn.apply(this, arguments)
+              canRun = true
+          }, interval)
+      };
+  }
+  ```
+
+
+
+
+
+##### 虚拟滚动
+
+当可滚动列表包含大量甚至无限的数据时，如果为每个数据单元分配真实 DOM 节点，就会产生大量节点。
+
+为此可采用虚拟化渲染，通过回收视口外的真实节点来渲染列表。使用有限 DOM 节点的滚动会流畅得多。
+
+
+
+###### 原理
+
+- 列表结构
+
+![](https://i0.wp.com/blog.logrocket.com/wp-content/uploads/2020/02/virtual-scrolling-settings-object-value.png?w=267&ssl=1)![](https://i0.wp.com/blog.logrocket.com/wp-content/uploads/2020/02/virtual-scrolling-initial-state-change.gif?resize=179%2C404&ssl=1)
+
+
+
+- 滚动期间真实 DOM 的变化：
+
+![](https://user-gold-cdn.xitu.io/2018/4/25/162fc86d3120304f?imageslim)
+
+
+
+
+
+#### 参考
+
+- [通过示例理解防抖与节流](https://css-tricks.com/debouncing-throttling-explained-examples/)
+- [虚拟滚动：React 中的核心原理与基本实现

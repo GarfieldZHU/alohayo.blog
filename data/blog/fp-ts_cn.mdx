@@ -1,0 +1,183 @@
+---
+title: 使用 TypeScript 进行函数式编程
+date: '2019-11-08'
+tags: ['Functional', 'Program', 'TypeScript', 'Tricks', 'Learning', 'Type theory']
+draft: false
+summary: 函数式编程是一种声明式范式，借助数学理论和类型系统，以纯函数模块化地构建程序。使用 TypeScript 练习函数式编程简单而有趣。
+locale: zh-CN
+translationKey: fp-ts
+translationKind: ai-translation
+translationSourceLocale: en
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+
+作为一种声明式编程范式，[函数式编程](https://en.wikipedia.org/wiki/Functional_programming)借助数学理论和类型系统，以纯函数模块化地构建程序。
+
+TypeScript 既支持函数式范式，又拥有强大的类型系统，非常适合练习函数式编程。本文介绍并演示一些在 TypeScript 中实用的函数式编程片段。
+
+
+相关库：
+
+- [fp-ts](https://github.com/gcanti/fp-ts) 是 TypeScript 中最推荐的库。最佳实践请参阅[代码约定](https://gcanti.github.io/fp-ts/guides/code-conventions.html)。
+
+- 使用 [Deno](https://deno.land/) 运行时，例如：
+  `deno run memoize.ts`
+
+- `ramda.js` 是常用的 JavaScript 函数式编程库之一。请参阅[官方文档](https://ramdajs.com/docs/)及[中文教程](https://www.ruanyifeng.com/blog/2017/03/ramda.html)。
+
+---
+
+## 保持*不可变*
+
+函数式编程的最佳实践是在可能的地方使用**不可变**变量。
+
+在 TypeScript 中，尽量使用 `const` 声明变量，并为类型、接口属性及函数参数使用 `readonly`。除非必要，避免使用 `let` 或 `var`（实际上总能找到避免可变变量的方法）。
+
+示例：
+
+```typescript
+declare const a : number
+const b = a > 0 ? 'positive' : 'negativeOrZero'   // $ExpectedType: 'positive' | 'negativeOrZero'
+let b = a > 0 ? 'postive' : 'negativeOrZero'     // $ExpectedType: string
+```
+
+## *纯*函数
+
+- **可缓存**
+
+  [记忆化（Memoization）](./memoize.ts)
+
+- 可移植 / 自描述
+- 可测试
+- 合理
+- 支持并发
+
+## 柯里化
+
+TypeScript 并非天生支持柯里化。诸如 `[Rambda](https://github.com/ramda/ramda)` 的 Node 包提供了很好的实现，但由于我们使用的是带 TypeScript 的 `Deno`，直接使用它并不方便，在 TS 中自行实现也不够优雅。
+
+柯里化的分步示例：[如何掌握高级 TypeScript 模式](https://www.freecodecamp.org/news/typescript-curry-ramda-types-f747e99744ab/)
+
+此外，我们可以期待提议中的 [Variadic Kinds](https://github.com/Microsoft/TypeScript/issues/5453) 特性，它将让定义带类型的 `curry` 函数更加容易。
+
+幸运的是，[Denofun](https://github.com/galkowskit/denofun) 提供了一组实用的函数式编程工具，其中包括 `curry`。
+
+示例：
+
+```typescript
+import curry from "https://deno.land/x/denofun/lib/curry.ts";
+
+const greet = (name: string, age: number) => `hello, I'm ${name} and I'm ${age} years old`;
+const curriedGreet = curry(greet);
+curriedGreet("Tomasz")(26)
+```
+
+练习：[使用 curry](./curry.ts)
+
+## 组合（Compose）
+
+- 结合律
+
+  ```typescript
+    const associative = compose(f, compose(g, h)) == compose(compose(f, g), h)
+
+    // 两者都满足：
+    // associative(x) = f(g(h(x)))
+  ```
+
+- 无点风格（Point-free）
+  "***永远不要显式写出你的数据***"
+
+  ```typescript
+  // not pointfree, for data `word` is mentioned
+    const snakeCase = (word: string) => word.toLowerCase().replace(/\s+/ig, '_')
+
+    // pointfree
+    const pointfreeSnakeCase = compose(replace(/\s+/ig, '_'), toLowerCase);
+
+  ```
+
+  - 参考：[偏好 Curry](https://fr.umio.us/favoring-curry/)
+  - 博客：[使用无点风格](http://www.ruanyifeng.com/blog/2017/03/pointfree.html)
+
+- 调试
+  无点风格丢弃了所有参数，因此错误位置可能很难查找，例如：
+
+  ```typescript
+    const dasherize = compose(join('-'), toLower, split(' '), replace(/\s{2,}/ig, ' '))
+    dasherize('The world is a vampire')
+    // TypeError: Cannot read property 'apply' of undefined
+  ```
+
+  我们可以使用柯里化的 `trace` 函数记录参数来调试：
+
+  ```typescript
+    const trace = curry(function(tag, x){
+      console.log(tag, x)
+      return x
+    })
+
+    const dasherize = compose(join('-'), toLower, trace("after split"), split(' '), replace(/\s{2,}/ig, ' '));
+    // after split [ 'The', 'world', 'is', 'a', 'vampire' ]
+
+
+    // 正确写法：
+    const dasherize = compose(join('-'), map(toLower), split(' '), replace(/\s{2,}/ig, ' '))
+    dasherize('The world is a vampire');
+  ```
+
+此外还有类似的 `pipe` 函数，同样用于组合函数。`compose` 从右到左调用函数参数，而 `pipe` 从左到右调用。
+
+练习：[使用 compose](./compose.ts)
+
+## 函子（Functor）
+
+> 函子是实现 `map` 并遵守某些规律的类型。
+
+通常我们使用包含 `of` 函数的 pointed 函数来实例化函子。
+
+```typescript
+  Container.of(3)
+  // Container(3)
+
+  Container.of(3).map(x => x + 1)
+  // Container(4)
+```
+
+### 应用函子（Applicative Functor）
+
+“应用函子”是一种实现了 `ap` 函数的“pointed 函子”。
+
+`ap` 函数应将一个函子的值应用到另一个函子的值上。
+
+也就是说：`F.of(x).map(f) == F.of(f).ap(F.of(x))`
+
+
+
+```typescript
+  Container.of(add(2)).ap(Container.of(3))
+  // Container(5)
+
+  Container.of(2).map(add).ap(Container.of(3))
+```
+
+使用应用函子可以像调用普通函数一样使用函子中的柯里化函数：
+
+```typescript
+  Maybe.of(add).ap(Maybe.of(2)).ap(Maybe.of(3))
+  // Maybe(5)
+
+  Task.of(add).ap(Task.of(2)).ap(Task.of(3));
+  // Task(5)
+
+```
+
+
+## 参考
+
+[Mostly adequate guide to FP (in javascript)](https://mostly-adequate.gitbooks.io/mostly-adequate-guide/)
+
+[Mostly adequate guide to FP - 中文](https://llh911001.gitbooks.io/mostly-adequate-guide-chinese/content/)
+
+[Denofun](https://github.com/galkowskit/denofun)

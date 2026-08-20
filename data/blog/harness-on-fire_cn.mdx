@@ -1,0 +1,168 @@
+---
+title: 'Harness 火了——我对 oh-my-openagent 的简单看法'
+locale: zh-CN
+translationKey: harness-on-fire
+translationKind: ai-translation
+translationSourceLocale: en
+date: '2026-04-05'
+tags: ['AI', 'Agent', 'Harness', 'LLM', 'oh-my-openagent', 'OpenCode']
+draft: false
+summary: '模型是护城河，Harness 是桥梁。一次格式变更让 Grok 在不改变模型的情况下从 6.7% 提升到 68.3%。让我解释为什么这件事既令人兴奋，也可能让人恐惧。'
+---
+
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+_虽然不太想在这个宏大的 Agent 时代写点什么，我还是把它发在了博客上。只是既兴奋又焦虑。_
+
+---
+
+## 我不知道自己错过的东西
+
+直到最近 Harness 火起来之前，我完全不理解这个概念。
+
+我读了 [Can Bölük 的基准研究](https://blog.can.ac/2026/02/12/the-harness-problem/)。他对模型什么都没改——权重、提示词、任务都一样，只改了**编辑格式**。Grok Code Fast 1 的成功率从 **6.7% → 68.3%**。这不是四舍五入误差，而是完全不同的产品。
+
+我很笨，也还在和 RAG、MCP、Agent Skills 这些东西苦苦挣扎。但我明白一点：Harness 和模型同样重要；编辑格式和模型同样重要；围绕模型设置的工具与约束也同样重要。
+
+Claude Code 确实非常好，但遗憾的是 Dario 太讨厌中文，Anthropic 也是如此。我被封禁了，尽管 IP 和跳板机都在美国，只好依靠 GitHub Copilot 订阅，重度转向 OpenCode。
+
+这个 Agent 即使也使用 Opus，仍远远落后于 Claude Code。我总是撞墙：它能 _准确_ 理解需要改什么（从解释就看得出来），却无法应用编辑。一遍又一遍：“找不到要替换的字符串。”缩进错误，幽灵空白。我开始怀疑是不是自己做错了什么。
+
+但装上 oh-my-openagent 后，模型开始飞快工作，代码仿佛自己写出来，体验和 Claude Code 一样好。我开始好奇 Harness 为什么如此重要。问题不是我提示词写得差；问题不在**模型**，而在**Harness**。
+
+Harness 不是模型，而是模型周围的一切：编辑格式、工具模式、状态管理、任务拆解方式、错误捕获方式。模型是护城河，Harness 是桥梁。
+
+而我们大多数人并不认为桥梁有那么重要。
+
+---
+
+## 为什么编辑格式如此重要
+
+先快速看一下三种主要格式，因为它确实让我大吃一惊：
+
+**`str_replace`**（Claude Code 使用的格式）——你提供旧文本，它查找并替换。听起来很简单。它的失败模式是：你必须**完全**复现原文。空白、缩进、尾随空格，一个都不能错。如果模型记错一个字符，就会得到“找不到要替换的字符串”。这种失败我已经见过多到不想数了。
+
+**`patch`**（Codex 使用的格式）——针对 OpenAI 模型微调。Grok 使用它时的补丁失败率为 50.7%。不是因为 Grok 不好，而是因为这种格式并非为 Grok 设计。
+
+**`hashline`**——这才是真正让我震撼的格式。模型不再复现内容，而是引用一个 2–3 个字符的内容标签：
+
+```
+11:a3|function hello() {
+22:f1|  return "world";
+33:0e|}
+```
+
+模型通过标签而不是复现内容来编辑。格式失败基本消失，输出 token 减少 61%（无需重试循环）。模型不再与格式搏斗，而是开始真正完成工作。
+
+这玩意儿真优雅。
+
+---
+
+## oh-my-openagent：11 个 Agent 走进酒吧
+
+理解 Harness 理论后，我开始研究 [oh-my-openagent](https://github.com/can1357/oh-my-pi)。这是一个 OpenCode 插件，能把单次 AI 会话变成结构化的 11 人 Agent 开发团队。架构如下：
+
+```
+规划层：       Metis → Prometheus → Momus
+                             ↓
+执行层：               Atlas
+                             ↓
+Worker 层：Sisyphus-Junior | Oracle | Explore | Librarian | …
+```
+
+**规划层**——三个 Agent 唯一的工作是在行动前思考。Metis 找出请求中的缺口，Prometheus 制定实际计划，Momus 审查计划，在代码写入前扼杀糟糕想法。思考与执行在结构上分离，原因和 CI/CD 将构建与部署分开一样。
+
+**执行层**——Atlas 读取计划并向 Worker 派发任务。没有写入权限，也不能再次委派，只有协调职责。
+
+**Worker 层**——真正干活的 Agent。Sisyphus-Junior 运行代码；Oracle（昂贵的 GPT-5.4）是只读架构顾问；Explore 搜索代码库；Librarian 搜索外部文档。每个 Agent 都有明确约束：Oracle 不能写入，Worker 不能再次委派。
+
+每个 Agent 都运行针对其角色调优的模型：前端用 Gemini，复杂逻辑用 GPT-5.4，廉价快速搜索用 Grok。类别不匹配会带来可测量的更差输出。这不是空谈，而是有数据的。
+
+| 代理            | 模型                     | 职责                               |
+| --------------- | ----------------------- | --------------------------------- |
+| Sisyphus        | claude-opus / kimi-k2.5 | 主协调器、意图闸门                 |
+| Prometheus      | claude-opus             | 战略规划器                         |
+| Momus           | gpt-5.4                 | 计划审查器（严格 QA 闸门）          |
+| Oracle          | gpt-5.4                 | 只读架构顾问                       |
+| Explore         | grok-code-fast-1        | 内部代码库搜索                     |
+| Librarian       | minimax-m2.7            | 外部文档搜索                       |
+| Sisyphus-Junior | category-dynamic        | 实际代码执行                       |
+
+---
+
+## 意图闸门：我最喜欢的设计
+
+每条消息在执行前都会先分类：
+
+| 你说           | 实际意图       | 实际发生的事情                 |
+| ------------- | -------------- | -------------------------- |
+| “解释 X”       | 研究           | explore → 仅回答               |
+| “实现 X”       | 实现           | plan → 执行                    |
+| “调查 X”       | 调查           | explore → 报告，**等待**        |
+| “重构”         | 开放式         | 先评估 → 提议                  |
+
+为什么重要？因为“看看这个文件并告诉我你的想法”不应该悄悄变成“我重写了你的整个认证层”。这种事我遇到过，体验很糟。
+
+意图闸门让这成为结构性保证，而不是口号。只有明确的实现动词才会触发代码变更。“调查 X”只会研究并等待，这才是正确行为。
+
+---
+
+## 跨会话记忆
+
+我想重点介绍两个系统：
+
+**Wisdom System**——`.sisyphus/notepads/` 中的跨会话记忆。包含四个文件：`learnings.md`（哪些做法有效）、`decisions.md`（无需重新争论的决定）、`problems.md`（不要再尝试的做法）、`issues.md`（已知陷阱）。这是能跨越上下文窗口的工程机构记忆。
+
+**Boulder System**——`.sisyphus/boulder.json` 跨会话跟踪任务状态。`/start-work` 会从你上次停止的地方准确恢复。不必每次打开新聊天都从头推导状态。
+
+它们看起来很小，实际上并非如此。上下文窗口有 200k token，但会重置。Wisdom 系统才是 Agent 真正的长期记忆。
+
+---
+
+## 让我焦虑的部分 😅
+
+这一切其实都可以学会，真的。核心概念——Harness 与模型、编辑格式、多层架构、意图分类——一个下午就能理解。它并不神奇。
+
+真正困难的是，这个领域发展得比我跟得上的速度还快。我开始写这篇文章时，基准数据还是最新的；等你读到这里，可能已经出现了两种新编辑格式、新的类别系统，以及又一个改变一切的模型。
+
+Hashline 格式今天很出色，六个月后可能就成了标配。Oh-my-openagent 的架构也可能被更好的方案取代，我引用的具体数字也可能过时。
+
+这就是焦虑所在。不是“这些太难学”，而是“我正在学习当下正确的东西，但当下不断变化”。
+
+原则比具体实现更持久：
+
+- Harness 和模型同样重要。
+- 结构化约束可以阻止整类失败。
+- 思考与执行应该分离。
+- 根据场景选择正确工具 > 万事通式的一切。
+
+即使具体实现改变，这些原则仍然成立。
+
+---
+
+## 我反复回到的心智模型
+
+```
+Raw agent:    User → [Model] → Tools → Result
+              (model quality is the only lever)
+
+With harness: User → [IntentGate] → [Planner] → [Reviewer] → [Executor pool] → [Verifier] → Result
+              (each layer adds structure, each constraint prevents a class of failure)
+```
+
+Harness 不会让模型变聪明，而是让模型的智能得以表达。
+
+稳定的编辑锚点，清晰的任务边界，根据场景选择正确工具，以及防止本可恢复的错误演变成不可恢复灾难的结构性约束。
+
+出色的模型经过糟糕 Harness 也会在简单编辑上失败；普通模型经过优秀 Harness 却能在真实任务中胜过它。6.7% 到 68.3% 的基准结果就是证明。
+
+我们一直在争论模型，本该争论的是桥梁。
+
+---
+
+_参考资料：_
+
+- [Can Bölük: The Harness Problem](https://blog.can.ac/2026/02/12/the-harness-problem/)
+- [oh-my-openagent GitHub](https://github.com/code-yeongyu/oh-my-openagent)
+
+愿阳光长久照耀。☀️

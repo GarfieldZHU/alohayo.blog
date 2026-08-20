@@ -1,5 +1,5 @@
 ---
-title: 'WebGPU 与 Rust/WASM：一个小型 playground'
+title: 'WebGPU 与 Rust/WASM：一个小型互动演示'
 date: '2024-07-12'
 locale: zh-CN
 translationKey: webgpu
@@ -7,12 +7,12 @@ translationKind: ai-translation
 translationSourceLocale: en
 tags: ['webgpu', 'web', 'wasm', 'Rust', 'Graphics', 'WGSL', 'Frontend', 'LEARNINGS']
 draft: false
-summary: 一个小型 WebGPU 画布、Rust 风格的 WASM 边界，以及嵌入 MDX 的可编辑 WAT 运行器。
+summary: 一个小型 WebGPU 画布、以 Rust 为例的 WASM 边界，以及嵌入 MDX 的可编辑 WAT 运行器。
 ---
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
-# WebGPU 与 Rust/WASM：一个小型 playground
+# WebGPU 与 Rust/WASM：一个小型互动演示
 
 我有两组笔记。[GPU 基础](/zh-CN/blog/gpu/)通向 WebGPU，[WASM 快速导览](/zh-CN/blog/wasm-game-of-life/)通向在浏览器里运行的 Rust。
 
@@ -43,7 +43,7 @@ pub fn shade(input: i32) -> i32 {
 
 WebGPU 从另一个入口开始：检查 `navigator.gpu`，请求 adapter 和 device，配置画布，然后提交一个 render pass。[MDN 的 WebGPU 指南](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)是很实用的参考。着色器使用 WGSL，而不是 Rust。每种语言都有自己的小王国。
 
-## 试试这个 playground
+## 试试这个互动演示
 
 先使用默认代码，然后按 **Run WASM**。编辑器里的注释就是地图：
 
@@ -57,7 +57,7 @@ WebGPU 从另一个入口开始：检查 `navigator.gpu`，请求 adapter 和 de
 
 上面说的 Rust 路径仍然是真正的路径。在静态文章里编辑任意 Rust，意味着要打包 Rust 编译器或远程构建服务。这当然可以做，但那是另一个项目，安全成本和下载账单也会大很多。WAT 编辑器保留了有趣的部分，而且一切都看得见：编辑指令、编译字节、调用导出函数，再把一个值交给 GPU。
 
-## playground 如何接入 MDX
+## 如何将互动演示接入 MDX
 
 组件在 `components/MDXComponents.tsx` 中注册，所以文章可以直接使用 `<WebGpuWasmPlayground />`，不需要在文章里导入 React。
 

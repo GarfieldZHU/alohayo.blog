@@ -1,0 +1,453 @@
+---
+title: Service Worker——构建现代 PWA
+locale: zh-CN
+translationKey: service-worker
+translationKind: ai-translation
+translationSourceLocale: en
+date: '2020-05-25'
+tags: ['Service Worker', 'PWA', 'Web', 'frontend', 'w3c', 'Program', 'Learning']
+draft: false
+summary: 现代浏览器中的 Service Worker 知识，用于构建渐进式 Web 应用。
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+
+### 简介
+
+###### 试试看
+
+下面是示例页面：[Google 开发者文档](https://developers.google.com/web/ilt/pwa/introduction-to-service-worker)、[Pokemon 索引](https://pokedex.org/)。请按以下步骤尝试：
+
+1. 在浏览器中打开页面，然后关闭页面。
+2. 断开网络连接。
+3. 重新打开浏览器，再次访问上述页面。
+4. 😲 神奇的是，它们仍然可以访问。
+5. 在断网状态下访问 google.com，你会看到“恐龙”页面。
+
+###### 历史
+
+在 [HTML 标准](https://html.spec.whatwg.org/multipage/offline.html#offline)中，曾经可以使用 `manifest` 属性及对应的 `.appcache` 清单文件，为离线 Web 应用缓存页面资源。
+
+它仍然有效，但已不再推荐使用。
+
+
+### 概览
+
+###### 概念
+
+Service Worker 是一种事件驱动的 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker)，针对某个源和路径注册。它以 JavaScript 文件形式存在，可以控制关联的网页或站点，拦截并修改导航和资源请求，并以非常细的粒度缓存资源，从而让你完全控制应用在特定情况下的行为（最明显的情况是网络不可用时）。
+
+Service Worker 让应用能够控制网络请求、缓存请求以提升性能，并离线访问已缓存的内容。
+
+要让应用离线工作，Service Worker 依赖两个 API：[***Fetch***](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)（从网络获取内容的标准方式）和 [***Cache***](https://developer.mozilla.org/en-US/docs/Web/API/Cache)（用于存储应用数据的持久化内容存储）。该缓存持久存在，且独立于浏览器缓存和网络状态。
+
+总之，它就像 **“HTTP 请求的网络代理”** + **“资源和响应的缓存”**。
+
+
+
+###### 目标
+
+- [PWA（渐进式 Web 应用）](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps/Introduction) 的核心
+- 提供更好的页面性能
+- 在离线或网络连接较差的环境中提供出色体验
+
+
+###### 前置条件
+
+- [x] 浏览器支持
+
+  - 测试当前浏览器是否[支持 Service Worker](https://jakearchibald.github.io/isserviceworkerready/)。
+  - CEF 支持
+
+- [ ] 必须使用 HTTPS
+
+  使用 Service Worker 可以劫持连接、伪造和过滤响应。它功能强大，既能行善也能作恶。为避免中间人攻击带来的安全威胁，Service Worker 被设计为***仅通过 HTTPS 提供页面***。
+
+
+
+
+### 生命周期
+
+主要生命周期图：
+<img src="https://developers.google.com/web/fundamentals/primers/service-workers/images/sw-lifecycle.png" alt="service worker lifecycle"/>
+
+生命周期详情：
+
+<img src="https://mdn.mozillademos.org/files/12636/sw-lifecycle.png" alt="img" />
+
+
+
+##### - 注册 -
+
+要安装 Service Worker，需要在主 JavaScript 代码中注册它。注册会告诉浏览器 Service Worker 的位置，并让浏览器在后台开始安装。
+
+这一步不属于 Service Worker 的主要生命周期，应在主脚本中完成。
+
+```javascript
+if ('serviceWorker' in navigator) {
+ navigator.serviceWorker.register('/sw.js').then(function(registration) {
+   // Registration was successful
+   console.log(':) Success. ', registration.scope);
+ }, function(err) {
+   // registration failed :(
+   console.log(':( Failed. ', err);
+ });
+}
+```
+
+Service Worker 的 ***scope*** 决定它控制哪些文件，也就是从哪个路径开始拦截请求。默认 scope 是 Service Worker 文件所在位置，并延伸到其下的所有目录。
+
+```javascript
+navigator.serviceWorker.register('/service-worker.js', {
+  scope: '/app/'
+});
+```
+
+
+##### - 生命周期事件 -
+
+生命周期中的主要状态变化通过事件通知：
+
+<img src="https://mdn.mozillademos.org/files/12632/sw-events.png" alt="install, activate, message, fetch, sync, push" />
+
+###### 下载
+
+调用 register 后开始下载，需要：
+  1) 下载脚本
+  2) 将脚本解析为 Service Worker
+  3) 将 Service Worker 安装到浏览器
+
+  脚本可能无法下载、解析，或在初始化时抛出错误。所有失败都可以在 DevTools -> Application 标签页中查看。
+
+
+
+###### 安装
+
+安装是 Service Worker 首次触发的事件。在 install 事件处理器中，可以指定缓存名称（用于标识）以及要缓存的资源列表。
+
+```javascript
+const CACHE_NAME = 'my-site-cache-v1';
+const urlsToCache = [  // The list of resources to cache
+  '/',
+  '/styles/main.css',
+  '/script/main.js'
+];
+
+self.addEventListener('install', event => {
+  // Perform install steps
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(function(cache) {
+        console.log('Opened cache');
+        return cache.addAll(urlsToCache);
+      })
+  );
+});
+```
+
+
+
+###### 激活
+
+当 Service Worker 准备好控制客户端并处理 push、sync 等功能事件时，会收到 activate 事件。但这并不意味着调用 .register() 的页面已经受其控制。
+
+```javascript
+self.addEventListener('activate', event => {
+  console.log('V1 now ready to handle fetches!');
+});
+```
+
+请查看这个[示例](https://cdn.rawgit.com/jakearchibald/80368b84ac1ae8e229fc90b3fe826301/raw/ad55049bee9b11d47f1f7d19a73bf3306d156f43/)，Service Worker 劫持的“fetch”只有在激活后才会生效：
+
+1. 首次加载示例页面时，由于 HTML 引用了狗图片，你应看到狗图片。图片请求在 Service Worker 注册前就已完成。
+
+2. 刷新页面后，你会看到猫图片。因为已激活的 Service Worker 接管了 HTTP 请求，并替换了响应中的图片资源。
+
+   ```javascript
+   // Caching the cat image when installing
+   self.addEventListener('install', event => {
+     console.log('V2 installing…');
+
+     // cache a horse SVG into a new cache, static-v2
+     event.waitUntil(
+       caches.open('static-v2').then(cache => cache.add('/cat.svg'))
+     );
+   });
+
+   // Response the cat image when requesting dog.
+   self.addEventListener('fetch', event => {
+     const url = new URL(event.request.url);
+     // serve the cat SVG from the cache if the request is
+     // same-origin and the path is '/dog.svg'
+     if (url.origin == location.origin && url.pathname.endsWith('/dog.svg')) {
+       event.respondWith(caches.match('cat.svg'));
+     }
+   });
+   ```
+
+3. 在 DevTools -> Application -> Service Worker 标签页中，可以注销此站点的 Service Worker。刷新页面后，重新注册 Worker 的过程中又会看到狗图片。
+
+
+
+### API
+
+有许多与 Service Worker 相关的 API，可以让 Web 应用更强大。
+
+#### Cache 与 Fetch API
+
+当浏览器或网页触发 Service Worker 事件时，我们可能需要 ***fetch*** 并 ***cache*** 某些内容。这通常发生在 Service Worker 的 `fetch` 事件中，该事件会在已注册页面请求网络时触发。
+
+###### cache
+
+| 对象                                                         | API                          | 用法                                                         |
+| ------------------------------------------------------------ | ---------------------------- | ------------------------------------------------------------ |
+| [CacheStorage](https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage) | caches.open                  | 按标识符打开缓存对象                                         |
+| [Cache](https://developer.mozilla.org/en-US/docs/Web/API/Cache) | cache.match / cache.matchAll | 在 Cache 中解析匹配的请求                                   |
+| [Cache](https://developer.mozilla.org/en-US/docs/Web/API/Cache) | cache.add / cache.addAll     | 获取资源，并将生成的响应对象添加到指定缓存                 |
+| [Cache](https://developer.mozilla.org/en-US/docs/Web/API/Cache) | cache.delete                 | 从缓存对象中移除                                             |
+|                                                              |                              |                                                              |
+
+- 将资源加入缓存的示例：
+
+```javascript
+self.addEventListener('install', function(event) {
+  // In install event, cache the resources first
+  event.waitUntil(
+    caches.open('my-cache-identifier')   // Open/create a cache with identifier
+      .then(function(cache) {
+        console.log('Opened cache');
+        return cache.addAll([
+          '/',
+          '/styles/main.css',
+          '/script/main.js'
+        ]); // Cache the major HTML, CSS, JS file
+      })
+  );
+});
+```
+
+
+
+###### fetch
+
+[Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) 通常在 Service Worker 的 [FetchEvent](https://developer.mozilla.org/en-US/docs/Web/API/FetchEvent) 中使用。
+
+页面发送 HTTP 请求时，会触发 Service Worker 的 `fetch` 事件，我们可以监控请求内容并向页面提供响应。
+
+包括：
+
+- 检查请求是否曾被缓存；如果是，则用缓存响应进行响应。
+- 分析请求内容，过滤请求，或修改甚至模拟请求。
+- 使用 `fetch` API 发送原始请求或修改/模拟后的请求。
+- 消费请求，按状态、类型或其他标头过滤响应，修改甚至模拟响应。
+- 缓存响应。
+
+示例：
+
+```javascript
+self.addEventListener('fetch', function(event) {
+  event.respondWith(
+    caches.match(event.request)
+      .then(function(response) {
+        // Cache hit - return response
+        if (response) {
+          return response;
+        }
+
+        return fetch(event.request).then(
+          function(response) {
+            // Check if we received a valid response
+            if(!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // IMPORTANT: Clone the response. A response is a stream
+            // and because we want the browser to consume the response
+            // as well as the cache consuming the response, we need
+            // to clone it so we have two streams.
+            var responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then(function(cache) {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          }
+        );
+      })
+    );
+});
+```
+
+
+
+#### 存储与通信
+
+`Fetch` 是面向网络的 API，`cache` 用于缓存。但它们也用于“代理宿主页面的网络请求”和“缓存宿主页面的内容”。
+
+如果 Service Worker 需要与宿主页面或网络上的服务器通信，并持久化某些状态（页面级或浏览器级），请使用下面这些 API。
+
+###### IPC
+
+Service Worker 通常类似 Web Worker，是脱离渲染上下文的独立线程，因此不能直接操作 DOM 或 `window`。它同样使用 [postMessage](https://html.spec.whatwg.org/multipage/workers.html#dom-worker-postmessage) 和 `message` 事件与宿主页面线程通信。
+
+- 在宿主线程中使用 [**MessageChannel**](https://developer.mozilla.org/en-US/docs/Web/API/MessageChannel) 通道调用 `postMessage`，并监听 `message` 事件：
+
+```javascript
+function sendMessage(message) {
+  // This wraps the message posting/response in a promise, which will resolve if the response doesn't
+  // contain an error, and reject with the error if it does. If you'd prefer, it's possible to call
+  // controller.postMessage() and set up the onmessage handler independently of a promise, but this is
+  // a convenient wrapper.
+  return new Promise(function(resolve, reject) {
+    var messageChannel = new MessageChannel();
+    messageChannel.port1.onmessage = function(event) {
+      if (event.data.error) {
+        reject(event.data.error);
+      } else {
+        resolve(event.data);
+      }
+    };
+
+    // This sends the message data as well as transferring messageChannel.port2 to the service worker.
+    // The service worker can then use the transferred port to reply via postMessage(), which
+    // will in turn trigger the onmessage handler on messageChannel.port1.
+    // See https://html.spec.whatwg.org/multipage/workers.html#dom-worker-postmessage
+    navigator.serviceWorker.controller.postMessage(message,
+      [messageChannel.port2]);
+  });
+}
+```
+
+- 使用 [`Client.postMessage` ](https://developer.mozilla.org/en-US/docs/Web/API/Client/postMessage) 发送消息，并在 Service Worker 中监听 `message` 事件：
+
+```javascript
+// Consume the message from host thread (or other Workers)
+addEventListener('message', (event) => {
+    console.log(`The client sent me a message: ${event.data}`);
+});
+
+{
+  // Send message to host thread (or other Workers)
+  clients.matchAll(event.clientId).postMessage({
+    msg: "Hey I just got a fetch from you!",
+  });
+}
+```
+
+发送消息的[演示](https://googlechrome.github.io/samples/service-worker/post-message/index.html)
+
+###### 存储
+
+使用 Web 存储 API 持久化 Service Worker 的必要信息：
+
+![Chrome 开发者工具截图](https://i.stack.imgur.com/ZRHTt.png)
+
+1. 由于 Service Worker 不会阻塞（它被设计为完全异步），因此不能在 Service Worker 中使用同步 XHR 和 `localStorage`。（[LocalStorage 调用始终是同步的](https://stackoverflow.com/questions/20231163/is-html5-localstorage-asynchronous)）
+2. 如果需要持久化信息并在重启后复用，可以使用 [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) 数据库。
+
+
+
+#### 更多 Web APP API
+
+Service Worker 为让 Web 应用具备原生应用体验的功能提供了起点：
+
+| API                                                          | 功能                                                         |
+| ------------------------------------------------------------ | :----------------------------------------------------------- |
+| [Channel Messaging](https://developer.mozilla.org/en-US/docs/Web/API/Channel_Messaging_API) | 与其他 [Web Worker](https://developer.mozilla.org/en-US/docs/Web/API/Worker) 及宿主页面通信 |
+| [Notifications API](https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API) | 使用操作系统原生通知系统显示并交互通知。 |
+| [Push API](https://developer.mozilla.org/en-US/docs/Web/API/Push_API) | 让应用订阅推送服务并接收推送消息。 |
+| [Background Sync](https://developers.google.com/web/updates/2015/12/background-sync) | 将操作延迟到用户拥有稳定网络连接时执行。 |
+|                                                              |                                                              |
+
+
+
+### 使用场景
+
+Service Worker 能够控制静态资源或 REST API 调用的请求与响应，因此可以作为核心流程控制器。
+
+1. **完整静态站点**
+
+   如果网站只包含静态资源，可以缓存所有 HTML 页面、CSS 样式、脚本和图片，从而完全离线访问站点。
+
+2. **预取**
+
+   页面中可能有些元素在首次渲染时不会加载，而是由脚本中的事件触发。对于这类资源，可以在 Service Worker 中预取。
+   [演示](https://googlechrome.github.io/samples/service-worker/prefetch/index.html) / [预取视频演示](https://googlechrome.github.io/samples/service-worker/prefetch-video/index.html)
+
+3. **回退响应**
+
+   请求失败时，有时希望向用户显示回退内容，也可以展示上一次成功请求的资源或数据（例如实时数据遥测）。
+
+   Service Worker 会验证请求是否成功，失败时使用缓存响应。
+   [演示](https://googlechrome.github.io/samples/service-worker/fallback-response/index.html)
+
+4. **模拟响应**
+
+   模拟非常有用。它可以用给定响应将特定请求与网络隔离，也可用于测试尚未就绪或无法访问的 API/资源。
+
+5. **Window 缓存**
+   Service Worker 负责缓存响应内容，使其成为页面 `window.cache` 中的持久化数据。
+   [演示](https://googlechrome.github.io/samples/service-worker/window-caches/index.html)
+
+6. ...
+
+
+### 注意事项
+
+- 对于 Fetch API，请求默认不会包含 Cookie 等凭据。
+
+  如果需要凭据，请使用以下参数获取 URL：
+
+  ```javascript
+  fetch(url, {
+    credentials: 'include'
+  })
+  ```
+
+- 缓存不支持跨源请求。
+
+  - 如果目标资源支持 CORS，请使用参数 `{mode: 'cors'}`。
+
+  - 如果目标资源不支持 CORS 或情况未知，可以使用 `non-cors` 绕过。
+
+    但这会产生“opaque”（不透明）响应，无法判断响应是否成功。
+
+    ```javascript
+    cache.addAll(urlsToPrefetch.map(function(urlToPrefetch) {
+      return new Request(urlToPrefetch, { mode: 'no-cors' });
+    })).then(function() {
+      console.log('All resources have been fetched and cached.');
+    });
+    ```
+
+- 离线 Fetch 尚不支持 HTTP 30X 状态重定向，这是一个[已知问题](https://github.com/w3c/ServiceWorker/issues/1457)。
+
+  在离线重定向问题得到解决前，建议根据具体场景寻找变通方案。
+
+- 代理响应时，记得[克隆](https://fetch.spec.whatwg.org/#dom-response-clone)响应，而不要直接消费。因为响应是一个 [Stream](https://streams.spec.whatwg.org/)，其 body 只能消费一次。既要把响应返回给浏览器，也要交给缓存使用，因此必须克隆它，分别发送给浏览器和缓存。
+
+---
+
+### 参考资料
+
+- 在线演示
+
+  https://github.com/GoogleChrome/samples/tree/gh-pages/service-worker
+
+- Service Worker 简介
+
+  https://developers.google.com/web/fundamentals/primers/service-workers
+
+- Service Worker API - MDN
+
+  https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+
+- 官方规范
+
+  https://w3c.github.io/ServiceWorker/
+
+- Service Worker 资源
+
+  https://jakearchibald.github.io/isserviceworkerready/resources.html#moar

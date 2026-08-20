@@ -1,0 +1,720 @@
+---
+title: TypeScript 类型系统技巧
+date: '2019-03-16'
+tags: ['TypeScript', 'Program', 'Tricks', 'Learning', 'Type theory']
+draft: false
+summary: TypeScript 拥有非常强大的类型系统。掌握类型工具可以提升编码能力，构建更可靠的应用。
+locale: zh-CN
+translationKey: typescript-tricks
+translationKind: ai-translation
+translationSourceLocale: en
+---
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+# 类型系统
+
+
+- [类型系统](#type-system)
+    - [类型推断](#infer)
+    - [类型构造器 / 类型工具](#type-constructor--type-utilities)
+      - [内置工具类型](#built-in-utilities-types)
+      - [第三方扩展类型工具库](#third-party-extended-type-utility-lib)
+      - [实用的自定义类型](#custom-useful-types)
+    - [协变与逆变](#covariance--contravariance-协变与逆变)
+      - [1. Java 问题](#1-a-java-problem)
+      - [2. 协变、逆变、双变与不变](#2-covariant-contravariant-bivariant-and-invariant)
+      - [3. 数组中的协变](#3-covariance-in-arrays)
+      - [4. 函数类型中的协变](#4-covariance-in-function-typing)
+      - [5. 继承中的协变](#5-covariance-in-inheritance)
+      - [6. 泛型中的协变](#6-covariance-in-generic)
+        - [声明处变性标注](#declaration-site-variance-annotations)
+        - [使用处变性标注](#use-site-variance-annotations)
+      - [7. 示例](#7-samples)
+    - [技巧](#tricks)
+      - [带有多余属性的接口](#interfaces-with-excess-properties)
+      - [类（名义类型）](#classes-nominal-typing)
+      - [判别联合类型](#discriminated-unions)
+    - [参考资料](#references)
+
+
+
+TypeScript 拥有极其强大而精巧的类型系统。让我们善用类型工具，充分发挥它的能力。
+
+---
+
+### Infer（类型推断）
+`infer` 关键字是构建类型时最强大的工具之一，可以从嵌套类型中提取任意类型。
+
+例如，提取函数参数的类型列表
+```typescript
+type Param<T extends (...args: any[]) => any> =
+  T extends (...args: infer A)  => any
+  ? A
+  : never
+
+const foo = (a: number, b: string) => true
+const bar = (a: boolean, b: number, c: number) => false
+type t1 = Param<typeof foo>   // [number, string]
+type t2 = Param<typeof bar>   // [boolean, number, number]
+```
+
+<br/>
+
+---
+
+### 类型构造器 / 类型工具
+
+TypeScript 允许基于旧类型构建新类型，并通过类型推断从已有类型生成类型。
+
+这在[类型理论](https://en.wikipedia.org/wiki/Type_theory)中被称为[类型构造器](https://en.wikipedia.org/wiki/Type_constructor)。
+
+类型构造器非常有用，可以借助类型工具构建更强大、更可靠的类型。
+
+#### 内置工具类型
+
+TypeScript 包含多个实用的类型工具：
+
+请参阅[官方工具类型](https://www.typescriptlang.org/docs/handbook/utility-types.html)。
+
+下面是一些非常实用的类型：
+
+- **Partial\<T\>**
+
+  假设 `T` = \{ a: string, b: number \} 是包含多个参数的接口，我们希望构建一个所有属性都可选的类型。
+
+  因此得到 `Partial<T>` = \{ a?: string, b?: number \}
+
+- **Required\<T\>**
+
+  与 `Partial` 相反。
+
+- **Pick\<T, K\>**
+
+  假设 `T` = \{ a: string, b: number， c: boolean[] \}，只从中挑选部分属性。
+
+  可以得到 `Pick<T, 'c'>` = \{ c: boolean \}，
+               或者 `Pick<T, 'a', 'b'>` = \{ a: string, b: number \}
+
+- **ReturnType\<T\>**
+
+  获取函数或 lambda 类型的返回类型。
+
+  假设 `T` = (...args: any[]) => \{ foo: number, bar: string \}，
+
+  则 `ReturnType<T>` = \{ foo: number, bar: string \}
+
+- 等等。
+
+#### 第三方扩展类型工具库
+
+- [utility-types](https://github.com/piotrwitek/utility-types)
+
+  一些非常实用的类型工具，其中部分如今已成为 TypeScript 内置工具。
+
+  尤其是一些 [Flow 工具类型](https://github.com/piotrwitek/utility-types#flows-utility-types-1)，它们将 [Flow](https://flow.org/en/docs/types/utilities/) 中的实用功能带了过来。
+
+
+#### 实用的自定义类型
+
+借助 `typeof`、`keyof`、`infer` 等关键字，我们几乎可以从已有类型扩展、派生出任意类型。
+
+在具体场景中，可以定义自定义类型来解决问题：
+
+- React.js
+
+  TypeScript 有助于为 React 正确标注 props 类型。
+
+  - **PropType&lt;T, K&gt;**
+
+    给定组件的 props 类型，获取某个属性的类型。（如果上层组件需要该属性，这会非常有用。）
+
+    ```typescript
+      /** Given a object type, and a property name, get the type of that object property
+       *  Example:
+       *    type Foo = { a: number, b: { x: string[], y: (y: string) => boolean }, c: () => void }
+       *    type A = PropType<Foo, 'a'>                   // number
+       *    type B = PropType<Foo, 'b'>                   // { x: string[], y: (y: string) => boolean }
+       *    type C = PropType<Foo, 'c'>                   // () => void
+       *    type Bx = PropType<PropType<Foo, 'b'>, 'x'>   // string[]
+       *    type By = PropType<PropType<Foo, 'b'>, 'y'>   // (y: string) => boolean
+       */
+      export type PropType<TObj, TProp extends keyof TObj> = TObj[TProp]
+    ```
+
+  - **ReactFCPropsType&lt;T, K&gt;**
+
+    给定第三方 React 组件库，如果库没有导出组件 props 类型但我们确实需要它，可能会遇到问题。
+
+    在代码中为第三方 props 手动定义类型，库更新接口时可能产生兼容性问题。我们可以直接推断类型，以便编译时发现类型不匹配。
+
+    ```typescript
+      /** Given a type of React function component, get the type of the props of it.
+       *  It could be used if some 3rd party component does not externally export the props type, but we need it.
+       *  (Use `typeof` to assign the type of React.FC component as generic parameter)
+       *  Example:
+       *    ```
+       *      import { Tree, Button } from 'antd'
+       *
+       *      type TreeProps = ReactFCPropsType<typeof Tree>      // The type of the props required by Tree
+       *      type ButtonProps = ReactFCPropsType<typeof Button>  // The type of the props required by Button
+       *    ```
+       */
+      export type ReactFCPropsType<TReactFC> = TReactFC extends (props: infer U, ...args: any[]) => any
+        ? U
+        : never
+    ```
+
+<br/>
+
+---
+
+### 协变与逆变
+
+[协变与逆变](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science))描述编程语言中的[子类型](https://en.wikipedia.org/wiki/Subtyping)如何工作。
+
+#### 1. Java 问题
+
+请看下面的示例：
+
+- 能否编译？
+- 能否运行？
+- 哪一行会报告错误？
+- 哪一行报告错误更合适？
+
+```java
+    public static void f() {
+        String[] a = new String[2];
+        Object[] b = a;
+        a[0] = "hi";
+        b[1] = Integer.valueOf(42);
+    }
+```
+
+<details>
+  <summary>答案</summary>
+
+  ```java
+    public static void f() {
+        String[] a = new String[2];
+        Object[] b = a;
+        a[0] = "hi";
+        b[1] = Integer.valueOf(42);  // <--- Runtime exception: java.lang.ArrayStoreException
+    }
+  ```
+</details>
+
+<details>
+  <summary>为什么不这样做？</summary>
+
+  ```java
+    public static void f() {
+        String[] a = new String[2];
+        Object[] b = a;  // ~~~~~~~ Compile error: "a": String[] could not be assigned to "b": Object[]
+        a[0] = "hi";
+        b[1] = Integer.valueOf(42);
+    }
+  ```
+</details>
+
+<details>
+  <summary>这里是 Object 数组，为什么 Object 是正确的？</summary>
+
+  ```java
+    public static void f() {
+        String a = new String();
+        Object b = a;  // Typical polymorphism
+        a = "hi";
+        b = Integer.valueOf(42);  // Awesome!
+    }
+  ```
+
+  有什么区别？
+
+  - 数组包含多个值？
+  - `b[0]` 和 `b[1]` 不能拥有不同类型？
+  - 我们说“String[] 不应赋给 Object[]”，为什么“将 String 赋给 Object”却是面向对象的核心？
+
+</details>
+
+<details>
+  <summary>答案</summary>
+
+  - 在面向对象中，String 通常被视为 Object 的子类型。
+  - 将子类型赋给超类型总是正确的。
+  - <u>***但请注意！String[] 并不是 Object[] 的子类型！***</u>
+
+
+</details>
+
+总之，只要知道 A 是 B 的子类型，无论 T 如何定义，都可以说 T[A] 是 T[B] 的子类型。
+
+<br/>
+
+#### 2. 协变、逆变、双变与不变
+
+[协变与逆变](https://en.wikipedia.org/wiki/Covariance_and_contravariance_(computer_science))描述类型计算后的类型关系。
+
+- 在 TypeScript 中，我们使用 `type` 关键字和泛型从已有类型构造新类型，这称为**类型构造器**。
+
+  例如：`type C<T> = T[]`
+
+  这只发生在编译时，在 JavaScript 运行时会完全消失。
+
+  我们说类型 `C` 定义了从 **T** 到 **C&lt;T&gt;** 的集合映射。
+
+- 这种类型映射或构造 `C` 之间的子类型关系称为“***变性***”。
+
+  给定集合 `A` 是 `B` 的子类型/子集，在数学中记作 `A ⊆ B`：
+
+  变性描述映射集合 `C<A>` 与 `C<B>` 之间的关系。
+
+  数学中使用 `⊆`、`⊇` 表示子集/超集关系；计算机科学中使用 `<:` 表示[子类型](https://en.wikipedia.org/wiki/Subtyping)。
+
+  - 协变（Covariance）
+
+    保持子集关系。
+
+    `A <: B` => `C<A> <: C<B>`
+
+  - 逆变（Contravariance）
+
+    反转关系，原来的子集被构造成超集。
+
+    `A <: B` => `C<A> :> C<B>`
+
+  - 双变（Bivariance）
+
+    两种关系同时适用。
+
+    `A <: B` => `C<A> <: C<B>` AND `C<A> :> C<B>`
+
+  - 不变（Invariance）
+
+    映射后不再具有变性。
+
+    `A <: B` => `C<A> ⊄ C<B>` AND `C<B> ⊄ C<A>`
+
+
+<br/>
+
+#### 3. 数组中的协变
+
+回到上面的问题：为什么 `String[]` 不是 `Object[]` 的子类型？
+
+1. 是协变、逆变还是不变？
+2. 在 Java 中这是协变：允许将 `String[]` 赋给 `Object[]`。
+
+   但显然，当数组可写时这样做并不正确。
+
+3. 如果数组是只读的，那么协变就是正确的。
+
+   ```Java
+   /* readonly*/ Object[] a = new String[] {"foo", "bar", "test"};
+   System.out.println(a[0], a[1], a[2]);
+   ```
+
+<details>
+  <summary>答案</summary>
+
+  - 可读写数组应当是***不变（INVARIANT）***的。
+
+    这就是为什么 `String[]` 不是 `Object[]` 的子类型。
+
+  - 只读数组是**协变（covariant）**的。
+
+    相反，可以说 `readonly String[]` 是 `readonly Object[]` 的子类型。
+
+</details>
+
+<details>
+  <summary>扩展</summary>
+
+  - 这就是 Java（以及 C#）中典型的静态类型问题。
+  - 猜猜为什么？
+
+    <details>
+    <summary>根本原因</summary>
+
+      - 没错，是**泛型（GENERICS）**。早期的 Java 和 C# 不支持泛型。
+
+        它们使用父类型（类似泛型边界）来让函数接受更通用的类型。
+
+      ```Java
+          boolean equalArrays (Object[] a1, Object[] a2); // equal function should be readonly, which is safe.
+          void shuffleArray(Object[] a);
+      ```
+      - 它应当这样定义。
+
+      ```Java
+          <T extends Comparable<T>> boolean equalArrays (T[] a1, T[] a2);
+          <T> void shuffleArray(T[] a);
+      ```
+
+      - 如今，这项历史遗留特性已经成了负担。
+
+        使用时必须确认数组是否可写，以避免运行时错误。
+
+        或者改用不可变/只读数组，而不是原始对象数组。（当然，在 Java/C# 引入原生不可变数据类型之前，这会带来额外开销。）
+
+       在 C# 中：
+
+        ```cs
+        IEnumerable<object> // replace "object[]"
+        ```
+
+       在 Java 中：
+
+        ```Java
+        List<Object> items = Collections.unmodifiableList(Arrays.asList("a", "b", "c"));
+        ```
+
+    </details>
+</details>
+
+
+
+<br/>
+
+#### 4. 函数类型中的协变
+
+函数类型的正确行为是：
+- 返回类型是协变的。
+
+  给定 `A` &lt;: `B`，有 `() => A ` &lt;: ` () => B`。
+
+- 参数类型是逆变的。
+
+  给定 `A` &lt;: `B`，有 `(a: A) => void ` :&gt; ` (b: B) => void`。
+
+- 上述规则共同生效。
+
+  给定 `A` &lt;: `B` 且 `C` &lt;: `D`，
+
+  有 `(b: B) => C ` :&gt; ` (a: A) => D`。
+
+
+参见函数类型[示例](https://www.typescriptlang.org/play?ssl=36&ssc=13&pln=36&pc=18#code/PTAEFEA8EMFsAcA2BTUBaUArAltAXgBYCuAUCKAMID2AdgC4BO0AbtA7vaNDQCaVWt23OiTJgACimgBnVAGNE2OQGtQAImo0AZtgDma0HSqgiNOQWQrDF9dMZK6AMVNy62WgBUAnvGTSDRqCyqHQ2AO5sNNg0utJcutDRAHSi0XTIDFrQcqgAglGw0IigAN4koBWgFnoEdABcoDREsABGGSQAvqn0GVk5oAAiVLqgyJDpvHH52IXFZZWgLWzKDQAUAJSgALwAfKDMVNg8nd3pmdmoAOIMyF4EVKZ8YxM8cUMj85VaVFRrm7v7Q7HLokNK9C6gAASRGkyi8o3GyEmg2GpXKlSWDD+2z2ByOJ1E5C0LjctFAAAMtOTQIV4TDUNBQDxsFotBkkXRDD4GTQaFQ6NBSTR1NDYV4DGECEoCDToPCWjdoKpQqhBBwRHJaHZQFptqBViM1jxhg13v89maGk1WhkcWiFpqaNriGK9SUOlw4qK4eiKjc6EQGMLdKsXXD1klqrpagSSI7tboAIx60MPXgNa63e6PdYZm53NN8AElUD+wPCktR2oNRMABlAHpkoEzBceDdE8c5ugATCns+nm-n+zxc6BprM7SWy0HSlVkDV6qA6w3PWOCkV23GtV2AMwp7gzIoNcdFUcn4rF0vIAMzyvz6OL5eNqbr4ogzugXQAFn3r+Pr9HFth0nK8bwrOcFxretn0HLNC03EgtANRNNlAcgAA1RCQntUIwrCDR3XCwEwxCDS-IjQEALCISCAA)，以及 [React FC 示例](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/TypeScript/type_system.md#7-samples)。
+
+TS 配置项 `strictFunctionType` 控制函数参数按协变还是逆变处理。
+
+<br/>
+
+#### 5. 继承中的协变
+
+在面向对象语言（cpp、Java、C# 等）中，**OVERRIDE** 是子类实现与父类不同方法的关键概念。
+
+我们知道重写应保持相同的方法签名，但某些语言也允许**协变**。
+
+- 协变的方法返回类型
+
+  在函数部分我们已经知道，返回类型是协变的（给定 `A` &lt;: `B`，则有 `() => A ` &lt;: ` () => B`。）
+
+  在继承中，使用子类型方法重写方法属于继承中的协变。（Java 和 C++ 支持这一点，C# 不支持。）
+
+  ```Java
+    class Animal {
+      Animal getAnimal() {
+        // ...
+      }
+    }
+
+    // Child class
+    class Cat extends Animal {
+      @overrides
+      Cat getAnimal() {
+        ...
+      }
+    }
+  ```
+
+- 逆变的方法参数类型
+
+  与上一节类似，我们可以推测，方法参数类型的逆变同样是一种类型安全的重写。
+
+  **是的，它是类型安全的。**
+
+  但很少有语言实现这一点。😅
+
+  在 Java、C++ 和 C# 中，它会被视为重载，而不是重写。
+
+    ```Java
+    class Animal {
+      void setAnimal(Animal a) {
+        // ...
+      }
+    }
+
+    // Child class
+    class Cat extends Animal {
+      // It's still correct. But it's not overriding. It's a overloading in Java.
+      // This method could not be hit by a call of "cat.setAnimal(animal)" unless `animal` is not an instance of Animal.
+      void setAnimal(Object a) {
+        // ...
+      }
+    }
+  ```
+
+
+<br/>
+
+#### 6. 泛型中的协变
+
+泛型类型主要有两种处理方式：
+
+- 声明处变性标注（C#）
+- 使用处变性标注（Java）
+
+由以上各节可知：
+
+1) 输入参数类型的泛型应该是协变的。
+2) 输出参数类型的泛型应该是逆变的。
+
+##### 声明处变性标注
+
+C# 使用 `in`（协变）和 `out`（逆变）关键字标记类型。
+```cs
+interface IEnumerator<out T>
+{
+    T Current { get; }
+    bool MoveNext();
+}
+```
+如果将 `out T` 用作输入参数类型，声明接口时会报告错误。
+
+Scala 使用 `+`（协变）和 `-`（逆变）作为关键字。
+
+```scala
+sealed abstract class List[+A] extends AbstractSeq[A] {
+    def head: A
+    def tail: List[A]
+
+    /** Adds an element at the beginning of this list. */
+    def ::[B >: A] (x: B): List[B] =
+        new scala.collection.immutable.::(x, this)
+    /** ... */
+}
+```
+
+##### 使用处变性标注
+
+泛型类型实例化时会检查变性。
+
+给定 `type A<T> = T`，当 `Test` 不满足 `T` 的要求而实例化 `A<Test>` 时应报告错误。
+
+一种典型实现是“**上界/下界约束**”。
+
+1. 在 Java 中
+
+   Java 中有 `extends` 和 `super` 这两个边界描述符。
+
+   ```Java
+   // Lower bounds is very common in the languages support generic
+   List<? extends Animal>
+   // Upper bounds is not common, Java uses "super" keyword
+   List<? super Animal>
+   ```
+
+2. 在 TypeScript 中
+
+   截至目前，TypeScript 尚不支持泛型上界约束。相关开放问题见：[TypeScript#9252](https://github.com/microsoft/TypeScript/issues/9252)
+
+   不过，借助现有的 TS 类型工具，可以通过 `Partial<T>` 等方式绕过并支持上界。
+
+
+   请参阅[这里](https://github.com/Microsoft/TypeScript/issues/4889#issuecomment-200388292)讨论的案例，思考一下：
+
+   `Partial<T>` 是否等价于 `<S super T>`？
+
+<br/>
+
+#### 7. 示例
+
+- 在 React 组件中
+  推荐使用 React 函数组件。应理解 React props 的变性，以避免不必要的问题。
+
+  请看下面的实际示例：问题在哪里？
+  ```typescript
+  // React component definition:
+  type Elem = {
+    id: string;
+  }
+  type Props = {
+      elem: Elem;
+      generate: () => Elem;
+      onClick: (elem: Elem) => void;
+  }
+
+  // React FC
+  const MyComp: React.FC<Props> = (props: Props) => {
+    const { elem, onClick, }
+    const guiElement = {
+      ...elem,
+      // Extended GUI properties
+      name: `element - ${elem.id}`,
+      desc: `description for - ${elem.id}`,
+    }
+
+    // Event handler callback
+    const clickHandler = React.useCallback((_e) => {
+      console.log(generate())
+      onClick(guiElement)
+    }, [])
+
+    return <button onClick={clickHandler}>
+      {guiElement.id}
+    </button>
+  }
+
+  ```
+
+  ```typescript
+  // Use the above component
+  const customElem = {
+    id: '0hd3ga1fa3h2664g',
+    count: 99,
+    name: 'bar',
+  }
+
+  const g = () => customElem
+
+  const cb = (e: typeof customElem) => {
+    alert((e as any).name)     // ?
+    alert(JSON.stringify(e))   // ?
+    alert(e.name.split(' '))   // ?
+  }
+
+  ReactDOM.render(<MyComp
+    elem={customElem} // is this correct?
+    generate={g}      // is this correct?
+    onClick={cb}      // is this correct?
+  />)
+  ```
+
+  简化示例见：
+
+  [在 playground 中查看示例](https://www.typescriptlang.org/play?noUncheckedIndexedAccess=true&downlevelIteration=true&noUnusedLocals=true&noUnusedParameters=true&importHelpers=true#code/PTAEBEFMDMEsDtYBdYHt4CgFMgJ2gIYDGkoAogDaQC2oA3hqE6LACYBcoAzkrggOYBuDAF8s8HPmKkAwgFceqapRqhIADxzxWXclVoNmoeAWqROPPvCGjxkwiVABxObBW0NWnXtWHmrSC4iC14BYTEMInQeUAAlSGIkGSUAB1AAXlAACkZmSH1OdwAaUFymfkh4PAIcTiyASgyAPh9qIrLQIgAjOvyaQv1G9JaAN1Q2dqGWvyYo+Bj+V3cM0Aqq3BrIBo65rlQqADoKVH4sxbdBna6svup62wwMEFAAVS4CCsjopDUC0HlFMp9CsZiwOKAAOQARhhUIh7SMJjMnAhACZ0ej4Q9dj90DIABYEazmJg3P4uC40KagMZsRiZMn9ZxLQbNeg7aL7SBHE5ZCEtABWe3gKJKACkAMoAeQAcgdLAJYNAAJ6Mu73IzPAAqqFAXVwCQA1qAkPjYLoAO74yqdY5cAQm62gAAGCqISAAYnJ4O60PAtcqUpBnZ1rURDRz5lyeadbgcAkEDqFqA17hEcatKtVatlqRTlhgGdTQc8nFmNjhQARnC8AJK-GiVJAdA1IOS4eDsoxGNgoghdIhY7v+QLBSFzLRIIfMMQRZ7xACOrgNoAARMVh6TqRujGqBlSjMMaeNWKunmAnLARjamKuAUglDuGmz8-oStlbpxXwej7TT+fQAAWlAABBLh7X4Ts7wUB8gRoVdN03B813cBDEMQ81OlQXADXdA4AOAsCIKg58j2-ag0PQ5DV1IlpUPQphMKiHDIDwgjQPA2BILXPdmUpO42T-BDqN49xqSElhLVwdB+Hw+JEmSagUjVEo1mzSASjxQliXuIA)
+
+- 在 TypeScript 中将子联合类型作为 React props
+  假设 React 组件要求联合类型 A | B | C 的 prop，而使用者传入更窄的联合类型 A | C。
+  这样安全吗？
+
+  ```typescript
+  type Props = { bar: A | B | C }
+  const Foo: React.FC<Props> = (props) => {
+    // ... do with props.bar
+  }
+
+  // use case:
+  type TestType = A | C
+  const myBar: TestType
+
+  render(<Foo bar={myBar} />) // ?? Type safe
+
+  ```
+
+- 请记住，运行时特性会破坏静态类型信息。
+
+  例如 **反射** 会让类型推断在反射开始处丢失。
+
+  反射是 Java 和 C# 中的概念。在动态语言中，它通常自然地用于字面对象。
+
+  例如 `for (const key in obj) ...`
+
+  它非常有用，但确实是运行时特性，会严重破坏静态类型系统。请在理解其影响的地方使用，并谨慎处理类型。
+
+  示例：
+  ```typescript
+  // Base type
+  type Base = {
+    id: string;
+    name: string;
+  }
+
+  // literal object derives the `Base`
+  const obj: Base = {
+    id:       'abc',
+    name:     'test',
+    category: 'foo',
+    item:     'bar',
+  }
+
+  // JSON stringify method will iterate the runtime instance of `obj`, instead of the part of `Base`
+  const json = JSON.stringify(obj)
+  // JSON.parse is also runtime method, which makes us lost typing information.
+  const restored = JSON.parse(json) /* as Base  */
+  ```
+
+
+### 技巧
+
+#### 带有多余属性的接口
+
+由于 TS 使用结构化子类型系统，TypeScript 允许将 \{ size: number; label: string; \} 传给只需要 \{ label: string; \} 的对象。但***内联字面对象不允许这样做***。
+
+这是由[多余属性检查](https://www.typescriptlang.org/docs/handbook/interfaces.html#excess-property-checks)导致的。
+
+
+试试这个[示例](https://www.typescriptlang.org/play/index.html?ssl=21&ssc=3&pln=1&pc=1#code/JYOwLgpgTgZghgYwgAgCIHsDmyDeBYAKGWQCMoIIATALmQGcwpRNCBfZQwmAVxATGDoQyAA5NwGTAApKWWpICUuQsWIIhddABsIAOi1YpAIkm0jyANTJZmXWQqUFbTgXUgGyTM2jIAvMqJVeyozAEFgcko4HSMAGhVVOEwIWgBmZwJCAHos5ABlbgQkOjpaAGForWQAd2AwAAtkOGEANzgmOBIdJpLgTBAqHuQtOuho5HQSACsIfkIxUDBJKS8QZKgnTIIc5AAxOGAtcsqausbQEYHh0ahxyZm5ggWJQ3xA4mCaZCNwyOiIOIJYhJFLIdIEVgKIA)
+
+#### 类（名义类型）
+
+这同样由结构化类型导致。如果类 A 和类 B 具有相同成员，那么要求 A 实例的函数也会接受 B 作为合法参数。
+
+试试这个[示例](https://www.typescriptlang.org/play/index.html#code/MYGwhgzhAEAiD2BzaBvAUNT0BGAnApvgCYBc0EALrgJYB2iGWw8tluArsBfLgBR6FS5KnUQBKVIyxYKAC2oQAdAOLQAvDgLEp0AL5p9aAGbtaXai2gAHGrQoJEvIkjIOJ6ac1bwQ+RSCReACIHMiDoAGpoZ0RlLSIxAzQ0UEgYAGEwCklpFSE2UR0vNk5uPjyyAvp3HWk5BTjBdU1BHX1DYuyIWUgKMGbafAB3aEyKYIBZMDp8UfgWIMSAeiXoAGV2GwVREABPABpoAAMtuwcj6DAQCHhL4GB8KwoYfuAs6DpKMDN8NFP7QLdXpgMRAA)
+
+
+#### 判别联合类型
+
+TypeScript 提供了判别联合类型这一特性。根据文档，判别联合类型有两个要求：
+
+- 具有公共单例类型属性的类型——判别属性。
+- 取这些类型并集的类型别名——联合类型。
+
+也就是说：
+```
+interface Dog {
+    kind: "dog"
+    bark: string
+}
+
+interface Cat {
+    kind: "cat"
+    meow: string
+}
+
+type Animal = Cat | Dog
+```
+
+类型 `Animal` 应包含 **`kind`** 属性。
+
+
+但如果公共属性是嵌套对象，则无法正常工作，例如：
+
+```
+interface Dog {
+    taxonomy: {
+        species: "Canis familiaris"
+    }
+    bark: string
+}
+
+interface Cat {
+    taxonomy: {
+        species: "Felis catus"
+    }
+    meow: string
+}
+```
+
+试试这个[示例](https://www.typescriptlang.org/play/index.html#code/JYOwLgpgTgZghgYwgAgCIHsDmyDeAoZQ5MOAD3RHQFsBPALlwKOYGcAHCBYCFhgIgDCcEMBbJ4VYABtgcKKL5NCAXyXIARnIDWDFmHkhMeVXlCRYiFELCNmJcpVoN8zVhy49+AMQgyxCODAAVxZFZlVmKgh0AHddfVAjEzAaDmQAQREqOClkAF5ka2QAHzQsPDwYIJAEMGAKZGFgbKkAOXRRCAAKJpaGTOacgEp4g2wXImAYZB6snIA6ewpqGnn2Tm4xPILBJrEJaVl5UKHbV0IoCGCoEEa5qXnNKC01ZWRfFhQJ88vr296FlFYq9jEA)
+
+
+
+
+### 参考资料
+
+- [TypeScript 的怪癖：不一致性如何让语言变得更复杂](https://blog.asana.com/2020/01/typescript-quirks/)
+- [Alohayo.zone.io 的类型系统](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/TypeScript/type_system.md)
+- [Alohayo.zone.io 的技巧](https://github.com/GarfieldZHU/Aloha.zone.io/blob/master/TypeScript/tricks.md)
+- [TypeScript 练习](https://exercism.io/my/tracks/typescript)
+- [精彩的 TypeScript 中文资料目录](https://github.com/zhongsp/TypeScript)
