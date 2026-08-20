@@ -12,8 +12,10 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@duckdb/duckdb-wasm": "^1.33.1-dev57.0",
     "@headlessui/react": "2.2.9",
     "@next/bundle-analyzer": "15.5.12",
+    "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
     "@tailwindcss/forms": "^0.5.11",
     "@tailwindcss/postcss": "^4.1.18",
     "@tailwindcss/typography": "^0.5.19",

@@ -8,6 +8,7 @@ import { NeonFlicker } from './NeonFlicker'
 import { HoverImageTooltip } from './HoverImageTooltip'
 import { GamingPlatforms } from './GamingPlatforms'
 import { AboutSectionLabel } from './AboutSectionLabel'
+import { DuckDbBenchmarkDemo } from './duckdb-demo/DuckDbBenchmarkDemo'
 
 export const components: MDXComponents = {
   Image,
@@ -19,4 +20,5 @@ export const components: MDXComponents = {
   HoverImageTooltip,
   GamingPlatforms,
   AboutSectionLabel,
+  DuckDbBenchmarkDemo,
 }
