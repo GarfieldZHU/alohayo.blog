@@ -8,6 +8,8 @@ import Link from '@/components/Link'
 import Tag from '@/components/Tag'
 import siteMetadata from '@/data/siteMetadata'
 import { getMessages, type LocaleCode } from '@/lib/i18n'
+import TranslationLabel from '@/components/TranslationLabel'
+import { getTranslationSourceLocale, isAiTranslatedBlog } from '@/lib/blogI18n'
 
 interface PaginationProps {
   totalPages: number
@@ -114,6 +116,9 @@ export default function ListLayout({
           {!filteredBlogPosts.length && messages.blog.noPosts}
           {displayPosts.map((post) => {
             const { path, date, title: postTitle, summary, tags } = post
+            const translationSourceLocale = isAiTranslatedBlog(post)
+              ? getTranslationSourceLocale(post)
+              : undefined
             return (
               <li key={path} className="py-4">
                 <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
@@ -135,6 +140,15 @@ export default function ListLayout({
                           {postTitle}
                         </Link>
                       </h3>
+                      {translationSourceLocale && (
+                        <div className="mt-2">
+                          <TranslationLabel
+                            locale={locale}
+                            sourceLocale={translationSourceLocale}
+                            variant="compact"
+                          />
+                        </div>
+                      )}
                       <div className="flex flex-wrap">
                         {tags?.map((tag) => (
                           <Tag key={tag} text={tag} locale={locale} />

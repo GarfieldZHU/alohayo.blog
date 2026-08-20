@@ -1,6 +1,7 @@
 import Link from '@/components/Link'
 import { getMessages, type LocaleCode } from '@/lib/i18n'
 import type { TranslationSource } from '@/lib/blogI18n'
+import TranslationLabel from './TranslationLabel'
 
 interface TranslationNoticeProps {
   locale: LocaleCode
@@ -23,7 +24,7 @@ export default function TranslationNotice({ locale, source }: TranslationNoticeP
       role="note"
       aria-label={`${label}. ${originalLink}`}
     >
-      <span>{label}</span>
+      <TranslationLabel locale={locale} sourceLocale={source.locale} />
       <span aria-hidden="true">·</span>
       <Link
         href={source.href}

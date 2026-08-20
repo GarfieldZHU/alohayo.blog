@@ -5,6 +5,8 @@ import { formatDate } from 'pliny/utils/formatDate'
 import NewsletterForm from 'pliny/ui/NewsletterForm'
 import HomeTerminal from '@/components/HomeTerminal'
 import { getMessages, type LocaleCode } from '@/lib/i18n'
+import TranslationLabel from '@/components/TranslationLabel'
+import { getTranslationSourceLocale, isAiTranslatedBlog } from '@/lib/blogI18n'
 
 const MAX_DISPLAY = 5
 
@@ -14,6 +16,9 @@ interface HomePost {
   title: string
   summary?: string
   tags: string[]
+  localizedSlug?: string
+  translationKind?: string
+  translationSourceLocale?: string
 }
 
 export default function Home({ posts, locale = 'en' }: { posts: HomePost[]; locale?: LocaleCode }) {
@@ -35,7 +40,12 @@ export default function Home({ posts, locale = 'en' }: { posts: HomePost[]; loca
         <ul className="divide-y divide-gray-200 dark:divide-gray-700">
           {!posts.length && messages.home.noPosts}
           {posts.slice(0, MAX_DISPLAY).map((post) => {
-            const { slug, date, title, summary, tags } = post
+            const { slug, date, title, summary, tags, localizedSlug } = post
+            const postSlug = locale === 'zh-CN' ? localizedSlug || slug : slug
+            const postHref = `${prefix}/blog/${postSlug}`
+            const translationSourceLocale = isAiTranslatedBlog(post)
+              ? getTranslationSourceLocale(post)
+              : undefined
             return (
               <li key={slug} className="py-12">
                 <article>
@@ -52,13 +62,19 @@ export default function Home({ posts, locale = 'en' }: { posts: HomePost[]; loca
                       <div className="space-y-6">
                         <div>
                           <h2 className="text-2xl leading-8 font-bold tracking-tight">
-                            <Link
-                              href={`${prefix}/blog/${slug}`}
-                              className="text-gray-900 dark:text-gray-100"
-                            >
+                            <Link href={postHref} className="text-gray-900 dark:text-gray-100">
                               {title}
                             </Link>
                           </h2>
+                          {translationSourceLocale && (
+                            <div className="mt-2">
+                              <TranslationLabel
+                                locale={locale}
+                                sourceLocale={translationSourceLocale}
+                                variant="compact"
+                              />
+                            </div>
+                          )}
                           <div className="flex flex-wrap">
                             {tags.map((tag) => (
                               <Tag key={tag} text={tag} locale={locale} />
@@ -71,7 +87,7 @@ export default function Home({ posts, locale = 'en' }: { posts: HomePost[]; loca
                       </div>
                       <div className="text-base leading-6 font-medium">
                         <Link
-                          href={`${prefix}/blog/${slug}`}
+                          href={postHref}
                           className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
                           aria-label={`${messages.home.readMore}: "${title}"`}
                         >

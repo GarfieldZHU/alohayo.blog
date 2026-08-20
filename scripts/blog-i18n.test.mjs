@@ -10,6 +10,7 @@ import {
   getBlogHref,
   getTranslationKey,
   getTranslationKind,
+  getTranslationSourceLocale,
   isAiTranslatedBlog,
   isBilingualBlog,
   isChineseBlog,
@@ -54,6 +55,7 @@ test('explicit translation metadata supports a Chinese original and an English A
   assert.equal(getBlogLocale(zhOriginal), 'zh-CN')
   assert.equal(getTranslationKey(enTranslation), 'webgpu')
   assert.equal(getTranslationKind(enTranslation), 'ai-translation')
+  assert.equal(getTranslationSourceLocale(enTranslation), 'zh-CN')
   assert.equal(isAiTranslatedBlog(enTranslation), true)
   assert.equal(getBlogHref(zhOriginal), '/zh-CN/blog/webgpu/')
   assert.equal(getBlogHref(enTranslation), '/blog/webgpu-in-english/')
@@ -68,6 +70,10 @@ test('bilingual and legacy posts never become AI translation notices', () => {
   assert.equal(isBilingualBlog({ slug: 'dual', translationKind: 'bilingual' }), true)
   assert.equal(isAiTranslatedBlog({ slug: 'dual', translationKind: 'bilingual' }), false)
   assert.equal(isAiTranslatedBlog({ slug: 'legacy_cn' }), false)
+  assert.equal(
+    getTranslationSourceLocale({ slug: 'dual', translationSourceLocale: 'fr' }),
+    undefined
+  )
   assert.equal(
     findTranslationSource([{ slug: 'dual', translationKind: 'bilingual' }], { slug: 'dual' }),
     undefined

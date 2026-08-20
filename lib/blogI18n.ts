@@ -46,6 +46,12 @@ export const isBilingualBlog = (post: BlogLike | undefined) =>
 
 export const isChineseBlog = (post: BlogLike | undefined) => getBlogLocale(post) === 'zh-CN'
 
+export const getTranslationSourceLocale = (post: BlogLike | undefined): LocaleCode | undefined => {
+  const sourceLocale = post?.translationSourceLocale
+  if (sourceLocale === 'en' || sourceLocale === 'zh-CN') return sourceLocale
+  return undefined
+}
+
 export const canonicalBlogs = <T extends BlogLike>(allBlogs: T[]) =>
   allBlogs.filter((post) => !isChineseBlog(post) && post.translationTest !== true)
 
@@ -78,8 +84,8 @@ export const findTranslation = <T extends BlogLike>(allBlogs: T[], post: T) => {
 
 export const findTranslationSource = <T extends BlogLike>(allBlogs: T[], post: T) => {
   if (!isAiTranslatedBlog(post)) return undefined
-  const sourceLocale = post.translationSourceLocale
-  if (sourceLocale !== 'en' && sourceLocale !== 'zh-CN') return undefined
+  const sourceLocale = getTranslationSourceLocale(post)
+  if (!sourceLocale) return undefined
   return allBlogs.find(
     (candidate) =>
       candidate !== post &&
