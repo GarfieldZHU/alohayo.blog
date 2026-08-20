@@ -1,6 +1,9 @@
+'use client'
+
 import Link from '@/components/Link'
 import { getMessages, type LocaleCode } from '@/lib/i18n'
 import type { TranslationSource } from '@/lib/blogI18n'
+import { useLocale } from './LocaleProvider'
 import TranslationLabel from './TranslationLabel'
 
 interface TranslationNoticeProps {
@@ -9,6 +12,7 @@ interface TranslationNoticeProps {
 }
 
 export default function TranslationNotice({ locale, source }: TranslationNoticeProps) {
+  const { setLocale } = useLocale()
   const messages = getMessages(locale)
   const fromChinese = source.locale === 'zh-CN'
   const label = fromChinese
@@ -28,6 +32,7 @@ export default function TranslationNotice({ locale, source }: TranslationNoticeP
       <span aria-hidden="true">·</span>
       <Link
         href={source.href}
+        onClick={() => setLocale(source.locale)}
         className="text-primary-500 decoration-primary-300 hover:text-primary-600 dark:text-primary-400 dark:decoration-primary-700 dark:hover:text-primary-300 underline underline-offset-2"
       >
         {originalLink}
