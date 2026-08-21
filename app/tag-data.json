@@ -15,7 +15,6 @@
   "display": 3,
   "screen": 1,
   "duckdb": 1,
-  "webassembly": 1,
   "wasm": 1,
   "parquet": 1,
   "analytics": 1,
