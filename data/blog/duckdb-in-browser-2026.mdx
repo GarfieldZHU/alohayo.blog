@@ -1,0 +1,127 @@
+---
+title: 'DuckDB-Wasm in the browser — I ran 100x faster than IndexedDB and it felt illegal'
+date: '2026-08-20'
+tags: ['DuckDB', 'WASM', 'Parquet', 'Analytics', 'Frontend', 'SQL']
+draft: false
+summary: 'I embedded DuckDB-Wasm, SQLite-Wasm and IndexedDB side by side in my blog and made them race on the same 50K-row dataset. DuckDB finished in 26ms. IndexedDB + manual JS aggregation took 2.8 seconds. Same data, same machine, ~105x apart. Here is the demo, the four traps I fell into (CSP, SSR Worker, Arrow API, sqlite API), and why the gap only gets wider as data grows.'
+---
+
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+_You can click the button below and watch it happen live. No server, no backend, your browser does all the work._
+
+---
+
+## The demo
+
+<DuckDbBenchmarkDemo />
+
+That's a real benchmark running in your browser right now. It generates **50,000 rows** of mock transaction data (deterministic seed, same data every run), loads the exact same dataset into three engines, and runs the same query — `SELECT region, product, SUM(amount) FROM trades GROUP BY region, product` — in each of them.
+
+On my Mac mini (M-series, Chrome): **DuckDB ~26ms, SQLite ~80ms, IndexedDB + JS ~2.8s.**
+
+That's **~105x** between DuckDB and the "native browser" approach. And the dataset is only 50K rows — tiny. The bigger the data, the wider the gap gets. That's not an accident; that's the difference between a columnar vectorized SQL engine and a `for` loop in JavaScript.
+
+---
+
+## Why IndexedDB lost (and it's not IndexedDB's fault)
+
+Let me be honest: IndexedDB is not a bad database. It's a great **transactional key-value store**. It's *not* an analytics engine — and nobody ever claimed it was. The problem is that if you want to aggregate a dataset in the browser, you have to:
+
+1. `getAll()` every single record out of IndexedDB into memory
+2. Write a JavaScript `Map`/`reduce` loop to group and sum
+3. Sort the results yourself
+
+That's a full scan + manual aggregation in a single-threaded JS context, row by row. On 50K rows it takes 2.8 seconds. On 1M rows it would take a minute. No `WHERE` pushdown, no columnar layout, no vectorization — just you and your `for` loop.
+
+SQLite-Wasm did better (~80ms) because it has a real SQL engine — but it's still **row-oriented**, which means `SUM(amount)` still touches every row's full record, not just the `amount` column.
+
+DuckDB is **columnar**. `SUM(amount) GROUP BY region, product` only reads the three columns it needs, in vectorized batches, with predicate pushdown. That's why it finishes before the other two have even loaded.
+
+---
+
+## What it took to make this work (the traps)
+
+Getting DuckDB-Wasm into a Next.js blog was *not* "npm install and done". Four real walls I hit:
+
+### 1. CSP hates CDN workers
+
+My blog has a strict Content Security Policy in `next.config.js`. The first version loaded DuckDB's worker from `cdn.jsdelivr.net`:
+
+```
+worker-src 'self' blob:
+```
+
+Chrome immediately blocked it:
+
+> Creating a worker from 'https://cdn.jsdelivr.net/...' violates the following Content Security Policy directive: "worker-src 'self' blob:"
+
+**Fix:** self-host the wasm binaries and worker scripts under `public/vendor/`. Now everything loads from the same origin, CSP stays strict, and there's no runtime dependency on a CDN. Win-win-win.
+
+### 2. SSR hates `Worker` (the one that cost me the most)
+
+`'use client'` in Next.js still gets **server-side prerendered** on first load. My first version had a static `import` of duckdb-wasm at the top of the file — and the build exploded with:
+
+> ReferenceError: Worker is not defined
+
+Because during SSG, the module actually executes in Node, where `new Worker(...)` doesn't exist. On top of that, the default package import also dragged the **Node build** (`duckdb-node.cjs`) into the webpack graph with a scary `Critical dependency` warning.
+
+**Fix:** import the browser bundle explicitly, and load it **dynamically** so it only runs in the browser when the user clicks:
+
+```ts
+// inside the benchmark function, NOT at module top level:
+const duckdb = await import('@duckdb/duckdb-wasm/dist/duckdb-browser.mjs')
+```
+
+Top-level `import * as duckdb from '@duckdb/duckdb-wasm'` is what breaks the build. Dynamic import inside the click handler is what saves it.
+
+### 3. Apache Arrow Table wants vectors, not objects
+
+DuckDB-Wasm ingests data as an **Arrow Table**. My first attempt passed a plain array of JS objects:
+
+```ts
+new arrow.Table(schema, rows) // TS error: expects RecordBatch[]
+```
+
+**Fix:** use `tableFromJSON`, which infers the schema for you:
+
+```ts
+const table = arrow.tableFromJSON(rows)
+```
+
+### 4. SQLite-Wasm's API is NOT sqlite3's C API
+
+I wrote `stmt.free()` because that's what sqlite3 C API has. At runtime:
+
+> TypeError: stmt.free is not a function
+
+The `@sqlite.org/sqlite-wasm` ESM wrapper's prepared statements use **`finalize()`**, not `free()`. One word, one wasted debug session.
+
+---
+
+## When is this actually the right architecture?
+
+The pattern — **ship the query engine with the app, keep the data local** — is not a gimmick. It's the architecture behind real tools:
+
+- **Observable / Evidence / Rill** — BI tools built on DuckDB-Wasm as their embedded engine
+- **GeoLibre** — a whole GIS stack running in the browser with DuckDB-Wasm Spatial
+- Server costs go to ~zero: the user's machine does the compute, your CDN only serves a few MB of wasm + Parquet
+
+It wins when your data is **modest-sized (≤ ~2GB), read-mostly, and privacy-sensitive**. It's wrong when you need concurrent writers, petabyte scale, or centralized governance — then keep your warehouse.
+
+My mental model, from the earlier DuckDB/Postgres/SQLite comparison:
+
+| Tool | What it is |
+|---|---|
+| Local files | just data |
+| SQLite | database for your app |
+| **DuckDB** | **SQL analytics over local data** |
+| PostgreSQL | shared DB server for many users |
+
+---
+
+## Try it
+
+The demo at the top of this post is live in your browser. Bump the row count to 200K or 1M and watch what happens — the ratio gets brutal. No backend was involved in producing those numbers.
+
+If you're building something that generates a lot of local data and needs to answer "so what?" questions about it, DuckDB-Wasm + Parquet is honestly the fastest path I've found. It feels a little illegal to get this much speed for free.

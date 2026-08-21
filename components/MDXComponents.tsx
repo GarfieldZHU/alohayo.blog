@@ -10,6 +10,7 @@ import HoverIframeTooltip from './HoverIframeTooltip'
 import { GamingPlatforms } from './GamingPlatforms'
 import { AboutSectionLabel } from './AboutSectionLabel'
 import WebGpuWasmPlayground from './WebGpuWasmPlayground'
+import { DuckDbBenchmarkDemo } from './duckdb-demo/DuckDbBenchmarkDemo'
 
 export const components: MDXComponents = {
   Image,
@@ -23,4 +24,5 @@ export const components: MDXComponents = {
   GamingPlatforms,
   AboutSectionLabel,
   WebGpuWasmPlayground,
+  DuckDbBenchmarkDemo,
 }
