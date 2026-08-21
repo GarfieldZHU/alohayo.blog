@@ -105,7 +105,7 @@ const COPY: Record<
   'zh-CN': {
     title: '⚡ 三引擎性能对比 Demo',
     introBeforeRows: '生成',
-    introAfterRows: '行确定性模拟交易数据，三个引擎同时起跑回答同一个分析问题（各自实现）：',
+    introAfterRows: '行确定性模拟交易数据，三个引擎轮流回答同一个分析问题（各自实现）：',
     datasetLabel: '数据量：',
     start: '▶ 开始跑分',
     warmingButton: '🔌 预热引擎…',
