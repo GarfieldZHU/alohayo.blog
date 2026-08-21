@@ -6,6 +6,7 @@ export interface EngineStatus {
   state: EngineState
   ms?: number
   error?: string
+  startedAt?: number
 }
 
 export interface BenchmarkState {
@@ -13,6 +14,7 @@ export interface BenchmarkState {
   phase: BenchmarkPhase
   results: Partial<Record<EngineKey, EngineStatus>>
   datasetReady: boolean
+  generationProgress: number
   elapsed: number
   startedAt?: number
 }
@@ -20,6 +22,7 @@ export interface BenchmarkState {
 export type BenchmarkAction =
   | { type: 'dataset-change'; rowCount: number }
   | { type: 'run-start' }
+  | { type: 'generation-progress'; progress: number }
   | { type: 'dataset-ready' }
   | { type: 'race-start'; startedAt: number }
   | { type: 'engine-running'; key: EngineKey }
@@ -36,6 +39,7 @@ export function createInitialBenchmarkState(rowCount: number): BenchmarkState {
     phase: 'idle',
     results: {},
     datasetReady: false,
+    generationProgress: 0,
     elapsed: 0,
   }
 }
@@ -66,21 +70,27 @@ export function reduceBenchmarkState(
         phase: 'warming',
         results: {},
         datasetReady: false,
+        generationProgress: 0,
         elapsed: 0,
         startedAt: undefined,
       }
+    case 'generation-progress':
+      return {
+        ...state,
+        generationProgress: Math.min(1, Math.max(0, action.progress)),
+      }
     case 'dataset-ready':
-      return { ...state, datasetReady: true }
+      return { ...state, datasetReady: true, generationProgress: 1 }
     case 'race-start':
       return {
         ...state,
         phase: 'racing',
-        results: Object.fromEntries(ENGINE_KEYS.map((key) => [key, { state: 'running' as const }])),
+        results: Object.fromEntries(ENGINE_KEYS.map((key) => [key, { state: 'idle' as const }])),
         elapsed: 0,
         startedAt: action.startedAt,
       }
     case 'engine-running':
-      return withEngineStatus(state, action.key, { state: 'running' })
+      return withEngineStatus(state, action.key, { state: 'running', startedAt: state.elapsed })
     case 'engine-complete':
       return withEngineStatus(state, action.key, {
         state: 'done',
@@ -103,6 +113,6 @@ export function reduceBenchmarkState(
  */
 export function getEngineDisplayMs(status: EngineStatus | undefined, elapsed: number): number {
   if (status?.state === 'done' && status.ms !== undefined) return status.ms
-  if (status?.state === 'running') return Math.max(0, elapsed)
+  if (status?.state === 'running') return Math.max(0, elapsed - (status.startedAt ?? elapsed))
   return 0
 }

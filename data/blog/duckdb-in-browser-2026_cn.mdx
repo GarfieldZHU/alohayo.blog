@@ -1,143 +1,121 @@
 ---
-title: 'DuckDB + Parquet：把分析引擎和数据文件分工好'
+title: 'DuckDB-Wasm：把分析引擎带进浏览器'
 date: '2026-07-25'
 locale: zh-CN
 translationKey: duckdb-in-browser-2026
 translationKind: original
 tags: ['DuckDB', 'WASM', 'Parquet', 'Analytics', 'Frontend', 'SQL']
 draft: false
-summary: 'DuckDB 负责查和算，Parquet 负责装和带走。把两者放在一起，再编译成 DuckDB-Wasm，就能让网页、PWA 和 Tauri/Electron 应用在本地分析大块数据。本文用一个三引擎跑分 demo，把这套分工讲清楚。'
+summary: 'DuckDB 是嵌入式分析引擎，DuckDB-Wasm 则把它搬进浏览器。本文从架构和使用场景出发，看看它如何和 Parquet 共享数据、如何做本地分析，以及为什么它也适合 Web BI 和游戏数据。'
 ---
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
-> 小附录：本来写博客确实有些母语羞耻，所以这其实是我第一篇中文博客来着（:facepalm:）。最近刚给博客加了中英双语切换，工作流里也顺手让 AI 自动翻译并提交每篇博客的另一个语言版本了。写中文好像蛮好、蛮偷懒的——顺便测一下，提交中文博客后生成的英文版本有没有啥问题（bushi）。
+> 本来写博客确实有些母语羞耻，所以这其实是我第一篇中文博客来着（:facepalm:）。最近刚给博客加了中英双语切换，工作流里也顺手让 AI 自动翻译并提交每篇博客的另一个语言版本了。写中文好像蛮好、蛮偷懒的——顺便测一下，提交中文博客后生成的英文版本有没有啥问题（bushi）。
 
-## 先别急着把 DuckDB 和 Parquet 当成一回事
+## 先认识主角：DuckDB 到底在负责什么
 
-它们关系很好，但职责完全不同：
+如果把数据分析比作做饭，数据文件是食材，DuckDB 就是那位很会备菜的厨师：它负责读列、筛选、连接、聚合、排序，再把结果端给表格或图表。它不是一个要单独部署的数据库服务，而是一个可以嵌进应用进程的分析引擎：没有端口、连接池和“先把服务启动起来”这一步。
+
+DuckDB 的设计重点也很明确：**分析（OLAP）优先，而不是逐行事务（OLTP）优先**。它使用列式执行和向量化批处理，一次处理一批值，再配合 SQL 优化器决定过滤、聚合和连接的执行顺序。官方的[向量化执行说明](https://duckdb.org/docs/lts/internals/vector)写得很直白：数据不是一行一行慢慢挪，而是按向量批次流过算子。
+
+这带来一个很舒服的边界：业务代码负责把数据放到一个可读的位置，DuckDB 负责“怎么查得快”。本地文件、对象存储、内存表，甚至用户刚拖进页面的文件，都可以成为查询输入。分析引擎和数据放在哪里，不必绑死在同一台服务器上。
+
+## Parquet 是话题，但不是另一个数据库
+
+这时 Parquet 很适合登场，不过它和 DuckDB 的职责不是一回事：
 
 | 东西        | 核心职责                         | 更像什么     |
 | ----------- | -------------------------------- | ------------ |
 | **DuckDB**  | 执行 SQL、过滤、连接、聚合、排序 | 分析引擎     |
-| **Parquet** | 压缩、按列组织并交换分析数据     | 分析文件格式 |
+| **Parquet** | 按列组织、压缩并交换分析数据     | 分析文件格式 |
 
-一句话版：**DuckDB 负责查和算，Parquet 负责装和带走。**
+一句话：**DuckDB 负责查和算，Parquet 负责装和带走。**
 
-Parquet 是面向分析的列式文件格式。它适合按批次写入、压缩、分区和分享；Spark、Polars、Pandas、Trino、DuckDB 等工具都能读。它不是会处理逐行事务的数据库，也不适合把一个文件当成表格每天插一行。
+Parquet 适合“写一批、读很多”：后端可以从业务库定期导出按日期分区的历史数据，前端、Python、Spark、Polars 或 DuckDB 都能继续读。它不擅长每天对单个文件做一行一行的事务更新；那种活交给业务库或 `.duckdb` 文件更自然。
 
-DuckDB 则是嵌入式 SQL 引擎：没有服务端、端口、连接池，库加载进进程就能查。它的列式执行和向量化批处理，正好适合对很多行做过滤、聚合和连接。
+这就是前后端共享分析数据的关键：后端发布 Parquet，浏览器用 DuckDB-Wasm 直接查同一份文件，桌面端也能复用同一套 SQL。数据格式是公共语言，分析引擎是可替换的执行层，没必要为每个图表再造一个“只返回这张图”的接口。
 
-所以，DuckDB + Parquet 的好处不是“两个数据库叠在一起”，而是**引擎和可移植存储解耦**：今天用 DuckDB 查，明天换 Spark、Polars 或云数仓，文件还在，数据没有被锁死。
+## DuckDB-Wasm：浏览器也可以有一台小分析机
 
-## .duckdb 和 Parquet 怎么分工？
+[DuckDB-Wasm](https://duckdb.org/docs/stable/clients/wasm/overview)把 DuckDB 编译成 WebAssembly，通常放进 Web Worker 里运行。于是浏览器可以直接查询 CSV、JSON、Parquet，或者用户刚拖进来的文件，再把结果交给表格、图表和交互式筛选器。
 
-这条边界由应用定义，不是 DuckDB 自动替你做决定。一个实用的热/冷分层大概是：
+它的核心价值不是“把数据库塞进网页炫技”，而是把分析路径变短：
 
-- 经常修改的设置、元数据、最近数据：放在 **.duckdb**；
-- 旧的、不可变的历史数据：按月或按天导出成 Parquet；
-- 用一个 view 把两边拼成应用看到的逻辑表。
+- **数据可以留在本地。** 医疗、财务、日志、个人账单等数据，不必为了画一个饼图先上传服务器。隐私不是多包一层 API，而是根本不发出去。
+- **后端可以发布数据，前端自己探索。** 后端从 PostgreSQL 等业务库产出 Parquet，浏览器负责临时筛选、分组和排序。服务器少做一些重复聚合，用户多获得一点即时反馈——带宽和存储仍然收费，免费午餐只提供半份。
+- **文件不一定要整包下载。** Parquet 的列、行组和统计信息可以配合 DuckDB 的 [HTTP Range 读取](https://duckdb.org/docs/lts/core_extensions/httpfs/https)，只拿查询需要的字节。对象存储的 CORS 和 Range 支持记得开，不然优化会变成“怎么还在下载”。
+- **离线也能继续查。** PWA 可以缓存一批 Parquet，断网后仍然能看数据；内网门户也不必为了每次筛选都绕一趟后端。
 
-例如，应用可以在归档任务里自己写规则：
+桌面只是同一思路的延伸：Tauri 或 Electron 负责窗口、文件系统和系统集成，DuckDB（原生版或 Wasm 版）负责分析，Parquet 负责携带历史数据。重点不是选哪个壳，而是让 Web 和桌面共享一套数据模型和查询习惯。
 
-```sql
-COPY (
-  SELECT *
-  FROM events
-  WHERE event_time < current_date - INTERVAL '90 days'
-) TO 'archive/events_2026_05.parquet'
-(FORMAT parquet, COMPRESSION zstd);
+当然，Wasm 不是魔法：浏览器内存有限，超大数据要做分区、抽样或渐进加载；频繁逐行写回磁盘也不该硬塞给分析引擎。让存储层做存储，DuckDB 做分析，边界清楚就已经很强了。
 
-DELETE FROM events
-WHERE event_time < current_date - INTERVAL '90 days';
-```
+## 做个小实验：不是比谁会插入，而是比谁会分析
 
-然后把冷热数据藏在同一个查询入口后面：
+下面的 demo 生成同一份确定性交易数据，让 DuckDB-Wasm、SQLite-Wasm 和 IndexedDB + JavaScript 执行同一语义的全年 Top-N 查询：
 
 ```sql
-CREATE VIEW all_events AS
-SELECT * FROM recent_events
-UNION ALL
-SELECT * FROM read_parquet('archive/events/*.parquet');
+WITH full_year AS (
+  SELECT SUBSTR(t.date, 1, 7) AS month,
+         t.region, t.product, t.channel, t.device,
+         c.segment, c.weight, t.campaign_id, t.amount, t.units, t.discount, t.latency_ms
+  FROM trades AS t
+  JOIN campaigns AS c ON c.id = t.campaign_id
+  WHERE t.date >= '2024-01-01'
+    AND t.date < '2025-01-01'
+), monthly AS (
+  SELECT month, region, product, channel, device, segment,
+         SUM(amount * (1 - discount) * weight) AS total,
+         SUM(units) AS units,
+         AVG(latency_ms) AS avg_latency_ms,
+         QUANTILE_DISC(latency_ms, 0.95) AS p95_latency_ms,
+         COUNT(*) AS cnt,
+         COUNT(DISTINCT campaign_id) AS campaign_count
+  FROM full_year
+  GROUP BY month, region, product, channel, device, segment
+), ranked AS (
+  SELECT *, ROW_NUMBER() OVER (
+    PARTITION BY region, product ORDER BY total DESC
+  ) AS product_rank,
+  RANK() OVER (PARTITION BY segment ORDER BY total DESC) AS segment_rank,
+  SUM(total) OVER (PARTITION BY month, region) AS region_month_total
+  FROM monthly
+)
+SELECT month, region, product, channel, device, segment, total, units, avg_latency_ms, p95_latency_ms, cnt, campaign_count
+FROM ranked
+WHERE product_rank <= 3
+ORDER BY total DESC
+LIMIT 20;
 ```
 
-业务代码只管查 all_events，不必天天操心数据实际住哪儿。DuckDB 给你 COPY、read_parquet、view 这些积木；“90 天归档一次”是你的业务策略。
+这个查询故意不止按两个字段做一个小聚合：它先从包含渠道、设备、原始 payload 和多个数值指标的宽表里筛全年（payload 这次故意不读，给列裁剪留点发挥空间），再连接一个活动维表，按月份、区域、产品、渠道、设备、活动分群做多维分组，同时计算加权净收入、销量、平均延迟、P95 延迟和参与活动数（COUNT(DISTINCT)），接着用多个窗口函数取每个产品的前三名并算分区总额，最后再做全局 Top-N。这个形状更像销售看板、游戏遥测或事件回放摘要，也更接近列式引擎擅长的星型分析。
 
-这个模型还有一个小原则：**不要把单个 Parquet 文件当可更新的数据库表**。需要追加时，写新的批次文件并按日期分区，查询时用通配路径读它们。Parquet 擅长“写一批、读很多”，不擅长事务级的单行更新。
-
-## 浏览器里为什么要 DuckDB-Wasm？
-
-浏览器本来就有 IndexedDB、OPFS 和 localStorage，但它们解决的是存储问题，不是同一种分析问题：
-
-| 需求                        | 更合适的工具             |
-| --------------------------- | ------------------------ |
-| 设置、缓存、草稿、频繁 CRUD | IndexedDB 或 SQLite-Wasm |
-| 关系型的本地应用状态        | SQLite-Wasm              |
-| 百万行历史数据、聚合和探索  | DuckDB-Wasm              |
-| 可移植的分析分发文件        | Parquet                  |
-
-DuckDB-Wasm 把完整的 DuckDB 编译进 WebAssembly，通常跑在 Web Worker 里。网页因此可以直接对本地 CSV、JSON、Parquet，甚至用户拖进来的文件执行 SQL；结果再以 Arrow 这样的列式结构交给表格和图表。
-
-这会解锁几类很实用的场景：
-
-### 数据留在用户机器上
-
-医疗、财务、日志和个人数据可以在本地分析，不必为了画一个图把原始数据先上传。隐私不是“加一层 API”解决的，而是根本不发送。
-
-### 把后端分析接口变成静态数据
-
-服务端可以从 PostgreSQL 等业务库定期产出 Parquet，放到对象存储或 CDN。浏览器通过 DuckDB-Wasm 查询它，计算发生在用户机器上。用户数增长时，服务器少做很多聚合工作；带宽和存储当然还是要付钱，白嫖没有那么彻底。
-
-Parquet 的列、行组和统计信息还能配合 HTTP Range 请求：查询只取需要的字节，不必把一个 1GB 文件从头下载到尾。跨域时记得配置 CORS，并确保对象存储/CDN 支持 Range。
-
-### 离线和本地优先
-
-把 Parquet 随 PWA 发下去，或第一次打开时缓存起来，之后断网也能继续分析。飞机上、内网里、地铁隧道里，图表照样营业。
-
-### Web、Tauri、Electron 共用一套思路
-
-桌面版可以用原生 DuckDB + Parquet，网页端用 DuckDB-Wasm + Parquet；前端组件和 SQL 尽量保持一致。Tauri/Electron 负责文件系统、窗口和系统集成，DuckDB 负责分析，Parquet 负责可移植的历史数据。这样既能做桌面级本地工具，也不用维护两套完全不同的查询模型。
-
-当然，Wasm 不是魔法：
-
-- 浏览器内存和单线程限制仍然存在，PB 级数仓别硬塞进标签页；
-- 扩展需要编译进对应的 Wasm bundle，不能想装就装；
-- DuckDB-Wasm 更适合读和分析，频繁写回磁盘仍应交给应用存储层。
-
-## 跑一次，看看分工如何变成性能差距
-
-下面的 demo 生成同一份确定性交易数据，让 DuckDB-Wasm、SQLite-Wasm 和 IndexedDB + JS 同时执行同一条语义的聚合查询：
-
-```sql
-SELECT region, product, SUM(amount) AS total, COUNT(*) AS cnt
-FROM trades
-GROUP BY region, product
-ORDER BY total DESC;
-```
-
-加载和写入阶段也计入各自耗时；首次加载 Wasm 的一次性成本会先预热，不混进比赛。柱子使用同一条实时刻度：引擎一完成，就把柱子固定在它自己的实测时间，不再被全局时钟拖着跑。
+准备数据和加载引擎会显示进度，但不画柱子；三种实现都准备好以后，柱子才出现，查询按顺序执行，避免多个 Wasm Worker 同时抢 CPU。计时只覆盖查询和结果读取。这样不会出现“页面卡了几秒，进度突然从 0 跳到 80%”的假动画，也不会让准备阶段的成本偷偷冒充查询性能。
 
 <DuckDbBenchmarkDemo locale="zh-CN" />
 
-这不是“IndexedDB 很差”。IndexedDB 是很好的浏览器原生事务存储，只是让它负责百万行分析时，你得先把所有对象捞回来，再用 JavaScript 手写分组。SQLite 有 SQL，但它是行式存储；DuckDB 则是为这种列式聚合工作负载准备的。
+这里不是要宣布 IndexedDB 失业。它是很好的浏览器事务存储；只是让它分析百万行时，通常要把对象全量读回 JavaScript，再自己筛选、分组、排序。SQLite 有 SQL，但更偏行式事务；这个实验还加了 P95 延迟和 DISTINCT 活动数，SQLite 需要用窗口函数手工模拟离散分位数，DuckDB 则直接用分析聚合函数。DuckDB 的列式、向量化执行更贴近这种“读很多列的一部分、做聚合和排序”的工作负载。具体数字会受浏览器、CPU 和首次缓存影响，实验看的是工作负载形状，不是宇宙真理。
 
-## 我会怎么选
+## 最近的风向：分析引擎正在靠近应用
 
-如果数据是小对象、经常变、需要逐条 CRUD，选 IndexedDB 或 SQLite。若数据是本地生成的大量记录，需要很多筛选、分组、窗口计算，优先考虑 DuckDB。若还要跨工具、跨语言、跨机器分发历史数据，就让 Parquet 当“公共语言”。
+这条路线并不孤单。DuckDB 官方近年的[基准与生态更新](https://duckdb.org/2025/10/09/benchmark-results-14-lts)持续把重点放在本地分析、列式文件和更广泛的工具互操作上；[在浏览器里查询 Iceberg](https://duckdb.org/2025/12/16/iceberg-in-the-browser)也说明，浏览器端分析不再只停留在“上传一个 CSV 玩一下”。
 
-最舒服的组合通常是：
+我觉得真正有意思的趋势是：数据平台的“查询能力”正在从后端服务下沉为应用能力。用户打开页面就拿到一个小型分析工作台，而不是只能等待后端把预设好的四张图发过来。前端不再只是渲染器，开始拥有一部分数据产品的主动权。
 
-**业务库 / .duckdb 保存可变热数据 → 定期导出 Parquet → DuckDB-Wasm 或桌面 DuckDB 查询冷热数据 → Arrow → 表格和图表。**
+## 我的结论：开盒即用的分析能力，很适合这些地方
 
-## 把它塞进博客时踩到的四个坑
+如果数据是小对象、经常修改、需要逐条 CRUD，IndexedDB、SQLite 或业务数据库更合适；如果数据是本地生成的大量记录，需要筛选、分组、排序、窗口计算，就值得认真考虑 DuckDB。历史数据要跨工具、跨语言、跨机器流动，再让 Parquet 做那个公共格式。
 
-1. **CSP 不让 CDN worker 进来。** 把 Wasm 和 worker 自托管到 public/vendor/，同源就省心。
-2. **SSR 没有 Worker。** DuckDB-Wasm 必须在浏览器回调里动态加载，别放在模块顶层。
-3. **Arrow 要 RecordBatch，不是随便一个对象数组。** 用 tableFromJSON 先把表格形状说清楚。
-4. **SQLite-Wasm 的 statement 用 finalize()，不是 free()。** 一个单词，半小时人生。
+我脑中的组合大概是：
 
-## 结语
+**业务库或 `.duckdb` 保存可变热数据 → 定期导出 Parquet → DuckDB-Wasm 在 Web 端查询冷热数据 → Arrow/JSON 交给图表。**
 
-DuckDB 是分析引擎，Parquet 是可携带的分析数据，DuckDB-Wasm 是把这套组合搬进浏览器的方式。它最适合“数据已经在本地、数据量不小、用户还想自己探索”的应用：本地工具、隐私分析、公共数据门户、离线看板，以及同时拥有 Web 和桌面形态的产品。
+它可以长成 Web/桌面级 BI 工具，可以是下载即用的个人数据分析器，也可以是带实时回放和排行榜的游戏工具。服务器负责发布数据，应用负责让用户探索数据；该叫醒的 CPU 还是会叫醒，只是终于不用每个筛选器都先去敲一次后端的门了。
 
-把引擎随应用交付，把数据留在用户手边，服务器只负责发布文件。听起来像把后端偷偷变轻了；实际上只是把该干活的 CPU 叫醒了。
+最后留几个实现层面的坑，给未来的自己贴便利贴：
+
+1. CSP 不喜欢 CDN Worker，就把 Wasm 和 Worker 文件自托管到同源路径。
+2. SSR 没有 `Worker`，DuckDB-Wasm 要在浏览器端动态加载。
+3. Arrow 表要先把列形状说清楚，再交给 DuckDB；不要把任意对象数组当成魔法通行证。
+4. SQLite-Wasm 的 statement 记得 `finalize()`，不是 `free()`。一个单词，半小时人生。

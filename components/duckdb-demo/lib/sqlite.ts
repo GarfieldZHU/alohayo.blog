@@ -4,8 +4,8 @@
  *       需要调用后得到带 oo1 API 的模块。wasm 文件路径需显式指定（bundler-friendly）。
  * 方案：动态 import default 导出 → 传入 locateFile 指向 node_modules 里的 sqlite3.wasm → oo1 API。
  */
-import type { TradeRow } from './data'
-import { BENCHMARK_QUERY_DESC } from './data'
+import type { PreparedBenchmark, TradeRow } from './data'
+import { SQLITE_QUERY_DESC, campaignInsertValues, yieldToBrowser } from './data'
 
 type SqliteDB = {
   exec: (sql: string) => unknown
@@ -52,45 +52,68 @@ export async function prewarmSqlite(): Promise<void> {
   await loadSqliteModule()
 }
 
-export async function sqliteBenchmark(rows: TradeRow[]): Promise<{
-  ms: number
-  top: { region: string; product: string; total: number }[]
-}> {
-  const t0 = performance.now()
+/** Prepare the row store outside the race; only SQL execution is timed. */
+export async function prepareSqlite(rows: TradeRow[]): Promise<PreparedBenchmark> {
   const sqlite = await loadSqliteModule()
   const db = new sqlite.oo1.DB()
 
-  db.exec('CREATE TABLE trades (id INTEGER, date TEXT, region TEXT, product TEXT, amount REAL)')
+  try {
+    db.exec(
+      'CREATE TABLE trades (id INTEGER, date TEXT, region TEXT, product TEXT, channel TEXT, device TEXT, payload TEXT, campaign_id INTEGER, amount REAL, units INTEGER, discount REAL, latency_ms INTEGER)'
+    )
+    db.exec('CREATE TABLE campaigns (id INTEGER PRIMARY KEY, segment TEXT, weight REAL)')
+    db.exec(`INSERT INTO campaigns VALUES ${campaignInsertValues()}`)
 
-  // 计时范围：初始化、插入 + 查询（公平对比，因为三个引擎都从函数入口计时）
-
-  // 批量插入：用一条 INSERT 多值语句提速（SQLite 单条 prepared 逐行 insert 100 万行会非常慢）
-  const BATCH = 10_000
-  for (let i = 0; i < rows.length; i += BATCH) {
-    const slice = rows.slice(i, i + BATCH)
-    const values = slice
-      .map((r) => `(${r.id}, '${r.date}', '${r.region}', '${r.product}', ${r.amount})`)
-      .join(',')
-    db.exec(`INSERT INTO trades VALUES ${values}`)
-  }
-
-  // 基准查询
-  const stmt = db.prepare(BENCHMARK_QUERY_DESC)
-  const top: { region: string; product: string; total: number }[] = []
-  let count = 0
-  while (stmt.step()) {
-    if (count < 5) {
-      top.push({
-        region: String(stmt.get(0)),
-        product: String(stmt.get(1)),
-        total: Number(stmt.get(2)),
-      })
+    // Keep each synchronous SQL batch small enough to yield a paint between batches.
+    const BATCH = 5_000
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const slice = rows.slice(i, i + BATCH)
+      const values = slice
+        .map(
+          (r) =>
+            `(${r.id}, '${r.date}', '${r.region}', '${r.product}', '${r.channel}', '${r.device}', '${r.payload}', ${r.campaignId}, ${r.amount}, ${r.units}, ${r.discount}, ${r.latencyMs})`
+        )
+        .join(',')
+      db.exec(`INSERT INTO trades VALUES ${values}`)
+      if (i + BATCH < rows.length) await yieldToBrowser()
     }
-    count++
+  } catch (error) {
+    db.close()
+    throw error
   }
-  stmt.finalize()
-  db.close()
-  const elapsed = performance.now() - t0
 
-  return { ms: elapsed, top }
+  return {
+    runQuery: async () => {
+      await yieldToBrowser()
+      const t0 = performance.now()
+      const stmt = db.prepare(SQLITE_QUERY_DESC)
+      const top: { region: string; product: string; total: number }[] = []
+      let count = 0
+      while (stmt.step()) {
+        if (count < 5) {
+          top.push({
+            region: String(stmt.get(1)),
+            product: String(stmt.get(2)),
+            total: Number(stmt.get(6)),
+          })
+        }
+        count++
+      }
+      stmt.finalize()
+      return { ms: performance.now() - t0, top }
+    },
+    close: async () => {
+      db.close()
+    },
+  }
+}
+
+/** Backwards-compatible one-shot runner for callers outside the demo. */
+export async function sqliteBenchmark(rows: TradeRow[]) {
+  const prepared = await prepareSqlite(rows)
+  try {
+    return await prepared.runQuery()
+  } finally {
+    await prepared.close()
+  }
 }

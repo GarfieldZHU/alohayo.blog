@@ -6,44 +6,28 @@
  * 注意：必须在浏览器端动态 import —— SSR 预渲染时 Node 环境没有 Worker，
  *       静态 import 会在构建期就炸（ReferenceError: Worker is not defined）。
  */
-import type { TradeRow } from './data'
-import { BENCHMARK_QUERY_DESC } from './data'
+import type { PreparedBenchmark, TradeRow } from './data'
+import { BENCHMARK_QUERY_DESC, campaignInsertValues, yieldToBrowser } from './data'
 
 const WASM_BASE = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/vendor/duckdb-wasm`
 
-const dbPromise: Promise<{
-  conn: {
-    insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
-    query: (sql: string) => Promise<{
-      numRows: number
-      getChildAt: (i: number) => { get: (row: number) => unknown } | null
-    }>
-    close: () => Promise<void>
-  }
-}> | null = null
+type DuckDBConnection = {
+  insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
+  query: (sql: string) => Promise<{
+    numRows: number
+    getChildAt: (i: number) => { get: (row: number) => unknown } | null
+  }>
+  close: () => Promise<void>
+}
+
+type DuckDBInstance = {
+  connect: () => Promise<DuckDBConnection>
+}
 
 // 只缓存 duckdb 实例；每次 benchmark 新开一个 connection（旧 conn 已 close）
-let duckdbInstancePromise: Promise<{
-  connect: () => Promise<{
-    insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
-    query: (sql: string) => Promise<{
-      numRows: number
-      getChildAt: (i: number) => { get: (row: number) => unknown } | null
-    }>
-    close: () => Promise<void>
-  }>
-}> | null = null
+let duckdbInstancePromise: Promise<DuckDBInstance> | null = null
 
-async function getDuckDBInstance(): Promise<{
-  connect: () => Promise<{
-    insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
-    query: (sql: string) => Promise<{
-      numRows: number
-      getChildAt: (i: number) => { get: (row: number) => unknown } | null
-    }>
-    close: () => Promise<void>
-  }>
-}> {
+async function getDuckDBInstance(): Promise<DuckDBInstance> {
   if (!duckdbInstancePromise) {
     duckdbInstancePromise = (async () => {
       // 动态 import，只在浏览器端执行（SSR 不会走到这里）
@@ -81,51 +65,100 @@ export async function prewarmDuckDB(): Promise<void> {
 }
 
 export async function getDuckDB(): Promise<{
-  conn: {
-    insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
-    query: (sql: string) => Promise<{
-      numRows: number
-      getChildAt: (i: number) => { get: (row: number) => unknown } | null
-    }>
-    close: () => Promise<void>
-  }
+  conn: DuckDBConnection
 }> {
   const instance = await getDuckDBInstance()
   return { conn: await instance.connect() }
 }
 
-export async function duckdbBenchmark(rows: TradeRow[]): Promise<{
-  ms: number
-  top: { region: string; product: string; total: number }[]
-}> {
-  // Include connection/table setup in the same measured load + query window
-  // as SQLite and IndexedDB. Wasm initialisation itself is prewarmed outside
-  // the race by the demo component.
-  const t0 = performance.now()
-  const { conn } = await getDuckDB()
+async function rowsToArrowTable(rows: TradeRow[]) {
+  const columns: Record<string, unknown[]> = {
+    id: new Array(rows.length),
+    date: new Array(rows.length),
+    region: new Array(rows.length),
+    product: new Array(rows.length),
+    channel: new Array(rows.length),
+    device: new Array(rows.length),
+    payload: new Array(rows.length),
+    campaign_id: new Array(rows.length),
+    amount: new Array(rows.length),
+    units: new Array(rows.length),
+    discount: new Array(rows.length),
+    latency_ms: new Array(rows.length),
+  }
 
-  // 把 JS 数组转成 Arrow Table（列式，正好展示 DuckDB 的强项）
+  for (let start = 0; start < rows.length; start += 10_000) {
+    const end = Math.min(rows.length, start + 10_000)
+    for (let i = start; i < end; i++) {
+      const row = rows[i]
+      columns.id[i] = row.id
+      columns.date[i] = row.date
+      columns.region[i] = row.region
+      columns.product[i] = row.product
+      columns.channel[i] = row.channel
+      columns.device[i] = row.device
+      columns.payload[i] = row.payload
+      columns.campaign_id[i] = row.campaignId
+      columns.amount[i] = row.amount
+      columns.units[i] = row.units
+      columns.discount[i] = row.discount
+      columns.latency_ms[i] = row.latencyMs
+    }
+    if (end < rows.length) await yieldToBrowser()
+  }
+
   const arrow = await import('apache-arrow')
-  const table = arrow.tableFromJSON(rows as unknown as Record<string, unknown>[])
+  return arrow.tableFromArrays(columns)
+}
 
-  // 复用同一 db 实例时，上一轮的 trades 表还在 → 先删表再建（DROP IF EXISTS 幂等）
-  await conn.query('DROP TABLE IF EXISTS trades')
-  await conn.insertArrowTable(table, { name: 'trades', create: true })
-
-  // 计时执行基准查询
-  const result = await conn.query(BENCHMARK_QUERY_DESC)
-
-  // 读回 top 结果用于展示
+function readTop(result: {
+  numRows: number
+  getChildAt: (i: number) => { get: (row: number) => unknown } | null
+}) {
   const top: { region: string; product: string; total: number }[] = []
   for (let i = 0; i < Math.min(5, result.numRows); i++) {
     top.push({
-      region: String(result.getChildAt(0)?.get(i) ?? ''),
-      product: String(result.getChildAt(1)?.get(i) ?? ''),
-      total: Number(result.getChildAt(2)?.get(i) ?? 0),
+      region: String(result.getChildAt(1)?.get(i) ?? ''),
+      product: String(result.getChildAt(2)?.get(i) ?? ''),
+      total: Number(result.getChildAt(6)?.get(i) ?? 0),
     })
   }
+  return top
+}
 
-  await conn.close()
-  const elapsed = performance.now() - t0
-  return { ms: elapsed, top }
+/** Prepare storage outside the race; the race measures the analytical query. */
+export async function prepareDuckDB(rows: TradeRow[]): Promise<PreparedBenchmark> {
+  const { conn } = await getDuckDB()
+  try {
+    const table = await rowsToArrowTable(rows)
+    await conn.query('DROP TABLE IF EXISTS trades')
+    await conn.query('DROP TABLE IF EXISTS campaigns')
+    await conn.insertArrowTable(table, { name: 'trades', create: true })
+    await conn.query('CREATE TABLE campaigns (id INTEGER, segment VARCHAR, weight DOUBLE)')
+    await conn.query(`INSERT INTO campaigns VALUES ${campaignInsertValues()}`)
+  } catch (error) {
+    await conn.close()
+    throw error
+  }
+
+  return {
+    runQuery: async () => {
+      await yieldToBrowser()
+      const t0 = performance.now()
+      const result = await conn.query(BENCHMARK_QUERY_DESC)
+      const top = readTop(result)
+      return { ms: performance.now() - t0, top }
+    },
+    close: () => conn.close(),
+  }
+}
+
+/** Backwards-compatible one-shot runner for callers outside the demo. */
+export async function duckdbBenchmark(rows: TradeRow[]) {
+  const prepared = await prepareDuckDB(rows)
+  try {
+    return await prepared.runQuery()
+  } finally {
+    await prepared.close()
+  }
 }

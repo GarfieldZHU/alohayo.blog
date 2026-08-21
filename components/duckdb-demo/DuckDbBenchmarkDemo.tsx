@@ -1,10 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useReducer, useState } from 'react'
-import { generateTrades, type TradeRow } from './lib/data'
-import { duckdbBenchmark, prewarmDuckDB } from './lib/duckdb'
-import { sqliteBenchmark, prewarmSqlite } from './lib/sqlite'
-import { indexedDbBenchmark, prewarmIndexedDb } from './lib/indexeddb'
+import {
+  BENCHMARK_QUERY_DESC,
+  generateTradesAsync,
+  yieldToBrowser,
+  type TradeRow,
+} from './lib/data'
+import { prepareDuckDB, prewarmDuckDB } from './lib/duckdb'
+import { prepareSqlite, prewarmSqlite } from './lib/sqlite'
+import { prepareIndexedDb, prewarmIndexedDb } from './lib/indexeddb'
 import {
   createInitialBenchmarkState,
   getEngineDisplayMs,
@@ -56,6 +61,7 @@ const COPY: Record<
     start: string
     warmingButton: string
     runningButton: string
+    generating: string
     warming: string
     ready: string
     waiting: string
@@ -73,12 +79,13 @@ const COPY: Record<
     title: '⚡ Three-engine benchmark',
     introBeforeRows: 'Generate',
     introAfterRows:
-      'rows of deterministic mock trades. All three engines start together with the same query:',
+      'rows of deterministic mock trades. All three engines measure the same analytical question:',
     datasetLabel: 'Dataset:',
     start: '▶ Run benchmark',
     warmingButton: '🔌 Warming engines…',
     runningButton: '🔄 Running…',
-    warming: '🔌 Loading engines. Once warm, all three start together…',
+    generating: 'Preparing dataset…',
+    warming: '🔌 Loading engines. Once warm, each query runs in turn to avoid CPU contention…',
     ready: 'rows generated (deterministic seed)',
     waiting: 'Waiting',
     error: 'Error',
@@ -91,19 +98,20 @@ const COPY: Record<
     duckdbFasterBeforeRatio: 'DuckDB is',
     duckdbFasterAfterRatio: 'x faster than IndexedDB',
     footer:
-      '⚠️ Larger datasets make DuckDB’s columnar advantage more obvious. Bars show measured elapsed time; completed bars stay put. Full scale is an estimate. Environment: ',
-    generated: 'Demo copy and implementation generated with DeepSeek V4 Flash.',
+      '⚠️ Larger datasets make DuckDB’s columnar advantage more obvious. Queries run one at a time so workers do not steal CPU from each other. Bars show measured elapsed time; completed bars stay put. Full scale is an estimate. Environment: ',
+    generated: 'Generated with DeepSeek V4 Flash.',
     cores: ' cores',
   },
   'zh-CN': {
     title: '⚡ 三引擎性能对比 Demo',
     introBeforeRows: '生成',
-    introAfterRows: '行确定性模拟交易数据，三个引擎同时起跑执行相同查询：',
+    introAfterRows: '行确定性模拟交易数据，三个引擎同时起跑回答同一个分析问题（各自实现）：',
     datasetLabel: '数据量：',
     start: '▶ 开始跑分',
     warmingButton: '🔌 预热引擎…',
     runningButton: '🔄 跑分中…',
-    warming: '🔌 加载引擎，完成后让三个引擎同时起跑…',
+    generating: '准备数据中…',
+    warming: '🔌 加载引擎，完成后依次跑查询，避免引擎互相抢 CPU…',
     ready: '行数据已生成（确定性种子）',
     waiting: '等待',
     error: '错误',
@@ -116,8 +124,8 @@ const COPY: Record<
     duckdbFasterBeforeRatio: 'DuckDB 比 IndexedDB 快',
     duckdbFasterAfterRatio: 'x',
     footer:
-      '⚠️ 数据量越大，DuckDB 的列式优势越明显。柱子显示真实耗时，完成后会固定在实测位置；满格时间轴是预估值。当前环境：',
-    generated: 'Demo 文案与实现：DeepSeek V4 Flash 生成。',
+      '⚠️ 数据量越大，DuckDB 的列式优势越明显。查询会依次执行，避免引擎互相抢 CPU；柱子显示真实耗时，完成后会固定在实测位置；满格时间轴是预估值。当前环境：',
+    generated: 'DeepSeek V4 Flash 生成。',
     cores: ' 核',
   },
 }
@@ -127,9 +135,9 @@ const COPY: Record<
  * 这是视觉刻度，不会覆盖引擎自己的实测耗时。
  */
 function estimateMs(rows: number): number {
-  if (rows <= 50_000) return 3_000
-  if (rows <= 200_000) return 15_000
-  return 60_000
+  if (rows <= 50_000) return 750
+  if (rows <= 200_000) return 3_000
+  return 12_000
 }
 
 const fmt = (ms: number) => (ms < 1000 ? `${ms.toFixed(1)} ms` : `${(ms / 1000).toFixed(2)} s`)
@@ -167,7 +175,9 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
 
     let rows: TradeRow[]
     try {
-      rows = generateTrades(rowCount)
+      rows = await generateTradesAsync(rowCount, 42, (progress) => {
+        dispatch({ type: 'generation-progress', progress })
+      })
     } catch (error) {
       dispatch({ type: 'engine-error', key: 'duckdb', error: errorMessage(error) })
       dispatch({ type: 'finish' })
@@ -175,31 +185,49 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
     }
     dispatch({ type: 'dataset-ready' })
 
-    // One-time wasm/worker cost is deliberately outside the race.
+    // One-time wasm/worker cost is deliberately outside the measured queries.
     await Promise.allSettled([prewarmDuckDB(), prewarmSqlite(), prewarmIndexedDb()])
 
-    const startedAt = performance.now()
-    // Initialising every row as running makes the chart appear once, without
-    // a blank frame while the three async functions are being scheduled.
-    dispatch({ type: 'race-start', startedAt })
+    // Finish all storage work before the chart appears. This makes the bars a
+    // query-only comparison instead of a noisy mix of loading and ingestion.
+    const preparedResults = await Promise.allSettled([
+      prepareDuckDB(rows),
+      prepareSqlite(rows),
+      prepareIndexedDb(rows),
+    ])
 
-    const runEngine = async (
-      key: EngineKey,
-      benchmark: (input: TradeRow[]) => Promise<{ ms: number }>
-    ) => {
+    const startedAt = performance.now()
+    dispatch({ type: 'race-start', startedAt })
+    // Let React paint the waiting bars before the first query starts.
+    await yieldToBrowser()
+
+    const prepared: { key: EngineKey; value: Awaited<ReturnType<typeof prepareDuckDB>> }[] = []
+    const keys: EngineKey[] = ['duckdb', 'sqlite', 'indexeddb']
+    preparedResults.forEach((result, index) => {
+      const key = keys[index]
+      if (result.status === 'fulfilled') {
+        prepared.push({ key, value: result.value })
+      } else {
+        dispatch({ type: 'engine-error', key, error: errorMessage(result.reason) })
+      }
+    })
+
+    const runEngine = async ({ key, value }: (typeof prepared)[number]) => {
+      dispatch({ type: 'engine-running', key })
+      // Paint the running state before a synchronous WASM/JS step begins.
+      await yieldToBrowser()
       try {
-        const result = await benchmark(rows)
+        const result = await value.runQuery()
         dispatch({ type: 'engine-complete', key, ms: result.ms })
       } catch (error) {
         dispatch({ type: 'engine-error', key, error: errorMessage(error) })
       }
     }
 
-    await Promise.allSettled([
-      runEngine('duckdb', duckdbBenchmark),
-      runEngine('sqlite', sqliteBenchmark),
-      runEngine('indexeddb', indexedDbBenchmark),
-    ])
+    for (const engine of prepared) {
+      await runEngine(engine)
+    }
+    await Promise.allSettled(prepared.map(({ value }) => value.close()))
 
     dispatch({ type: 'finish' })
   }, [state.rowCount])
@@ -214,20 +242,21 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
   const raceActive = state.phase === 'racing' || (state.phase === 'done' && state.datasetReady)
 
   return (
-    <div className="my-8 rounded-xl border border-slate-700 bg-slate-900 p-5 text-slate-100">
+    <div className="my-8 rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
       <h3 className="mb-1 text-lg font-bold">{copy.title}</h3>
-      <p className="mb-4 text-sm text-slate-400">
+      <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
         {copy.introBeforeRows}{' '}
-        <strong className="text-amber-300">{state.rowCount.toLocaleString()}</strong>{' '}
+        <strong className="text-amber-600 dark:text-amber-300">
+          {state.rowCount.toLocaleString()}
+        </strong>{' '}
         {copy.introAfterRows}
-        <code className="mt-1 block rounded bg-slate-800 px-2 py-1 text-xs">
-          SELECT region, product, SUM(amount) AS total, COUNT(*) AS cnt FROM trades GROUP BY region,
-          product ORDER BY total DESC
+        <code className="mt-1 block rounded bg-slate-100 px-2 py-1 text-xs text-slate-800 dark:bg-slate-800 dark:text-slate-200">
+          {BENCHMARK_QUERY_DESC}
         </code>
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="text-sm text-slate-300">{copy.datasetLabel}</span>
+        <span className="text-sm text-slate-700 dark:text-slate-300">{copy.datasetLabel}</span>
         {ROW_OPTIONS.map((rowCount) => (
           <button
             key={rowCount}
@@ -236,7 +265,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
             className={`rounded px-3 py-1 text-sm font-medium transition ${
               state.rowCount === rowCount
                 ? 'bg-amber-500 text-slate-900'
-                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
             } ${busy ? 'opacity-50' : ''}`}
           >
             {rowCount >= 1_000_000 ? `${rowCount / 1_000_000}M` : `${rowCount / 1_000}K`}
@@ -247,7 +276,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
           disabled={busy}
           className={`ml-auto rounded px-4 py-2 font-bold transition ${
             busy
-              ? 'cursor-wait bg-slate-700 text-slate-400'
+              ? 'cursor-wait bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400'
               : 'bg-emerald-500 text-slate-900 hover:bg-emerald-400'
           }`}
         >
@@ -260,12 +289,16 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
       </div>
 
       {state.datasetReady && (
-        <p className="mb-3 text-xs text-emerald-400">
+        <p className="mb-3 text-xs text-emerald-600 dark:text-emerald-400">
           ✓ {state.rowCount.toLocaleString()} {copy.ready}
         </p>
       )}
       {state.phase === 'warming' && (
-        <p className="mb-3 animate-pulse text-xs text-amber-300">{copy.warming}</p>
+        <p className="mb-3 animate-pulse text-xs text-amber-600 dark:text-amber-300">
+          {state.generationProgress < 1
+            ? `${copy.generating} ${Math.round(state.generationProgress * 100)}%`
+            : copy.warming}
+        </p>
       )}
 
       {raceActive && (
@@ -279,9 +312,9 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
             return (
               <div key={key}>
                 <div className="mb-1 flex items-baseline justify-between">
-                  <span className="text-sm font-semibold text-slate-200">
+                  <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                     {names[locale]}
-                    <span className="ml-2 text-[11px] font-normal text-slate-500">
+                    <span className="ml-2 text-[11px] font-normal text-slate-500 dark:text-slate-400">
                       {descriptions[locale]}
                     </span>
                   </span>
@@ -303,7 +336,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
                           : copy.waiting}
                   </span>
                 </div>
-                <div className="relative h-6 overflow-hidden rounded-md bg-slate-800/80 ring-1 ring-slate-700 ring-inset">
+                <div className="relative h-6 overflow-hidden rounded-md bg-slate-100 ring-1 ring-slate-300 ring-inset dark:bg-slate-800/80 dark:ring-slate-700">
                   <div
                     className={`h-full rounded-md ${bar}`}
                     style={{ width: `${Math.max(width, width > 0 ? 0.6 : 0)}%` }}
@@ -319,8 +352,10 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
       )}
 
       {allDone && (
-        <div className="mt-4 rounded-lg border border-emerald-700/50 bg-emerald-900/20 p-4 text-sm">
-          <span className="font-bold text-emerald-300">{copy.conclusion}</span>
+        <div className="mt-4 rounded-lg border border-emerald-700/50 bg-emerald-50 p-4 text-sm dark:bg-emerald-900/20">
+          <span className="font-bold text-emerald-700 dark:text-emerald-300">
+            {copy.conclusion}
+          </span>
           {(() => {
             const durations = {
               duckdb: state.results.duckdb?.ms ?? 0,
@@ -349,11 +384,11 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
 
       <QuerySource locale={locale} />
 
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
         {copy.footer}
         {`${cpuCount ?? '?'}${copy.cores}`}
       </p>
-      <p className="mt-2 text-[11px] text-slate-600">{copy.generated}</p>
+      <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-500">{copy.generated}</p>
     </div>
   )
 }

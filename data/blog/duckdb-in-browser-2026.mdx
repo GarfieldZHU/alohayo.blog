@@ -1,5 +1,5 @@
 ---
-title: 'DuckDB + Parquet: give the engine and the files separate jobs'
+title: 'DuckDB-Wasm: bring an analytical engine to the browser'
 date: '2026-07-25'
 locale: en
 translationKey: duckdb-in-browser-2026
@@ -7,138 +7,116 @@ translationKind: ai-translation
 translationSourceLocale: zh-CN
 tags: ['DuckDB', 'WASM', 'Parquet', 'Analytics', 'Frontend', 'SQL']
 draft: false
-summary: 'DuckDB does the querying and computing; Parquet does the packing and carrying. Put them together, then compile DuckDB to Wasm, and web, PWA, Tauri, and Electron apps can analyze chunky datasets locally. This post makes the division of labor concrete with a three-engine benchmark.'
+summary: 'DuckDB is an embedded analytical engine, and DuckDB-Wasm brings it into the browser. This post looks at its architecture, shared Parquet data, local analysis, and why the same idea fits Web BI and game data.'
 ---
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
 
 > English edition: AI-assisted translation from the [Chinese original](/zh-CN/blog/duckdb-in-browser-2026/).
 
-## DuckDB and Parquet are not the same thing
+## First, what is DuckDB responsible for?
 
-They get along extremely well, but their jobs are different:
+If data analysis is cooking, the data file is the pantry and DuckDB is the chef who is very good at prep: it reads columns, filters, joins, aggregates, sorts, and serves the result to a table or chart. It is not a database service you deploy on a port. It is an analytical engine you can embed in an application, without a connection pool or a “please start the server first” ritual.
 
-| Thing       | Core job                                                  | More like                |
-| ----------- | --------------------------------------------------------- | ------------------------ |
-| **DuckDB**  | Execute SQL, filter, join, aggregate, and sort            | An analytics engine      |
-| **Parquet** | Compress, arrange, and exchange analytical data by column | An analytics file format |
+The design focus is clear: **analytics (OLAP) first, row-by-row transactions (OLTP) second**. DuckDB uses columnar execution and vectorized batches, then lets its SQL optimizer choose how filters, aggregations, and joins should flow. The official [vectorized execution notes](https://duckdb.org/docs/lts/internals/vector) put it plainly: data moves through operators in vectors, rather than shuffling one row at a time.
 
-The one-line version: **DuckDB queries and computes; Parquet packs and travels.**
+That creates a useful boundary. Application code decides where the data can be read from; DuckDB decides how to query it efficiently. A local file, object storage, an in-memory table, or a file someone just dropped onto the page can all be query inputs. The analytical engine and the place where bytes live do not have to be welded together.
 
-Parquet is a columnar file format for analytics. It is made for writing batches, compression, partitioning, and sharing; Spark, Polars, Pandas, Trino, and DuckDB can all read it. It is not a transactional database, and a single file is not meant to receive one tiny row update every morning.
+## Parquet is part of the story, not another database
 
-DuckDB is an embedded SQL engine: no server, port, or connection pool. Load the library into a process and query. Its columnar execution and vectorized batches are a good match for filtering, aggregating, and joining lots of rows.
+Parquet fits nicely here, but it does a different job:
 
-So the value of DuckDB + Parquet is not “two databases stacked together”. It is **a decoupled engine and portable storage**: query with DuckDB today, switch to Spark, Polars, or a cloud warehouse tomorrow, and the files still work.
+| Thing       | Core job                                                  | More like                 |
+| ----------- | --------------------------------------------------------- | ------------------------- |
+| **DuckDB**  | Execute SQL, filter, join, aggregate, and sort            | An analytical engine      |
+| **Parquet** | Arrange, compress, and exchange analytical data by column | An analytical file format |
 
-## How should .duckdb and Parquet share the work?
+The short version: **DuckDB queries and computes; Parquet packs and travels.**
 
-The application defines this boundary; DuckDB does not silently decide which table belongs where. A useful hot/cold split looks like this:
+Parquet is built for “write a batch, read a lot”. A backend can export date-partitioned history from its business database, and the same files remain readable from Python, Spark, Polars, or DuckDB. It is not especially interested in receiving one tiny transactional update every morning; that belongs in a business database or a `.duckdb` file.
 
-- frequently changed settings, metadata, and recent records: keep them in **.duckdb**;
-- old, immutable history: export it to Parquet by day or month;
-- hide both behind a view that becomes the logical table your app sees.
+This is the useful frontend/backend contract: the backend publishes Parquet, and the browser uses DuckDB-Wasm to query the same data. A desktop build can reuse the SQL too. The file format becomes a common language, the engine is a replaceable execution layer, and every chart does not need its own “return exactly these four numbers” endpoint.
 
-For example, an archive job can own the rule:
+## DuckDB-Wasm: a small analytical machine in the browser
 
-```sql
-COPY (
-  SELECT *
-  FROM events
-  WHERE event_time < current_date - INTERVAL '90 days'
-) TO 'archive/events_2026_05.parquet'
-(FORMAT parquet, COMPRESSION zstd);
+[DuckDB-Wasm](https://duckdb.org/docs/stable/clients/wasm/overview) compiles DuckDB to WebAssembly and usually runs it in a Web Worker. A browser can query CSV, JSON, Parquet, or a file the user just dropped in, then send the result to tables, charts, and interactive filters.
 
-DELETE FROM events
-WHERE event_time < current_date - INTERVAL '90 days';
-```
+The point is not to put a database in a webpage for sport. It is to shorten the path from data to exploration:
 
-Then hide hot and cold data behind one query surface:
+- **Keep data on the user’s machine.** Medical, financial, log, and personal data does not need to be uploaded just to draw a pie chart. Privacy is not another API wrapper; it is simply not sending the raw data.
+- **Let the backend publish data while the frontend explores it.** The server can produce Parquet from PostgreSQL or another business store, while the browser handles ad-hoc filters, groups, and sorts. The server repeats fewer aggregations, and the user gets more immediate feedback. Bandwidth and storage still cost money; the free lunch comes in a smaller portion.
+- **Do not necessarily download the whole file.** Parquet columns, row groups, and statistics pair with DuckDB’s [HTTP Range reads](https://duckdb.org/docs/lts/core_extensions/httpfs/https), so a query can fetch the bytes it needs. Configure CORS and Range support on the object store, or the optimization becomes “why is it still downloading?”.
+- **Keep working offline.** A PWA can cache a batch of Parquet and continue analyzing it without a network. An internal data portal does not need a backend round trip for every filter either.
 
-```sql
-CREATE VIEW all_events AS
-SELECT * FROM recent_events
-UNION ALL
-SELECT * FROM read_parquet('archive/events/*.parquet');
-```
+Desktop is just an extension of the same idea: Tauri or Electron handles windows, files, and system integration; DuckDB (native or Wasm) handles analysis; Parquet carries historical data. The interesting part is sharing a data model and query habits between Web and desktop, not arguing about which shell is holier.
 
-Business code queries all_events and does not need to care where the bytes live. DuckDB gives you COPY, read_parquet, and views; “archive after 90 days” is your product policy.
+Wasm is not magic, of course. Browser memory is finite, so huge datasets still need partitions, sampling, or progressive loading. Frequent row-level writes also belong to a storage layer, not to an analytical engine pretending to be a transaction log.
 
-One small rule matters: **do not treat one Parquet file like an updatable database table**. Append new batch files, partition them by date, and query the glob. Parquet is excellent at “write a batch, read a lot”; it is not a row-level transaction log.
+## A small experiment: measure analysis, not who can insert rows
 
-## Why bring DuckDB-Wasm into the browser?
-
-Browsers already have IndexedDB, OPFS, and localStorage, but those solve storage problems, not the same analytical workload:
-
-| Need                                                      | Better fit               |
-| --------------------------------------------------------- | ------------------------ |
-| Settings, cache, drafts, frequent CRUD                    | IndexedDB or SQLite-Wasm |
-| Relational local application state                        | SQLite-Wasm              |
-| Millions of historical rows, aggregation, and exploration | DuckDB-Wasm              |
-| Portable analytical distribution files                    | Parquet                  |
-
-DuckDB-Wasm compiles the full DuckDB engine to WebAssembly, usually in a Web Worker. A web page can query local CSV, JSON, Parquet, or a file the user just dropped in; the result can travel as a columnar structure such as Arrow into tables and charts.
-
-That unlocks a few genuinely useful scenarios:
-
-### Keep the data on the user’s machine
-
-Medical, financial, log, and personal data can be analyzed locally. You do not upload raw data just to draw a chart. Privacy is not “one more API layer”; it is simply not sending the data.
-
-### Turn backend analytics endpoints into static data
-
-The server can periodically produce Parquet from a business database such as PostgreSQL and publish it to object storage or a CDN. DuckDB-Wasm queries it in the browser, so the user’s machine does the computation. More users mean fewer server-side aggregations; bandwidth and storage still cost money, so the free lunch has a small asterisk.
-
-Parquet’s columns, row groups, and statistics also pair nicely with HTTP Range requests: a query fetches the bytes it needs instead of downloading a 1 GB file end to end. Configure CORS for cross-origin files, and make sure the object store or CDN supports Range.
-
-### Offline and local-first
-
-Ship Parquet with a PWA or cache it on first open, and analysis keeps working offline. On a plane, behind a firewall, or in a subway tunnel, the chart can keep doing its job.
-
-### One mental model for Web, Tauri, and Electron
-
-A desktop build can use native DuckDB + Parquet; the web build can use DuckDB-Wasm + Parquet. Keep the frontend components and SQL as similar as possible. Tauri/Electron handles files, windows, and system integration; DuckDB handles analysis; Parquet carries portable history. You get a desktop-grade local tool without maintaining two unrelated query models.
-
-Wasm is not magic, of course:
-
-- browser memory and single-thread limits still exist; do not cram a petabyte warehouse into a tab;
-- extensions have to be compiled into the Wasm bundle;
-- DuckDB-Wasm is a great read/analyze layer, while frequent disk writes belong to the application storage layer.
-
-## Run it once and watch the division become a performance gap
-
-The demo below generates one deterministic trade dataset and lets DuckDB-Wasm, SQLite-Wasm, and IndexedDB + JS start together on the same semantic aggregation:
+The demo below generates one deterministic trade dataset and asks DuckDB-Wasm, SQLite-Wasm, and IndexedDB + JavaScript to run the same semantic full-year Top-N query:
 
 ```sql
-SELECT region, product, SUM(amount) AS total, COUNT(*) AS cnt
-FROM trades
-GROUP BY region, product
-ORDER BY total DESC;
+WITH full_year AS (
+  SELECT SUBSTR(t.date, 1, 7) AS month,
+         t.region, t.product, t.channel, t.device,
+         c.segment, c.weight, t.campaign_id, t.amount, t.units, t.discount, t.latency_ms
+  FROM trades AS t
+  JOIN campaigns AS c ON c.id = t.campaign_id
+  WHERE t.date >= '2024-01-01'
+    AND t.date < '2025-01-01'
+), monthly AS (
+  SELECT month, region, product, channel, device, segment,
+         SUM(amount * (1 - discount) * weight) AS total,
+         SUM(units) AS units,
+         AVG(latency_ms) AS avg_latency_ms,
+         QUANTILE_DISC(latency_ms, 0.95) AS p95_latency_ms,
+         COUNT(*) AS cnt,
+         COUNT(DISTINCT campaign_id) AS campaign_count
+  FROM full_year
+  GROUP BY month, region, product, channel, device, segment
+), ranked AS (
+  SELECT *, ROW_NUMBER() OVER (
+    PARTITION BY region, product ORDER BY total DESC
+  ) AS product_rank,
+  RANK() OVER (PARTITION BY segment ORDER BY total DESC) AS segment_rank,
+  SUM(total) OVER (PARTITION BY month, region) AS region_month_total
+  FROM monthly
+)
+SELECT month, region, product, channel, device, segment, total, units, avg_latency_ms, p95_latency_ms, cnt, campaign_count
+FROM ranked
+WHERE product_rank <= 3
+ORDER BY total DESC
+LIMIT 20;
 ```
 
-Loading and writing are included in each engine’s elapsed time; the one-time Wasm startup is prewarmed first and kept out of the race. The bars share one live scale, and each bar freezes at its own measured duration as soon as that engine finishes.
+This is deliberately more than a tiny two-column group-by. It filters a wide fact table with channel, device, a raw payload, and several numeric metrics for a full year (the payload is intentionally not selected, leaving column pruning something to do), joins a campaign dimension table, groups by month, region, product, channel, device, and campaign segment, computes weighted net revenue, units, average latency, P95 latency, and the number of distinct campaigns (COUNT(DISTINCT)), uses several window functions to keep the top three rows per product and calculate partition totals, and then takes a global Top-N. That looks like a sales dashboard, game telemetry, or event-replay summary—and is much closer to the star-shaped analytical workloads DuckDB is built for.
+
+Dataset preparation and engine loading show progress, but do not draw bars. The bars appear only after all three implementations are ready; queries then run in turn so multiple Wasm workers do not steal CPU from one another. Their timers cover only the query and result read. That avoids the fake animation where the page freezes for a few seconds and then jumps from 0 to 80%, and it keeps ingestion cost from masquerading as query performance.
 
 <DuckDbBenchmarkDemo locale="en" />
 
-This is not a claim that IndexedDB is bad. It is an excellent browser-native transactional store. The trouble starts when it is asked to analyze millions of rows: first read every object back, then hand-write the grouping in JavaScript. SQLite gives you SQL, but it is row-oriented; DuckDB is designed for this columnar aggregation workload.
+This is not a declaration that IndexedDB is bad. It is an excellent browser-native transactional store. The trouble starts when it is asked to analyze a million rows: read every object back into JavaScript, then hand-write the filtering, grouping, and sorting. SQLite gives you SQL, but it is more row-oriented; this experiment also adds P95 latency and distinct campaign counts, so SQLite has to emulate the discrete percentile with window functions while DuckDB has a native analytical aggregate. DuckDB’s columnar, vectorized execution is closer to this “read a few columns from many rows, then aggregate and sort” workload. The exact numbers depend on the browser, CPU, and caches. The experiment demonstrates a workload shape, not a universal law of physics.
 
-## How I would choose
+## The recent direction: analytical engines are moving closer to apps
 
-For small, frequently changing objects and row-level CRUD, pick IndexedDB or SQLite. For lots of locally generated records with filtering, grouping, and window calculations, consider DuckDB first. If history also needs to move across tools, languages, and machines, let Parquet be the common language.
+This is not a one-person hunch. DuckDB’s recent [benchmark and ecosystem update](https://duckdb.org/2025/10/09/benchmark-results-14-lts) keeps emphasizing local analytics, columnar files, and interoperability; [querying Iceberg in the browser](https://duckdb.org/2025/12/16/iceberg-in-the-browser) is another sign that browser analytics is moving beyond “upload a CSV for five minutes”.
 
-The comfortable composition is usually:
+The interesting trend, to me, is that query capability is becoming an application capability. A user can open a page and get a small analytical workbench, instead of waiting for the backend to send four pre-baked charts. The frontend is not only a renderer anymore; it owns part of the data product.
 
-**Business database / .duckdb for mutable hot data → periodic Parquet exports → DuckDB-Wasm or desktop DuckDB for hot+cold analytics → Arrow → tables and charts.**
+## My take: out-of-the-box analysis has room to grow
 
-## Four traps I hit while putting this in a blog
+For small, frequently changing objects and row-level CRUD, IndexedDB, SQLite, or a business database is the better fit. For lots of locally generated records with filtering, grouping, sorting, and window calculations, DuckDB deserves a serious look. If the history needs to move across tools, languages, and machines, let Parquet be the common format.
 
-1. **CSP blocked a CDN worker.** Self-host the Wasm and worker files under public/vendor/ so they stay same-origin.
-2. **SSR has no Worker.** Load DuckDB-Wasm dynamically inside the browser callback, never at module top level.
-3. **Arrow wants RecordBatch, not any random object array.** Use tableFromJSON to make the table shape explicit.
-4. **SQLite-Wasm statements use finalize(), not free().** One word, half an hour of life.
+The composition I have in mind is:
 
-## Takeaway
+**Business database or `.duckdb` for mutable hot data → periodic Parquet exports → DuckDB-Wasm for hot+cold Web analysis → Arrow/JSON for charts.**
 
-DuckDB is the analytics engine, Parquet is portable analytical data, and DuckDB-Wasm is how this combination moves into the browser. It shines when data already lives locally, is not tiny, and users want to explore it themselves: local tools, privacy-friendly analytics, public data portals, offline dashboards, and products that have both web and desktop shapes.
+It could become a Web/desktop BI tool, a download-and-go personal data analyzer, or a game utility with live replays and leaderboards. The server publishes data, the app lets users explore it, and the CPU that was supposed to do the work finally gets woken up—without every filter button knocking on the backend’s door first.
 
-Ship the engine with the app, keep the data near the user, and let the server publish files. It sounds like the backend secretly got lighter; really, we just woke up the CPU that was supposed to do the work.
+A few implementation sticky notes for future me:
+
+1. If CSP dislikes a CDN Worker, self-host the Wasm and Worker files under a same-origin path.
+2. SSR has no `Worker`, so load DuckDB-Wasm dynamically in the browser.
+3. Give Arrow an explicit column shape before handing it to DuckDB; an arbitrary object array is not a magic passport.
+4. SQLite-Wasm statements use `finalize()`, not `free()`. One word, half an hour of life.
