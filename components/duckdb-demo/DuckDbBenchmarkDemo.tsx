@@ -145,7 +145,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
   const copy = COPY[locale]
 
   useEffect(() => {
-    setCpuCount(typeof navigator !== 'undefined' ? navigator.hardwareConcurrency ?? null : null)
+    setCpuCount(typeof navigator !== 'undefined' ? (navigator.hardwareConcurrency ?? null) : null)
   }, [])
 
   // One shared live clock while work is running. Completed rows use their own
