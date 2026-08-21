@@ -5,8 +5,10 @@ import {
   createInitialBenchmarkState,
   getEngineDisplayMs,
   reduceBenchmarkState,
+  runSequentially,
 } from '../components/duckdb-demo/lib/benchmarkState.ts'
 import {
+  CAMPAIGN_COUNT,
   BENCHMARK_QUERY_DESC,
   generateTradesAsync,
   SQLITE_QUERY_DESC,
@@ -15,32 +17,36 @@ import {
 const initial = createInitialBenchmarkState(200_000)
 
 test('freezes a completed engine at its measured duration', () => {
-  const racing = reduceBenchmarkState(initial, { type: 'race-start', startedAt: 100 })
+  const ready = reduceBenchmarkState(initial, { type: 'dataset-ready' })
   assert.deepEqual(
-    Object.values(racing.results).map((status) => status.state),
+    Object.values(ready.results).map((status) => status.state),
     ['idle', 'idle', 'idle']
   )
-  const running = reduceBenchmarkState(
-    { ...racing, elapsed: 250 },
-    { type: 'engine-running', key: 'indexeddb' }
-  )
-  assert.equal(getEngineDisplayMs(running.results.indexeddb, 1_250), 1_000)
+  const running = reduceBenchmarkState(ready, {
+    type: 'engine-running',
+    key: 'indexeddb',
+    startedAt: 1_000,
+  })
+  assert.equal(getEngineDisplayMs(running.results.indexeddb, 1_000), 1_000)
   const completed = reduceBenchmarkState(running, {
     type: 'engine-complete',
     key: 'indexeddb',
     ms: 7_200,
+    queryMs: 456.7,
   })
 
   assert.equal(getEngineDisplayMs(completed.results.indexeddb, 12_000), 7_200)
   assert.equal(completed.results.indexeddb.state, 'done')
+  assert.equal(completed.results.indexeddb.queryMs, 456.7)
 })
 
 test('changing the dataset clears the previous chart before the next run', () => {
-  const racing = reduceBenchmarkState(initial, { type: 'race-start', startedAt: 100 })
+  const racing = reduceBenchmarkState(initial, { type: 'dataset-ready' })
   const completed = reduceBenchmarkState(racing, {
     type: 'engine-complete',
     key: 'duckdb',
     ms: 32.1,
+    queryMs: 12.3,
   })
   const changed = reduceBenchmarkState(completed, { type: 'dataset-change', rowCount: 50_000 })
 
@@ -83,5 +89,77 @@ test('tracks generation progress without showing a stale result chart', () => {
   assert.equal(halfway.generationProgress, 0.5)
   assert.equal(halfway.datasetReady, false)
   assert.equal(ready.generationProgress, 1)
-  assert.deepEqual(ready.results, {})
+  assert.deepEqual(
+    Object.values(ready.results).map((status) => status.state),
+    ['idle', 'idle', 'idle']
+  )
+})
+
+test('starts one engine timer immediately after the dataset is ready', () => {
+  const ready = reduceBenchmarkState(reduceBenchmarkState(initial, { type: 'run-start' }), {
+    type: 'dataset-ready',
+  })
+  const running = reduceBenchmarkState(ready, {
+    type: 'engine-running',
+    key: 'duckdb',
+    startedAt: 1_000,
+  })
+
+  assert.equal(running.phase, 'racing')
+  assert.equal(running.activeEngine, 'duckdb')
+  assert.equal(getEngineDisplayMs(running.results.duckdb, 250), 250)
+  assert.equal(running.results.sqlite.state, 'idle')
+  assert.equal(running.results.indexeddb.state, 'idle')
+})
+
+test('freezes one engine before the next sequential engine starts', () => {
+  const ready = reduceBenchmarkState(reduceBenchmarkState(initial, { type: 'run-start' }), {
+    type: 'dataset-ready',
+  })
+  const duckdbDone = reduceBenchmarkState(
+    reduceBenchmarkState(ready, {
+      type: 'engine-running',
+      key: 'duckdb',
+      startedAt: 1_000,
+    }),
+    { type: 'engine-complete', key: 'duckdb', ms: 321.4, queryMs: 88.8 }
+  )
+  const sqliteRunning = reduceBenchmarkState(duckdbDone, {
+    type: 'engine-running',
+    key: 'sqlite',
+    startedAt: 2_000,
+  })
+
+  assert.equal(getEngineDisplayMs(sqliteRunning.results.duckdb, 9_999), 321.4)
+  assert.equal(getEngineDisplayMs(sqliteRunning.results.sqlite, 75), 75)
+  assert.equal(sqliteRunning.activeEngine, 'sqlite')
+})
+
+test('runs engine tasks one at a time so their work cannot overlap', async () => {
+  let active = 0
+  let maxActive = 0
+  const order = []
+
+  await runSequentially(['duckdb', 'sqlite', 'indexeddb'], async (key) => {
+    active += 1
+    maxActive = Math.max(maxActive, active)
+    order.push(`${key}:start`)
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    order.push(`${key}:end`)
+    active -= 1
+  })
+
+  assert.equal(maxActive, 1)
+  assert.deepEqual(order, [
+    'duckdb:start',
+    'duckdb:end',
+    'sqlite:start',
+    'sqlite:end',
+    'indexeddb:start',
+    'indexeddb:end',
+  ])
+})
+
+test('keeps the dimension table small so setup does not dominate the demo', () => {
+  assert.ok(CAMPAIGN_COUNT <= 1_024)
 })

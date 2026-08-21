@@ -57,13 +57,13 @@ async function readAll(db: IDBDatabase): Promise<TradeRow[]> {
   })
 }
 
-/** 预热：打开 IndexedDB（首次会触发浏览器初始化，不计入跑分计时） */
+/** Open IndexedDB. The demo calls this inside the engine's end-to-end timer. */
 export async function prewarmIndexedDb(): Promise<void> {
   const db = await openDb()
   db.close()
 }
 
-/** Prepare the browser store outside the race; reading and aggregating stay in the query. */
+/** Prepare the browser store, then return a query-only timer for reading and aggregation. */
 export async function prepareIndexedDb(rows: TradeRow[]): Promise<PreparedBenchmark> {
   await clearIndexedDb()
   const db = await openDb()

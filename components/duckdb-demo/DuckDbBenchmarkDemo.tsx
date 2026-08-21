@@ -1,12 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useReducer, useState } from 'react'
-import {
-  BENCHMARK_QUERY_DESC,
-  generateTradesAsync,
-  yieldToBrowser,
-  type TradeRow,
-} from './lib/data'
+import { generateTradesAsync, yieldToBrowser, type TradeRow } from './lib/data'
 import { prepareDuckDB, prewarmDuckDB } from './lib/duckdb'
 import { prepareSqlite, prewarmSqlite } from './lib/sqlite'
 import { prepareIndexedDb, prewarmIndexedDb } from './lib/indexeddb'
@@ -14,6 +9,7 @@ import {
   createInitialBenchmarkState,
   getEngineDisplayMs,
   reduceBenchmarkState,
+  runSequentially,
   type EngineKey,
   type EngineStatus,
 } from './lib/benchmarkState'
@@ -57,6 +53,7 @@ const COPY: Record<
     title: string
     introBeforeRows: string
     introAfterRows: string
+    caseDescription: string
     datasetLabel: string
     start: string
     warmingButton: string
@@ -73,19 +70,22 @@ const COPY: Record<
     footer: string
     generated: string
     cores: string
+    queryLabel: string
   }
 > = {
   en: {
     title: '⚡ Three-engine benchmark',
     introBeforeRows: 'Generate',
     introAfterRows:
-      'rows of deterministic mock trades. All three engines measure the same analytical question:',
+      'rows of deterministic event telemetry. Each engine answers the same analytical question:',
+    caseDescription:
+      'Full-year filter → campaign join → monthly/region/product groups → revenue + P95 latency → Top-N',
     datasetLabel: 'Dataset:',
     start: '▶ Run benchmark',
     warmingButton: '🔌 Warming engines…',
     runningButton: '🔄 Running…',
     generating: 'Preparing dataset…',
-    warming: '🔌 Loading engines. Once warm, each query runs in turn to avoid CPU contention…',
+    warming: '🔌 Engines run one at a time. The active engine timer starts before preparation…',
     ready: 'rows generated (deterministic seed)',
     waiting: 'Waiting',
     error: 'Error',
@@ -98,20 +98,22 @@ const COPY: Record<
     duckdbFasterBeforeRatio: 'DuckDB is',
     duckdbFasterAfterRatio: 'x faster than IndexedDB',
     footer:
-      '⚠️ Larger datasets make DuckDB’s columnar advantage more obvious. Queries run one at a time so workers do not steal CPU from each other. Bars show measured elapsed time; completed bars stay put. Full scale is an estimate. Environment: ',
+      '⚠️ Larger datasets make DuckDB’s columnar advantage more obvious. Each engine prepares and queries alone, so workers do not steal CPU from each other. Bars show end-to-end time; completed rows also show query-only time, and the conclusion compares query-only time. Full scale is an estimate. Environment: ',
     generated: 'Generated with DeepSeek V4 Flash.',
     cores: ' cores',
+    queryLabel: 'query',
   },
   'zh-CN': {
     title: '⚡ 三引擎性能对比 Demo',
     introBeforeRows: '生成',
-    introAfterRows: '行确定性模拟交易数据，三个引擎轮流回答同一个分析问题（各自实现）：',
+    introAfterRows: '行确定性事件遥测。每个引擎回答同一个分析问题：',
+    caseDescription: '全年筛选 → 连接活动维表 → 按月/区域/产品分组 → 收入 + P95 延迟 → Top-N',
     datasetLabel: '数据量：',
     start: '▶ 开始跑分',
     warmingButton: '🔌 预热引擎…',
     runningButton: '🔄 跑分中…',
     generating: '准备数据中…',
-    warming: '🔌 加载引擎，完成后依次跑查询，避免引擎互相抢 CPU…',
+    warming: '🔌 三个引擎依次运行；当前引擎从准备阶段就开始计时…',
     ready: '行数据已生成（确定性种子）',
     waiting: '等待',
     error: '错误',
@@ -124,9 +126,10 @@ const COPY: Record<
     duckdbFasterBeforeRatio: 'DuckDB 比 IndexedDB 快',
     duckdbFasterAfterRatio: 'x',
     footer:
-      '⚠️ 数据量越大，DuckDB 的列式优势越明显。查询会依次执行，避免引擎互相抢 CPU；柱子显示真实耗时，完成后会固定在实测位置；满格时间轴是预估值。当前环境：',
+      '⚠️ 数据量越大，DuckDB 的列式优势越明显。每个引擎单独准备并查询，避免互相抢 CPU；柱子显示端到端耗时，完成行同时标出纯查询耗时，结论也按纯查询耗时比较。满格时间轴是预估值。当前环境：',
     generated: 'DeepSeek V4 Flash 生成。',
     cores: ' 核',
+    queryLabel: '查询',
   },
 }
 
@@ -135,9 +138,9 @@ const COPY: Record<
  * 这是视觉刻度，不会覆盖引擎自己的实测耗时。
  */
 function estimateMs(rows: number): number {
-  if (rows <= 50_000) return 750
-  if (rows <= 200_000) return 3_000
-  return 12_000
+  if (rows <= 50_000) return 4_000
+  if (rows <= 200_000) return 12_000
+  return 40_000
 }
 
 const fmt = (ms: number) => (ms < 1000 ? `${ms.toFixed(1)} ms` : `${(ms / 1000).toFixed(2)} s`)
@@ -148,7 +151,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) {
-  const [state, dispatch] = useReducer(reduceBenchmarkState, createInitialBenchmarkState(200_000))
+  const [state, dispatch] = useReducer(reduceBenchmarkState, createInitialBenchmarkState(50_000))
   const [cpuCount, setCpuCount] = useState<number | null>(null)
   const copy = COPY[locale]
 
@@ -159,7 +162,12 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
   // One shared live clock while work is running. Completed rows use their own
   // measured duration from the reducer and therefore cannot jump backwards.
   useEffect(() => {
-    if (state.phase !== 'racing' || state.startedAt === undefined) return
+    if (
+      state.phase !== 'racing' ||
+      state.startedAt === undefined ||
+      state.activeEngine === undefined
+    )
+      return
     let raf = 0
     const loop = (now: number) => {
       dispatch({ type: 'tick', elapsed: now - state.startedAt! })
@@ -167,7 +175,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
     }
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
-  }, [state.phase, state.startedAt])
+  }, [state.phase, state.startedAt, state.activeEngine])
 
   const runBenchmark = useCallback(async () => {
     const rowCount = state.rowCount
@@ -184,50 +192,49 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
       return
     }
     dispatch({ type: 'dataset-ready' })
-
-    // One-time wasm/worker cost is deliberately outside the measured queries.
-    await Promise.allSettled([prewarmDuckDB(), prewarmSqlite(), prewarmIndexedDb()])
-
-    // Finish all storage work before the chart appears. This makes the bars a
-    // query-only comparison instead of a noisy mix of loading and ingestion.
-    const preparedResults = await Promise.allSettled([
-      prepareDuckDB(rows),
-      prepareSqlite(rows),
-      prepareIndexedDb(rows),
-    ])
-
-    const startedAt = performance.now()
-    dispatch({ type: 'race-start', startedAt })
-    // Let React paint the waiting bars before the first query starts.
     await yieldToBrowser()
 
-    const prepared: { key: EngineKey; value: Awaited<ReturnType<typeof prepareDuckDB>> }[] = []
     const keys: EngineKey[] = ['duckdb', 'sqlite', 'indexeddb']
-    preparedResults.forEach((result, index) => {
-      const key = keys[index]
-      if (result.status === 'fulfilled') {
-        prepared.push({ key, value: result.value })
-      } else {
-        dispatch({ type: 'engine-error', key, error: errorMessage(result.reason) })
-      }
-    })
 
-    const runEngine = async ({ key, value }: (typeof prepared)[number]) => {
-      dispatch({ type: 'engine-running', key })
-      // Paint the running state before a synchronous WASM/JS step begins.
+    const runEngine = async (key: EngineKey) => {
+      // Start the per-engine clock before any preparation work, then yield once
+      // so the running row is painted before synchronous WASM/JS work begins.
+      const startedAt = performance.now()
+      dispatch({ type: 'engine-running', key, startedAt })
       await yieldToBrowser()
+      let prepared: Awaited<ReturnType<typeof prepareDuckDB>> | undefined
       try {
-        const result = await value.runQuery()
-        dispatch({ type: 'engine-complete', key, ms: result.ms })
+        if (key === 'duckdb') {
+          await prewarmDuckDB()
+          prepared = await prepareDuckDB(rows)
+        } else if (key === 'sqlite') {
+          await prewarmSqlite()
+          prepared = await prepareSqlite(rows)
+        } else {
+          await prewarmIndexedDb()
+          prepared = await prepareIndexedDb(rows)
+        }
+        if (!prepared) throw new Error('Engine preparation returned no runner')
+        const result = await prepared.runQuery()
+        dispatch({
+          type: 'engine-complete',
+          key,
+          ms: performance.now() - startedAt,
+          queryMs: result.ms,
+        })
       } catch (error) {
         dispatch({ type: 'engine-error', key, error: errorMessage(error) })
+      } finally {
+        try {
+          await prepared?.close()
+        } catch {
+          // The benchmark result is already recorded; cleanup errors should not
+          // prevent the next isolated engine from running.
+        }
       }
     }
 
-    for (const engine of prepared) {
-      await runEngine(engine)
-    }
-    await Promise.allSettled(prepared.map(({ value }) => value.close()))
+    await runSequentially(keys, runEngine)
 
     dispatch({ type: 'finish' })
   }, [state.rowCount])
@@ -239,7 +246,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
     (['duckdb', 'sqlite', 'indexeddb'] as EngineKey[]).every(
       (key) => state.results[key]?.state === 'done'
     )
-  const raceActive = state.phase === 'racing' || (state.phase === 'done' && state.datasetReady)
+  const raceActive = state.datasetReady
 
   return (
     <div className="my-8 rounded-xl border border-slate-200 bg-white p-5 text-slate-900 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
@@ -250,9 +257,9 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
           {state.rowCount.toLocaleString()}
         </strong>{' '}
         {copy.introAfterRows}
-        <code className="mt-1 block rounded bg-slate-100 px-2 py-1 text-xs text-slate-800 dark:bg-slate-800 dark:text-slate-200">
-          {BENCHMARK_QUERY_DESC}
-        </code>
+        <span className="mt-1 block rounded bg-slate-100 px-2 py-1 text-xs text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+          {copy.caseDescription}
+        </span>
       </p>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -328,7 +335,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
                     }`}
                   >
                     {done
-                      ? `✓ ${fmt(displayMs)}`
+                      ? `✓ ${fmt(displayMs)} (${copy.queryLabel} ${fmt(status.queryMs ?? displayMs)})`
                       : running
                         ? fmtLive(displayMs)
                         : status?.state === 'error'
@@ -358,9 +365,9 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
           </span>
           {(() => {
             const durations = {
-              duckdb: state.results.duckdb?.ms ?? 0,
-              sqlite: state.results.sqlite?.ms ?? 0,
-              indexeddb: state.results.indexeddb?.ms ?? 0,
+              duckdb: state.results.duckdb?.queryMs ?? state.results.duckdb?.ms ?? 0,
+              sqlite: state.results.sqlite?.queryMs ?? state.results.sqlite?.ms ?? 0,
+              indexeddb: state.results.indexeddb?.queryMs ?? state.results.indexeddb?.ms ?? 0,
             }
             const fastest = (Object.keys(durations) as EngineKey[]).reduce((key, candidate) =>
               durations[candidate] < durations[key] ? candidate : key

@@ -43,7 +43,9 @@ const CAMPAIGN_SEGMENTS = [
   'Gaming',
   'Education',
 ]
-export const CAMPAIGN_COUNT = 20_000
+// A compact dimension keeps setup visible without drowning the analytical case
+// in 20K rows of one-time fixture loading.
+export const CAMPAIGN_COUNT = 512
 const DAY_MS = 86400000
 const START_UTC = Date.UTC(2024, 0, 1)
 const DATE_STRINGS = Array.from({ length: 365 }, (_, dayOffset) =>

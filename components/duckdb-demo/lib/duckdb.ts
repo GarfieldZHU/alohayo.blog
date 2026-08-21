@@ -59,7 +59,7 @@ async function getDuckDBInstance(): Promise<DuckDBInstance> {
   return instance
 }
 
-/** 预热：加载 wasm/worker（耗时几秒，不计入跑分计时） */
+/** Load the wasm/worker. The demo calls this inside the engine's end-to-end timer. */
 export async function prewarmDuckDB(): Promise<void> {
   await getDuckDBInstance()
 }
@@ -126,7 +126,7 @@ function readTop(result: {
   return top
 }
 
-/** Prepare storage outside the race; the race measures the analytical query. */
+/** Prepare storage, then return a query-only timer for the result comparison. */
 export async function prepareDuckDB(rows: TradeRow[]): Promise<PreparedBenchmark> {
   const { conn } = await getDuckDB()
   try {

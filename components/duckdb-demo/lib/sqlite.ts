@@ -47,12 +47,12 @@ async function loadSqliteModule(): Promise<SqliteModule> {
   return sqliteInitPromise
 }
 
-/** 预热：加载 sqlite3 wasm（一次性成本，不计入跑分计时） */
+/** Load sqlite3 wasm. The demo calls this inside the engine's end-to-end timer. */
 export async function prewarmSqlite(): Promise<void> {
   await loadSqliteModule()
 }
 
-/** Prepare the row store outside the race; only SQL execution is timed. */
+/** Prepare the row store, then return a query-only timer for the result comparison. */
 export async function prepareSqlite(rows: TradeRow[]): Promise<PreparedBenchmark> {
   const sqlite = await loadSqliteModule()
   const db = new sqlite.oo1.DB()
