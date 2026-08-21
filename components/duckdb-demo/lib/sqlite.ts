@@ -19,11 +19,18 @@ type SqliteStmt = {
   finalize: () => void
 }
 
-let sqliteModPromise: Promise<SqliteDB> | null = null
+type SqliteModule = {
+  oo1: {
+    DB: new () => SqliteDB
+  }
+}
 
-async function loadSqlite(): Promise<SqliteDB> {
-  if (sqliteModPromise) return sqliteModPromise
-  sqliteModPromise = (async () => {
+let sqliteInitPromise: Promise<SqliteModule> | null = null
+
+// 只缓存模块初始化；每次 benchmark 创建新的 DB 实例（旧实例已 close，不能复用）
+async function loadSqliteModule(): Promise<SqliteModule> {
+  if (sqliteInitPromise) return sqliteInitPromise
+  sqliteInitPromise = (async () => {
     // sqlite-wasm 官方 ESM 入口：默认导出 sqlite3InitModule
     const mod = (await import('@sqlite.org/sqlite-wasm')) as unknown as {
       default: (config: { locateFile: (file: string) => string }) => Promise<{
@@ -35,16 +42,17 @@ async function loadSqlite(): Promise<SqliteDB> {
     const sqlite3 = await mod.default({
       locateFile: (file) => `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/vendor/sqlite-wasm/${file}`,
     })
-    return new sqlite3.oo1.DB()
+    return sqlite3
   })()
-  return sqliteModPromise
+  return sqliteInitPromise
 }
 
 export async function sqliteBenchmark(rows: TradeRow[]): Promise<{
   ms: number
   top: { region: string; product: string; total: number }[]
 }> {
-  const db = await loadSqlite()
+  const sqlite = await loadSqliteModule()
+  const db = new sqlite.oo1.DB()
 
   db.exec('CREATE TABLE trades (id INTEGER, date TEXT, region TEXT, product TEXT, amount REAL)')
 

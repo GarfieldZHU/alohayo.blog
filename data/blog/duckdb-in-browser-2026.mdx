@@ -1,9 +1,9 @@
 ---
 title: 'DuckDB-Wasm in the browser — I ran 100x faster than IndexedDB and it felt illegal'
 date: '2026-08-20'
-tags: ['DuckDB', 'WebAssembly', 'WASM', 'Parquet', 'Analytics', 'Frontend', 'SQL']
+tags: ['DuckDB', 'WASM', 'Parquet', 'Analytics', 'Frontend', 'SQL']
 draft: false
-summary: 'I embedded DuckDB-Wasm, SQLite-Wasm and IndexedDB side by side in my blog and made them race on the same 50K-row dataset. DuckDB finished in 26ms. IndexedDB + manual JS aggregation took 2.8 seconds. Same data, same machine, 105x apart. Here is the demo, the traps I fell into (CSP, wasm self-hosting, sqlite API), and why the gap only gets wider as data grows.'
+summary: 'I embedded DuckDB-Wasm, SQLite-Wasm and IndexedDB side by side in my blog and made them race on the same 50K-row dataset. DuckDB finished in 26ms. IndexedDB + manual JS aggregation took 2.8 seconds. Same data, same machine, ~105x apart. Here is the demo, the four traps I fell into (CSP, SSR Worker, Arrow API, sqlite API), and why the gap only gets wider as data grows.'
 ---
 
 > @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
@@ -42,7 +42,7 @@ DuckDB is **columnar**. `SUM(amount) GROUP BY region, product` only reads the th
 
 ## What it took to make this work (the traps)
 
-Getting DuckDB-Wasm into a Next.js blog was *not* "npm install and done". Three real walls I hit:
+Getting DuckDB-Wasm into a Next.js blog was *not* "npm install and done". Four real walls I hit:
 
 ### 1. CSP hates CDN workers
 
@@ -58,17 +58,38 @@ Chrome immediately blocked it:
 
 **Fix:** self-host the wasm binaries and worker scripts under `public/vendor/`. Now everything loads from the same origin, CSP stays strict, and there's no runtime dependency on a CDN. Win-win-win.
 
-### 2. Import the right bundle
+### 2. SSR hates `Worker` (the one that cost me the most)
 
-`import * as duckdb from '@duckdb/duckdb-wasm'` made Next.js/webpack pull in the **Node** build (`duckdb-node.cjs`) during SSR, with a scary `Critical dependency` warning. The package has a `browser` export condition, but webpack didn't honor it the way I expected.
+`'use client'` in Next.js still gets **server-side prerendered** on first load. My first version had a static `import` of duckdb-wasm at the top of the file — and the build exploded with:
 
-**Fix:** import the browser bundle directly:
+> ReferenceError: Worker is not defined
+
+Because during SSG, the module actually executes in Node, where `new Worker(...)` doesn't exist. On top of that, the default package import also dragged the **Node build** (`duckdb-node.cjs`) into the webpack graph with a scary `Critical dependency` warning.
+
+**Fix:** import the browser bundle explicitly, and load it **dynamically** so it only runs in the browser when the user clicks:
 
 ```ts
-import * as duckdb from '@duckdb/duckdb-wasm/dist/duckdb-browser.mjs'
+// inside the benchmark function, NOT at module top level:
+const duckdb = await import('@duckdb/duckdb-wasm/dist/duckdb-browser.mjs')
 ```
 
-### 3. SQLite-Wasm's API is NOT sqlite3's C API
+Top-level `import * as duckdb from '@duckdb/duckdb-wasm'` is what breaks the build. Dynamic import inside the click handler is what saves it.
+
+### 3. Apache Arrow Table wants vectors, not objects
+
+DuckDB-Wasm ingests data as an **Arrow Table**. My first attempt passed a plain array of JS objects:
+
+```ts
+new arrow.Table(schema, rows) // TS error: expects RecordBatch[]
+```
+
+**Fix:** use `tableFromJSON`, which infers the schema for you:
+
+```ts
+const table = arrow.tableFromJSON(rows)
+```
+
+### 4. SQLite-Wasm's API is NOT sqlite3's C API
 
 I wrote `stmt.free()` because that's what sqlite3 C API has. At runtime:
 

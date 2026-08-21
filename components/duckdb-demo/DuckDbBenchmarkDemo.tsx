@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { generateTrades, type BenchmarkResult, type TradeRow } from './lib/data'
+import { generateTrades, type TradeRow } from './lib/data'
 import { duckdbBenchmark } from './lib/duckdb'
 import { sqliteBenchmark } from './lib/sqlite'
 import { indexedDbBenchmark, clearIndexedDb } from './lib/indexeddb'

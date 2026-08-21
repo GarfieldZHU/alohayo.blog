@@ -11,7 +11,7 @@ import { BENCHMARK_QUERY_DESC } from './data'
 
 const WASM_BASE = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/vendor/duckdb-wasm`
 
-let dbPromise: Promise<{
+const dbPromise: Promise<{
   conn: {
     insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
     query: (sql: string) => Promise<{
@@ -20,6 +20,18 @@ let dbPromise: Promise<{
     }>
     close: () => Promise<void>
   }
+}> | null = null
+
+// 只缓存 duckdb 实例；每次 benchmark 新开一个 connection（旧 conn 已 close）
+let duckdbInstancePromise: Promise<{
+  connect: () => Promise<{
+    insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
+    query: (sql: string) => Promise<{
+      numRows: number
+      getChildAt: (i: number) => { get: (row: number) => unknown } | null
+    }>
+    close: () => Promise<void>
+  }>
 }> | null = null
 
 export async function getDuckDB(): Promise<{
@@ -32,44 +44,49 @@ export async function getDuckDB(): Promise<{
     close: () => Promise<void>
   }
 }> {
-  if (dbPromise) return dbPromise
-  dbPromise = (async () => {
-    // 动态 import，只在浏览器端执行（SSR 不会走到这里）
-    const duckdb = await import('@duckdb/duckdb-wasm/dist/duckdb-browser.mjs')
-    const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
-      mvp: {
-        mainModule: `${WASM_BASE}/duckdb-mvp.wasm`,
-        mainWorker: `${WASM_BASE}/duckdb-browser-mvp.worker.js`,
-      },
-      eh: {
-        mainModule: `${WASM_BASE}/duckdb-eh.wasm`,
-        mainWorker: `${WASM_BASE}/duckdb-browser-eh.worker.js`,
-      },
-      coi: {
-        mainModule: `${WASM_BASE}/duckdb-coi.wasm`,
-        mainWorker: `${WASM_BASE}/duckdb-browser-coi.worker.js`,
-        pthreadWorker: `${WASM_BASE}/duckdb-browser-coi.pthread.worker.js`,
-      },
-    }
-    const bundle = await duckdb.selectBundle(MANUAL_BUNDLES)
-    const worker = new Worker(bundle.mainWorker!)
-    const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING)
-    const db = new duckdb.AsyncDuckDB(logger, worker)
-    await db.instantiate(bundle.mainModule, bundle.pthreadWorker)
-    return db.connect()
-  })()
-  return dbPromise
+  if (!duckdbInstancePromise) {
+    duckdbInstancePromise = (async () => {
+      // 动态 import，只在浏览器端执行（SSR 不会走到这里）
+      const duckdb = await import('@duckdb/duckdb-wasm/dist/duckdb-browser.mjs')
+      const MANUAL_BUNDLES = {
+        mvp: {
+          mainModule: `${WASM_BASE}/duckdb-mvp.wasm`,
+          mainWorker: `${WASM_BASE}/duckdb-browser-mvp.worker.js`,
+        },
+        eh: {
+          mainModule: `${WASM_BASE}/duckdb-eh.wasm`,
+          mainWorker: `${WASM_BASE}/duckdb-browser-eh.worker.js`,
+        },
+        coi: {
+          mainModule: `${WASM_BASE}/duckdb-coi.wasm`,
+          mainWorker: `${WASM_BASE}/duckdb-browser-coi.worker.js`,
+          pthreadWorker: `${WASM_BASE}/duckdb-browser-coi.pthread.worker.js`,
+        },
+      }
+      const bundle = await duckdb.selectBundle(MANUAL_BUNDLES)
+      const worker = new Worker(bundle.mainWorker!)
+      const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING)
+      const db = new duckdb.AsyncDuckDB(logger, worker)
+      await db.instantiate(bundle.mainModule, bundle.pthreadWorker)
+      return { connect: () => db.connect() }
+    })()
+  }
+  const instance = await duckdbInstancePromise
+  return { conn: await instance.connect() }
 }
 
 export async function duckdbBenchmark(rows: TradeRow[]): Promise<{
   ms: number
   top: { region: string; product: string; total: number }[]
 }> {
-  const conn = await getDuckDB()
+  const { conn } = await getDuckDB()
 
   // 把 JS 数组转成 Arrow Table（列式，正好展示 DuckDB 的强项）
   const arrow = await import('apache-arrow')
   const table = arrow.tableFromJSON(rows as unknown as Record<string, unknown>[])
+
+  // 复用同一 db 实例时，上一轮的 trades 表还在 → 先删表再建（DROP IF EXISTS 幂等）
+  await conn.query('DROP TABLE IF EXISTS trades')
   await conn.insertArrowTable(table, { name: 'trades', create: true })
 
   // 计时执行基准查询
