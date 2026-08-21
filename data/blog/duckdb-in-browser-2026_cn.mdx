@@ -17,6 +17,10 @@ summary: 'DuckDB 是嵌入式分析引擎，DuckDB-Wasm 则把它搬进浏览器
 
 如果把数据分析比作做饭，数据文件是食材，DuckDB 就是那位很会备菜的厨师：它负责读列、筛选、连接、聚合、排序，再把结果端给表格或图表。它不是一个要单独部署的数据库服务，而是一个可以嵌进应用进程的分析引擎：没有端口、连接池和“先把服务启动起来”这一步。
 
+先插一句我自己的工作背景：平时打交道最多的工作数据库基本是 PostgreSQL。Postgres 强到几乎什么都能做：事务、MVCC、并发控制、复杂 SQL、JSON/JSONB、索引、复制、权限和扩展，官方的[特性总览](https://www.postgresql.org/about/)和 [MVCC 文档](https://www.postgresql.org/docs/current/mvcc.html)都能作证。它很适合做多人共享、持续写入、必须守住一致性的业务数据库。DuckDB 和 PostgreSQL 完全不是一个赛道：前者是嵌入应用、面向读多写少 OLAP 的分析引擎，后者是通用的服务型业务数据库。不是“谁替代谁”，而是“谁守住真相、谁负责切片”——需要事务和并发写入时，让 PostgreSQL 坐主桌；拿业务快照、Parquet 或本地文件做大范围筛选聚合时，让 DuckDB 上场。
+
+两者还可以直接握手：DuckDB 的 [PostgreSQL 扩展](https://duckdb.org/docs/current/core_extensions/postgres/overview)可以把正在运行的 PostgreSQL 表当作查询输入，再导出分析结果或 Parquet。我的实际心智模型就是：Postgres 负责生产事实，DuckDB 负责把事实切成图表。
+
 DuckDB 的设计重点也很明确：**分析（OLAP）优先，而不是逐行事务（OLTP）优先**。它使用列式执行和向量化批处理，一次处理一批值，再配合 SQL 优化器决定过滤、聚合和连接的执行顺序。官方的[向量化执行说明](https://duckdb.org/docs/lts/internals/vector)写得很直白：数据不是一行一行慢慢挪，而是按向量批次流过算子。
 
 这带来一个很舒服的边界：业务代码负责把数据放到一个可读的位置，DuckDB 负责“怎么查得快”。本地文件、对象存储、内存表，甚至用户刚拖进页面的文件，都可以成为查询输入。分析引擎和数据放在哪里，不必绑死在同一台服务器上。
