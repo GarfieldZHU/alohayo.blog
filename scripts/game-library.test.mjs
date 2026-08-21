@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
 import test from 'node:test'
 
 const { GAME_CATALOG, getEmbedCode, getGameCopy } = await import('../app/game/gameCatalog.ts')
+const launcherSource = await fs.readFile(
+  new URL('../app/game/GameLauncher.tsx', import.meta.url),
+  'utf8'
+)
 
 test('keeps the four approved games in the requested order', () => {
   assert.deepEqual(
@@ -29,4 +34,14 @@ test('generates a copyable iframe snippet for the selected locale', () => {
   assert.match(snippet, /https:\/\/uno-2026\.vercel\.app\//)
   assert.match(snippet, /title="UNO 2026"/)
   assert.match(snippet, /allow="autoplay; fullscreen; gamepad; pointer-lock"/)
+})
+
+test('keeps the library surface focused on games and compact controls', () => {
+  assert.doesNotMatch(launcherSource, /一架安静的好游戏。/)
+  assert.doesNotMatch(launcherSource, /四个浏览器游戏，留在博客里，想玩时随时打开。/)
+  assert.doesNotMatch(launcherSource, /\{copy\.subtitle\}/)
+  assert.doesNotMatch(launcherSource, /\{copy\.description\}/)
+  assert.match(launcherSource, /gameViewportRef/)
+  assert.match(launcherSource, /messages\.fullScreen/)
+  assert.match(launcherSource, /messages\.copyEmbed/)
 })

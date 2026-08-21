@@ -487,8 +487,8 @@ function AlohaYoWorldEmbed({ embeddedInModal = false }: { embeddedInModal?: bool
   }, [effectiveTheme, mountWithPreset, sizeIndex, state])
 
   return (
-    <div className="py-8 sm:py-12">
-      <form onSubmit={startGame}>
+    <div className={embeddedInModal ? 'h-full min-h-0' : 'py-8 sm:py-12'}>
+      <form onSubmit={startGame} className={embeddedInModal ? 'h-full' : undefined}>
         {devMode && (
           <section className="mb-4 rounded-xl border border-cyan-900/30 bg-slate-950/55 p-4 shadow-sm dark:bg-slate-950/70">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
@@ -573,7 +573,9 @@ function AlohaYoWorldEmbed({ embeddedInModal = false }: { embeddedInModal?: bool
           className={
             fullWindow
               ? 'fixed inset-0 z-50 h-[100dvh] w-[100dvw] overflow-hidden bg-slate-100 shadow-2xl dark:bg-[#07111f]'
-              : 'relative'
+              : embeddedInModal
+                ? 'relative h-full min-h-0 w-full overflow-hidden bg-slate-100 dark:bg-[#07111f]'
+                : 'relative'
           }
         >
           {(fullWindow || isFullscreen) && (
@@ -622,7 +624,7 @@ function AlohaYoWorldEmbed({ embeddedInModal = false }: { embeddedInModal?: bool
           <div
             ref={containerRef}
             className={
-              fullWindow
+              fullWindow || isFullscreen || embeddedInModal
                 ? 'relative h-full min-h-0 w-full overflow-hidden bg-slate-100 dark:bg-[#07111f]'
                 : 'relative h-[68vh] min-h-[480px] overflow-hidden rounded-xl border border-gray-200 bg-slate-100 shadow-2xl dark:border-gray-700 dark:bg-[#07111f]'
             }
@@ -718,39 +720,25 @@ function AlohaYoWorldEmbed({ embeddedInModal = false }: { embeddedInModal?: bool
 const LIBRARY_MESSAGES = {
   en: {
     eyebrow: 'Game library',
-    title: 'A small shelf for good games.',
-    description: 'Four browser games, kept close to the blog and ready when you are.',
     open: 'Open game',
     close: 'Close',
     playOnline: 'Play online',
-    newWindow: 'New window',
     fullScreen: 'Fullscreen',
     exitFullScreen: 'Exit fullscreen',
-    embedded: 'Play inside this page',
-    externalOnly: 'This game opens in a new window because its site blocks iframe embedding.',
     copyEmbed: 'Copy embed code',
     copied: 'Embed code copied',
     copyFailed: 'Copy failed — select the code manually',
-    embedNote: 'Use this snippet to place the game in another page.',
-    aLohaEmbedNote: 'In this page, AlohaYo World keeps the blog’s existing embedded launcher.',
   },
   'zh-CN': {
     eyebrow: '游戏库',
-    title: '一架安静的好游戏。',
-    description: '四个浏览器游戏，留在博客里，想玩时随时打开。',
     open: '打开游戏',
     close: '关闭',
     playOnline: '线上游玩',
-    newWindow: '新窗口',
     fullScreen: '全屏',
     exitFullScreen: '退出全屏',
-    embedded: '在页面内游玩',
-    externalOnly: '该站点禁止 iframe 嵌入，将在新窗口打开。',
     copyEmbed: '复制嵌入代码',
     copied: '嵌入代码已复制',
     copyFailed: '复制失败，请手动选择代码',
-    embedNote: '复制这段代码，即可把游戏放入其他页面。',
-    aLohaEmbedNote: '在本页中，AlohaYo World 继续使用博客现有的嵌入式启动器。',
   },
 } as const
 
@@ -767,7 +755,8 @@ function GameModal({
 }) {
   const messages = LIBRARY_MESSAGES[locale]
   const copy = getGameCopy(game, locale)
-  const frameRef = useRef<HTMLIFrameElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const gameViewportRef = useRef<HTMLDivElement>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
 
@@ -776,7 +765,9 @@ function GameModal({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
-    const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    const onFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === modalRef.current)
+    }
 
     document.body.style.overflow = 'hidden'
     document.addEventListener('keydown', onKeyDown)
@@ -795,11 +786,13 @@ function GameModal({
   }, [game.id, locale])
 
   const toggleFullscreen = async () => {
+    const modal = modalRef.current
+    if (!modal) return
     if (document.fullscreenElement) {
       await document.exitFullscreen()
       return
     }
-    await frameRef.current?.requestFullscreen()
+    await modal.requestFullscreen()
   }
 
   const copyEmbed = async () => {
@@ -813,58 +806,33 @@ function GameModal({
 
   const content =
     game.playMode === 'alohayo' ? (
-      <div className="max-h-[min(72vh,52rem)] overflow-auto rounded-xl border border-slate-200 bg-[#070d18] dark:border-slate-700">
-        <AlohaYoWorldEmbed embeddedInModal />
-      </div>
+      <AlohaYoWorldEmbed embeddedInModal />
     ) : game.playMode === 'iframe' ? (
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 dark:border-slate-700">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-900/90 px-4 py-3 text-xs text-slate-300">
-          <span>{messages.embedded}</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => void toggleFullscreen()}
-              className="rounded-md border border-white/15 px-3 py-1.5 transition hover:border-cyan-300 hover:text-cyan-100"
-            >
-              {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
-            </button>
-            <a
-              href={game.url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-md border border-white/15 px-3 py-1.5 transition hover:border-cyan-300 hover:text-cyan-100"
-            >
-              {messages.newWindow}
-            </a>
-          </div>
-        </div>
-        <iframe
-          ref={frameRef}
-          title={copy.title}
-          src={game.url}
-          loading="lazy"
-          allow="autoplay; fullscreen; gamepad; pointer-lock"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-downloads"
-          className="h-[min(68vh,42rem)] min-h-[25rem] w-full border-0 bg-white"
-        />
-      </div>
+      <iframe
+        title={copy.title}
+        src={game.url}
+        loading="lazy"
+        allow="autoplay; fullscreen; gamepad; pointer-lock"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-downloads"
+        className="block h-full min-h-0 w-full border-0 bg-white"
+      />
     ) : (
-      <div className="grid min-h-[22rem] place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-950/50">
-        <div className="max-w-md">
-          <div className="text-4xl" aria-hidden="true">
-            {game.emoji}
-          </div>
-          <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            {messages.externalOnly}
-          </p>
-        </div>
+      <div className="grid h-full place-items-center bg-slate-950 p-8 text-center">
+        <a
+          href={game.url}
+          target="_blank"
+          rel="noreferrer"
+          className="rounded-lg bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-200"
+        >
+          {messages.playOnline} ↗
+        </a>
       </div>
     )
 
   return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-6">
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/70 p-2 backdrop-blur-sm sm:p-4">
       <button
         type="button"
         aria-label={messages.close}
@@ -872,85 +840,73 @@ function GameModal({
         className="absolute inset-0 cursor-default"
       />
       <div
-        className="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)] dark:border-slate-700 dark:bg-[#10141b]"
+        ref={modalRef}
+        className="relative z-10 flex h-[min(94dvh,72rem)] max-h-[calc(100dvh-1rem)] w-full max-w-[min(96vw,120rem)] flex-col overflow-hidden rounded-xl bg-white shadow-2xl dark:bg-[#10141b] [&:fullscreen]:h-screen [&:fullscreen]:max-h-none [&:fullscreen]:w-screen [&:fullscreen]:max-w-none [&:fullscreen]:rounded-none"
         role="dialog"
         aria-modal="true"
         aria-labelledby={`game-title-${game.id}`}
-        aria-describedby={`game-description-${game.id}`}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6 dark:border-slate-700">
+        <header className="flex shrink-0 items-center justify-between gap-4 border-b border-slate-200/70 px-4 py-3 sm:px-5 dark:border-slate-700/70">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-cyan-600 uppercase dark:text-cyan-300">
-              {messages.eyebrow}
-            </p>
             <h2
               id={`game-title-${game.id}`}
-              className="mt-1 truncate text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white"
+              className="truncate text-lg font-bold tracking-tight text-slate-900 sm:text-xl dark:text-white"
             >
               <span aria-hidden="true">{game.emoji} </span>
               {copy.title}
             </h2>
-            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{copy.subtitle}</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={messages.close}
-            className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 transition hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white"
-          >
-            ✕
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              aria-label={isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+              className="rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={messages.close}
+              className="rounded-lg px-2.5 py-2 text-lg leading-none text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+            >
+              ✕
+            </button>
+          </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-5">
+        <div
+          ref={gameViewportRef}
+          className="min-h-0 flex-1 overflow-hidden bg-slate-950 [&:fullscreen]:h-screen [&:fullscreen]:w-screen"
+        >
           {content}
-          <p
-            id={`game-description-${game.id}`}
-            className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300"
-          >
-            {copy.description}
-          </p>
-          {game.playMode === 'alohayo' && (
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {messages.aLohaEmbedNote}
-            </p>
-          )}
         </div>
 
-        <footer className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700">
-          <div className="flex flex-wrap items-center gap-2">
-            {copy.tags.map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
+        <footer className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200/70 px-4 py-3 dark:border-slate-700/70">
+          {copyStatus === 'error' && (
+            <span role="status" className="mr-auto text-xs text-amber-700 dark:text-amber-300">
+              {messages.copyFailed}
+            </span>
+          )}
+          <a
+            href={game.url}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg px-3 py-2 text-xs font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"
+          >
+            {messages.playOnline} ↗
+          </a>
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => void copyEmbed()}
-              className="rounded-lg border border-cyan-700/30 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 transition hover:border-cyan-600 hover:bg-cyan-100 dark:border-cyan-400/30 dark:bg-cyan-950/40 dark:text-cyan-100 dark:hover:bg-cyan-900/60"
+              className="rounded-lg bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-cyan-300"
             >
               {copyStatus === 'copied' ? messages.copied : messages.copyEmbed}
             </button>
-            <a
-              href={game.url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
-            >
-              {messages.playOnline} ↗
-            </a>
           </div>
         </footer>
-        {copyStatus === 'error' && (
-          <p className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
-            {messages.copyFailed}. {messages.embedNote}
-          </p>
-        )}
       </div>
     </div>
   )
@@ -963,16 +919,10 @@ export default function GameLauncher() {
 
   return (
     <div className="pt-8 pb-20 sm:pt-12">
-      <header className="mb-8 border-b border-slate-200 pb-8 dark:border-slate-700">
-        <p className="font-mono text-xs font-semibold tracking-[0.2em] text-cyan-600 uppercase dark:text-cyan-300">
-          {messages.eyebrow}
-        </p>
+      <header className="mb-6 border-b border-slate-200 pb-5 dark:border-slate-700">
         <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
-          {messages.title}
+          {messages.eyebrow}
         </h1>
-        <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
-          {messages.description}
-        </p>
       </header>
 
       <section aria-label={messages.eyebrow} className="grid gap-4 sm:grid-cols-2">
@@ -1003,9 +953,6 @@ export default function GameLauncher() {
                   <h2 className="truncate text-lg font-semibold text-slate-900 dark:text-white">
                     {copy.title}
                   </h2>
-                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500 dark:text-slate-400">
-                    {copy.subtitle}
-                  </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5">
                   {copy.tags.map((tag) => (
