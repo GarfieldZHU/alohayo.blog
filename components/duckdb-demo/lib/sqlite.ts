@@ -47,6 +47,11 @@ async function loadSqliteModule(): Promise<SqliteModule> {
   return sqliteInitPromise
 }
 
+/** 预热：加载 sqlite3 wasm（一次性成本，不计入跑分计时） */
+export async function prewarmSqlite(): Promise<void> {
+  await loadSqliteModule()
+}
+
 export async function sqliteBenchmark(rows: TradeRow[]): Promise<{
   ms: number
   top: { region: string; product: string; total: number }[]

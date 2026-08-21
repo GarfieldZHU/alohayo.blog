@@ -51,6 +51,12 @@ async function readAll(db: IDBDatabase): Promise<TradeRow[]> {
   })
 }
 
+/** 预热：打开 IndexedDB（首次会触发浏览器初始化，不计入跑分计时） */
+export async function prewarmIndexedDb(): Promise<void> {
+  const db = await openDb()
+  db.close()
+}
+
 export async function indexedDbBenchmark(rows: TradeRow[]): Promise<{
   ms: number
   top: { region: string; product: string; total: number }[]

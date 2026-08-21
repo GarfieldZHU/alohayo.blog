@@ -34,15 +34,15 @@ let duckdbInstancePromise: Promise<{
   }>
 }> | null = null
 
-export async function getDuckDB(): Promise<{
-  conn: {
+async function getDuckDBInstance(): Promise<{
+  connect: () => Promise<{
     insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
     query: (sql: string) => Promise<{
       numRows: number
       getChildAt: (i: number) => { get: (row: number) => unknown } | null
     }>
     close: () => Promise<void>
-  }
+  }>
 }> {
   if (!duckdbInstancePromise) {
     duckdbInstancePromise = (async () => {
@@ -72,6 +72,25 @@ export async function getDuckDB(): Promise<{
     })()
   }
   const instance = await duckdbInstancePromise
+  return instance
+}
+
+/** 预热：加载 wasm/worker（耗时几秒，不计入跑分计时） */
+export async function prewarmDuckDB(): Promise<void> {
+  await getDuckDBInstance()
+}
+
+export async function getDuckDB(): Promise<{
+  conn: {
+    insertArrowTable: (t: unknown, o: { name: string; create?: boolean }) => Promise<void>
+    query: (sql: string) => Promise<{
+      numRows: number
+      getChildAt: (i: number) => { get: (row: number) => unknown } | null
+    }>
+    close: () => Promise<void>
+  }
+}> {
+  const instance = await getDuckDBInstance()
   return { conn: await instance.connect() }
 }
 
