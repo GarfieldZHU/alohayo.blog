@@ -1,0 +1,167 @@
+---
+title: 'DuckDB-Wasm：藏在浏览器里的 SQL 分析引擎'
+date: '2026-08-20'
+locale: zh-CN
+translationKey: duckdb-in-browser-2026
+translationKind: ai-translation
+translationSourceLocale: en
+tags: ['DuckDB', 'WASM', 'Parquet', 'Analytics', 'Frontend', 'SQL']
+draft: false
+summary: DuckDB 自称 "SQLite for analytics"，而它的 Wasm 版把整个分析引擎送进了浏览器——不需要后端。本文讲它的核心能力（列式存储、向量化执行、嵌入式）、作为 WASM 嵌入网页后能解锁的场景（隐私友好的本地分析、零服务器成本、HTTP Range 直查远程 Parquet），并内嵌一个 DuckDB-Wasm vs SQLite-Wasm vs IndexedDB 三引擎实时跑分，让你亲眼看到差距。
+---
+
+> @Author: [Garfield Zhu](https://github.com/GarfieldZHU/)
+
+DuckDB 自称 "SQLite for analytics"。这不是玩梗——它真的是一个**嵌入式、列式、向量化的 SQL 引擎**，跑在你的进程里，没有服务器、没有配置。Python、Rust、Node、Java：`import duckdb; duckdb.sql("SELECT ...")`，完事。
+
+然后有人把它编译成了 Wasm，整个引擎开始搬进浏览器。
+
+这改变了"Web 端数据分析"的定义。下面给你看为什么。
+
+---
+
+## DuckDB 的核心能力
+
+### 1. 嵌入式——引擎住在你的应用里
+
+DuckDB 是一个库，不是服务器。没有 `docker compose up`，没有连接池，没有要守护的端口。应用启动，引擎已经在里面了。对 Web 应用来说意味着：**你的 CDN 服务的静态文件，本身就是数据库**。
+
+### 2. 列式存储 + 向量化执行
+
+这才是那些离谱性能数字的根源。行式数据库（比如 SQLite）把每条记录连续存放——所以 `SUM(amount)` 必须遍历每一行，把整条记录读进来，只为了用其中一小部分，剩下全扔掉。
+
+DuckDB **按列存储**。`SELECT SUM(amount) GROUP BY region` 只碰需要的两列，而且是**向量化批量**处理（一次几百个值，SIMD 加速）。读的字节更少，每行执行的指令更少，缓存缺失更少。
+
+### 3. 真正的 SQL——不是 `for` 循环
+
+DuckDB 给你完整的 SQL 能力：`GROUP BY`、窗口函数、`UNNEST`、`LIST`、模糊连接……全部跑在浏览器里。而"浏览器数据分析"的替代方案，通常是在 JavaScript 里手写聚合——这正是大多数"Web 端分析"的实际状态。
+
+### 4. 直接查文件——没有导入步骤
+
+```sql
+SELECT * FROM 's3://my-bucket/data.parquet'
+SELECT * FROM 'data.csv'
+SELECT * FROM 'log.jsonl'
+```
+
+DuckDB 可以直接读 CSV、Parquet、JSON，**不需要先导入数据库**。而且 Parquet 本身也是列式的，它甚至能跳过你没请求的列——文件在远程也能跳（下面细说）。
+
+### 5. Arrow 原生
+
+DuckDB 和 Apache Arrow 讲同一种列式语言，数据进出**零拷贝**。这也是为什么 Wasm 版把 JS 数组灌进去后还能跑得那么快。
+
+---
+
+## DuckDB-Wasm：引擎搬进浏览器后解锁了什么
+
+DuckDB 的 Wasm 版在 Web Worker 里跑**完整的引擎**。同样的代码、同样的 SQL、同样的查询规划器。它实际能带来的：
+
+### 隐私友好的分析——数据不出客户端
+
+医疗记录、财务数据、个人习惯、私有数据集……任何你不想碰服务器的数据。DuckDB-Wasm 让这一切可以在本地分析。数据要么诞生在客户端，要么导入后从不外传。这不是合规绕道——这是一个以前根本不可能存在的应用品类。
+
+### 零服务器成本，任意规模都是平的
+
+引擎在客户端之后，**计算由用户的机器完成**。你的 CDN 只需要几 MB 的 wasm 和若干 Parquet 文件。100 个用户还是 1,000,000 个用户——你的算力账单是一样的（≈ ¥0）。对公共数据门户和开放数据集来说，"扩容 API"这个事彻底不存在了。
+
+### 远程 Parquet + HTTP Range——查询一个你从没下载过的文件
+
+Parquet 是列式 + 行组划分的，所以 DuckDB 可以发 **HTTP Range 请求**：只下载查询需要的列和行组所在的字节区间。S3 上一个 1GB 的 Parquet，聚合查询可能只拉几 MB。你根本没在"加载文件"——你是在线上"查文件"。
+
+### 离线优先
+
+没网络？没问题。把 Parquet 随 PWA 发下去或下载一次，分析层完全本地。飞机上能用、防火墙后面能用、隧道里能用。
+
+### 没有桌面应用，却有桌面级的界面
+
+游戏、GIS、日志查看器、本地优先工具：Tauri/Electron 应用跑 native DuckDB，网页版跑 DuckDB-Wasm——**同一套前端、同一条 SQL、两个目标**。GeoLibre 就是这么做的：一个让*浏览器*做空间分析的 GIS 应用。
+
+### 诚实的边界
+
+- **内存上限 ~4GB**（浏览器限制）——约 2GB 以内的 Parquet 没问题，再大就吃力
+- 默认**单线程**；大 `JOIN` 可能爆内存
+- **不能动态装扩展**（扩展必须编译进 Wasm）
+- **不能写回磁盘**——这是"读/分析"引擎，不是存储
+
+知道这些，你就能选对工具。忽略它们，你会给一个 PB 级数仓选 Wasm，然后度过糟糕的一天。
+
+---
+
+## 为什么它能碾压其他"Web 端分析"方案
+
+浏览器里不开服务器做数据分析，基本有三种方式，它们根本不在一个量级：
+
+| 方案 | 本质 | 致命伤 |
+|---|---|---|
+| **IndexedDB + JS** | 事务型键值存储 + 手写 `for` 循环 | 不是分析引擎。`getAll()` 全量捞回内存，再用单线程 JS 聚合 |
+| **SQLite-Wasm** | 真正的 SQL 引擎，但是**行式** | 正确，但 `SUM(amount)` 会扫全行记录；不能跳列、不能向量化 |
+| **DuckDB-Wasm** | 列式、向量化、嵌入式 OLAP | 上限是浏览器内存——对 ≤2GB 数据完全够用 |
+
+下面的跑分，就是把这种差距可视化。
+
+---
+
+## 跑分：同样的数据、同样的查询、三个引擎一场赛跑
+
+为了把对比做实（而不是我空口说"它很快"），我把一个实时跑分嵌进了这篇文章。它会生成 `N` 行模拟交易数据（确定性种子，每次数据一致），灌进三个引擎，让它们跑**同一条**查询：
+
+```sql
+SELECT region, product, SUM(amount) FROM trades GROUP BY region, product
+```
+
+柱子是共享时钟上的真实耗时。三个引擎同刻起跑，先停的赢。点它、调大数据量、看会发生什么。
+
+<DuckDbBenchmarkDemo />
+
+在我的 Mac mini（M 系芯片，Chrome）上：50K 行时 **DuckDB ~26ms、SQLite ~80ms、IndexedDB + JS ~2.8s**——差了约 **100 倍**。200K 行更夸张（DuckDB ~30ms vs IndexedDB ~18s）。
+
+这不是巧合，是三重差异叠加：
+
+1. **读什么**——DuckDB 只读 3 列；SQLite 读每条记录 5 个字段；IndexedDB 把每个对象都捞进 JS
+2. **怎么算**——编译引擎里的向量化批处理 vs JS 里逐行解释
+3. **谁写的聚合**——调优了 20 年的查询规划器 vs 你的 `Map` 循环
+
+诚实备注：跑分包含每个引擎的写入/加载阶段（你不能跳过自己的数据加载），且首次运行要付几秒加载 wasm 的代价。UI 里都如实展示了。
+
+---
+
+## 那什么时候这才是正确的架构？
+
+**甜区：** 数据 ≤ ~2GB、基本只读，且要么隐私敏感、要么移动成本高。游戏（对局日志 →"我的生涯数据"看板）、本地工具（CSV/Parquet 进、图表出）、公共数据门户、内嵌 BI。只要数据能住在客户端、用户机器还行，DuckDB-Wasm 是我找到的最快路径——*而且*服务器账单最低。
+
+**错区：** 并发写入、PB 级、集中治理。要这些就留着数仓——DuckDB-Wasm 不是 PostgreSQL 的替代品，它是"写个图表 API 然后祈祷前端跟上"的替代品。
+
+我的心智模型，一张表：
+
+| 工具 | 它是什么 |
+|---|---|
+| 本地文件 | 只是数据 |
+| SQLite | 应用的数据库 |
+| **DuckDB** | **对本地数据做 SQL 分析** |
+| PostgreSQL | 多用户共享数据库服务器 |
+
+**把引擎随应用交付、数据留在本地**这个模式，已经是真实产品的架构：Observable、Evidence、Rill 把 DuckDB-Wasm 当内嵌分析引擎；GeoLibre 在浏览器里跑整套 GIS；KGA 用 DuckDB-Wasm 直读 S3 Parquet 支撑 1 亿用户的公共数据看板，服务器算力为零。
+
+---
+
+## 把它跑起来踩过的坑
+
+把 DuckDB-Wasm 塞进这个 Next.js 博客，远不是"npm install 完事"。四个墙，提前帮你撞：
+
+1. **CSP 拦 CDN worker。** 博客的 `worker-src 'self' blob:` 拒绝 jsdelivr 上的 DuckDB worker。**解法：** wasm + worker 自托管到 `public/vendor/`——同源、CSP 更严、不依赖 CDN。
+
+2. **SSR 讨厌 `Worker`。** Next.js 连 `'use client'` 组件都会预渲染——所以顶部静态 `import` duckdb-wasm 直接让构建炸出 `ReferenceError: Worker is not defined`（还把 Node 版拖进 webpack）。**解法：** 在点击回调里 `const duckdb = await import('@duckdb/duckdb-wasm/dist/duckdb-browser.mjs')`，永远别放模块顶层。
+
+3. **Arrow 要的是向量，不是对象。** `new arrow.Table(schema, rows)` 是骗人的——它要 `RecordBatch[]`。**解法：** `arrow.tableFromJSON(rows)`。
+
+4. **SQLite-Wasm 不是 sqlite3 的 C API。** 我写了 `stmt.free()`；ESM 包装要 `stmt.finalize()`。一个词，一次白费的调试。
+
+---
+
+## 结论
+
+浏览器以前是个*客户端*——把数据发到服务器分析，然后等。DuckDB-Wasm 让它变成了*算力节点*：你的静态站自带一个分析数据库，数据留在本地或通过 HTTP Range 流式进来，用户的 CPU 干重活。
+
+如果你在做任何"本地产生大量数据、又需要回答'然后呢'"的东西，这真的是 Web 开发里最香的白嫖午餐。到现在我还是觉得，白拿这么快的速度，像在犯罪。
+
+*你可以翻上面的实时跑分——调到 200K 或 1M 行，看差距变得多残忍。这些数字背后没有任何后端参与。*
