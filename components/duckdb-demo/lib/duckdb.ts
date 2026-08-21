@@ -98,6 +98,10 @@ export async function duckdbBenchmark(rows: TradeRow[]): Promise<{
   ms: number
   top: { region: string; product: string; total: number }[]
 }> {
+  // Include connection/table setup in the same measured load + query window
+  // as SQLite and IndexedDB. Wasm initialisation itself is prewarmed outside
+  // the race by the demo component.
+  const t0 = performance.now()
   const { conn } = await getDuckDB()
 
   // 把 JS 数组转成 Arrow Table（列式，正好展示 DuckDB 的强项）
@@ -109,9 +113,7 @@ export async function duckdbBenchmark(rows: TradeRow[]): Promise<{
   await conn.insertArrowTable(table, { name: 'trades', create: true })
 
   // 计时执行基准查询
-  const t0 = performance.now()
   const result = await conn.query(BENCHMARK_QUERY_DESC)
-  const elapsed = performance.now() - t0
 
   // 读回 top 结果用于展示
   const top: { region: string; product: string; total: number }[] = []
@@ -124,5 +126,6 @@ export async function duckdbBenchmark(rows: TradeRow[]): Promise<{
   }
 
   await conn.close()
+  const elapsed = performance.now() - t0
   return { ms: elapsed, top }
 }

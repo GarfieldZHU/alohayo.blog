@@ -56,13 +56,13 @@ export async function sqliteBenchmark(rows: TradeRow[]): Promise<{
   ms: number
   top: { region: string; product: string; total: number }[]
 }> {
+  const t0 = performance.now()
   const sqlite = await loadSqliteModule()
   const db = new sqlite.oo1.DB()
 
   db.exec('CREATE TABLE trades (id INTEGER, date TEXT, region TEXT, product TEXT, amount REAL)')
 
-  // 计时范围：插入 + 查询（公平对比，因为 DuckDB/IndexedDB 的计时也含写数据）
-  const t0 = performance.now()
+  // 计时范围：初始化、插入 + 查询（公平对比，因为三个引擎都从函数入口计时）
 
   // 批量插入：用一条 INSERT 多值语句提速（SQLite 单条 prepared 逐行 insert 100 万行会非常慢）
   const BATCH = 10_000

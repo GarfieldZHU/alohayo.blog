@@ -8,6 +8,7 @@
     "build": "cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "serve": "next start",
     "test:wasm-runner": "node --test scripts/wasm-wat-runner.test.mjs",
+    "test:duckdb-demo": "node --test scripts/duckdb-demo.test.mjs",
     "analyze": "cross-env ANALYZE=true next build",
     "lint": "next lint --fix --dir pages --dir app --dir components --dir lib --dir layouts --dir scripts",
     "prepare": "husky"

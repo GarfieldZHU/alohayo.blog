@@ -62,6 +62,9 @@ export async function indexedDbBenchmark(rows: TradeRow[]): Promise<{
   top: { region: string; product: string; total: number }[]
 }> {
   const t0 = performance.now()
+  // Clear stale rows inside the measured window so every run starts from the
+  // same dataset and the chart reflects the complete IndexedDB workload.
+  await clearIndexedDb()
   const db = await openDb()
   await writeRows(db, rows)
   const all = await readAll(db)
