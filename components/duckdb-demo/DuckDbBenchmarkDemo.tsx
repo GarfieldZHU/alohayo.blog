@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useReducer } from 'react'
+import { useCallback, useEffect, useReducer, useState } from 'react'
 import { generateTrades, type TradeRow } from './lib/data'
 import { duckdbBenchmark, prewarmDuckDB } from './lib/duckdb'
 import { sqliteBenchmark, prewarmSqlite } from './lib/sqlite'
@@ -141,7 +141,12 @@ function errorMessage(error: unknown): string {
 
 export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) {
   const [state, dispatch] = useReducer(reduceBenchmarkState, createInitialBenchmarkState(200_000))
+  const [cpuCount, setCpuCount] = useState<number | null>(null)
   const copy = COPY[locale]
+
+  useEffect(() => {
+    setCpuCount(typeof navigator !== 'undefined' ? navigator.hardwareConcurrency ?? null : null)
+  }, [])
 
   // One shared live clock while work is running. Completed rows use their own
   // measured duration from the reducer and therefore cannot jump backwards.
@@ -346,9 +351,7 @@ export function DuckDbBenchmarkDemo({ locale = 'en' }: { locale?: DemoLocale }) 
 
       <p className="mt-3 text-xs text-slate-500">
         {copy.footer}
-        {typeof navigator !== 'undefined'
-          ? `${navigator.hardwareConcurrency ?? '?'}${copy.cores}`
-          : '?'}
+        {`${cpuCount ?? '?'}${copy.cores}`}
       </p>
       <p className="mt-2 text-[11px] text-slate-600">{copy.generated}</p>
     </div>
