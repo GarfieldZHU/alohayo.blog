@@ -12,7 +12,7 @@ const embedUrls = {
 } as const
 const graphViews = ['3d', '2d'] as const
 type GraphView = (typeof graphViews)[number]
-const profileUrl = 'https://tokscale.ai/GarfieldZHU'
+const profileUrl = 'https://tokscale.ai/u/GarfieldZHU'
 
 export default function AgentUsageStats() {
   const { messages } = useLocale()

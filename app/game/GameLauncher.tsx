@@ -1,14 +1,21 @@
 'use client'
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useTheme } from 'next-themes'
 import { useLocale as useSiteLocale } from '@/components/LocaleProvider'
+import {
+  GAME_CATALOG,
+  getEmbedCode,
+  getGameCopy,
+  type GameCatalogItem,
+  type LocaleCode,
+} from './gameCatalog'
 
 // Keep this hash aligned with the verified alohayo-world Pages commit.
 const GAME_MODULE_URL = 'https://garfieldzhu.github.io/alohayo-world/embed/bootstrap.js?v=5428a94'
 const LOCALE_STORAGE_KEY = 'alohayo-world:locale'
 
-type LocaleCode = 'en' | 'zh-CN'
 type LauncherState = 'idle' | 'loading' | 'running' | 'error'
 
 const LANGUAGE_OPTIONS: Array<{ code: LocaleCode; label: string }> = [
@@ -161,7 +168,7 @@ const sizePresets = [
   },
 ] as const
 
-export default function GameLauncher() {
+function AlohaYoWorldEmbed({ embeddedInModal = false }: { embeddedInModal?: boolean }) {
   const TOP_RIGHT_HIDE_DELAY_MS = 3000
   const TOP_RIGHT_CLEARANCE_PX = 64
   const { resolvedTheme } = useTheme()
@@ -229,6 +236,7 @@ export default function GameLauncher() {
   }, [])
 
   useEffect(() => {
+    if (embeddedInModal) return
     if (!fullWindow && !isFullscreen) {
       document.body.style.overflow = ''
       return
@@ -237,7 +245,7 @@ export default function GameLauncher() {
     return () => {
       document.body.style.overflow = ''
     }
-  }, [fullWindow, isFullscreen])
+  }, [embeddedInModal, fullWindow, isFullscreen])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -634,10 +642,9 @@ export default function GameLauncher() {
                   </p>
                   <button
                     type="submit"
-                    disabled={state === 'loading'}
                     className="mt-8 cursor-pointer rounded-xl bg-cyan-500 px-6 py-3 font-semibold text-slate-950 shadow-[0_12px_32px_rgba(34,211,238,0.24)] transition hover:-translate-y-0.5 hover:bg-cyan-300 disabled:cursor-wait disabled:opacity-60"
                   >
-                    {state === 'loading' ? messages.surveying : messages.enterWorld}
+                    {messages.enterWorld}
                   </button>
                 </div>
                 <aside className="absolute right-4 bottom-4 max-w-[15rem] rounded-lg border border-white/10 bg-slate-950/65 px-3 py-2.5 text-left backdrop-blur-sm sm:right-5 sm:bottom-5">
@@ -704,6 +711,324 @@ export default function GameLauncher() {
           </>
         )}
       </form>
+    </div>
+  )
+}
+
+const LIBRARY_MESSAGES = {
+  en: {
+    eyebrow: 'Game library',
+    title: 'A small shelf for good games.',
+    description: 'Four browser games, kept close to the blog and ready when you are.',
+    open: 'Open game',
+    close: 'Close',
+    playOnline: 'Play online',
+    newWindow: 'New window',
+    fullScreen: 'Fullscreen',
+    exitFullScreen: 'Exit fullscreen',
+    embedded: 'Play inside this page',
+    externalOnly: 'This game opens in a new window because its site blocks iframe embedding.',
+    copyEmbed: 'Copy embed code',
+    copied: 'Embed code copied',
+    copyFailed: 'Copy failed — select the code manually',
+    embedNote: 'Use this snippet to place the game in another page.',
+    aLohaEmbedNote: 'In this page, AlohaYo World keeps the blog’s existing embedded launcher.',
+  },
+  'zh-CN': {
+    eyebrow: '游戏库',
+    title: '一架安静的好游戏。',
+    description: '四个浏览器游戏，留在博客里，想玩时随时打开。',
+    open: '打开游戏',
+    close: '关闭',
+    playOnline: '线上游玩',
+    newWindow: '新窗口',
+    fullScreen: '全屏',
+    exitFullScreen: '退出全屏',
+    embedded: '在页面内游玩',
+    externalOnly: '该站点禁止 iframe 嵌入，将在新窗口打开。',
+    copyEmbed: '复制嵌入代码',
+    copied: '嵌入代码已复制',
+    copyFailed: '复制失败，请手动选择代码',
+    embedNote: '复制这段代码，即可把游戏放入其他页面。',
+    aLohaEmbedNote: '在本页中，AlohaYo World 继续使用博客现有的嵌入式启动器。',
+  },
+} as const
+
+type CopyStatus = 'idle' | 'copied' | 'error'
+
+function GameModal({
+  game,
+  locale,
+  onClose,
+}: {
+  game: GameCatalogItem
+  locale: LocaleCode
+  onClose: () => void
+}) {
+  const messages = LIBRARY_MESSAGES[locale]
+  const copy = getGameCopy(game, locale)
+  const frameRef = useRef<HTMLIFrameElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<CopyStatus>('idle')
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    const onFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement))
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', onKeyDown)
+      document.removeEventListener('fullscreenchange', onFullscreenChange)
+    }
+  }, [onClose])
+
+  useEffect(() => {
+    setCopyStatus('idle')
+    setIsFullscreen(false)
+  }, [game.id, locale])
+
+  const toggleFullscreen = async () => {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen()
+      return
+    }
+    await frameRef.current?.requestFullscreen()
+  }
+
+  const copyEmbed = async () => {
+    try {
+      await navigator.clipboard.writeText(getEmbedCode(game, locale))
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+  }
+
+  const content =
+    game.playMode === 'alohayo' ? (
+      <div className="max-h-[min(72vh,52rem)] overflow-auto rounded-xl border border-slate-200 bg-[#070d18] dark:border-slate-700">
+        <AlohaYoWorldEmbed embeddedInModal />
+      </div>
+    ) : game.playMode === 'iframe' ? (
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-950 dark:border-slate-700">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-900/90 px-4 py-3 text-xs text-slate-300">
+          <span>{messages.embedded}</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void toggleFullscreen()}
+              className="rounded-md border border-white/15 px-3 py-1.5 transition hover:border-cyan-300 hover:text-cyan-100"
+            >
+              {isFullscreen ? messages.exitFullScreen : messages.fullScreen}
+            </button>
+            <a
+              href={game.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-md border border-white/15 px-3 py-1.5 transition hover:border-cyan-300 hover:text-cyan-100"
+            >
+              {messages.newWindow}
+            </a>
+          </div>
+        </div>
+        <iframe
+          ref={frameRef}
+          title={copy.title}
+          src={game.url}
+          loading="lazy"
+          allow="autoplay; fullscreen; gamepad; pointer-lock"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-pointer-lock allow-downloads"
+          className="h-[min(68vh,42rem)] min-h-[25rem] w-full border-0 bg-white"
+        />
+      </div>
+    ) : (
+      <div className="grid min-h-[22rem] place-items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center dark:border-slate-700 dark:bg-slate-950/50">
+        <div className="max-w-md">
+          <div className="text-4xl" aria-hidden="true">
+            {game.emoji}
+          </div>
+          <p className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            {messages.externalOnly}
+          </p>
+        </div>
+      </div>
+    )
+
+  return (
+    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/70 p-3 backdrop-blur-sm sm:p-6">
+      <button
+        type="button"
+        aria-label={messages.close}
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+      <div
+        className="relative z-10 flex max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)] dark:border-slate-700 dark:bg-[#10141b]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={`game-title-${game.id}`}
+        aria-describedby={`game-description-${game.id}`}
+      >
+        <header className="flex items-start justify-between gap-4 border-b border-slate-200 px-4 py-4 sm:px-6 dark:border-slate-700">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] font-semibold tracking-[0.18em] text-cyan-600 uppercase dark:text-cyan-300">
+              {messages.eyebrow}
+            </p>
+            <h2
+              id={`game-title-${game.id}`}
+              className="mt-1 truncate text-xl font-bold tracking-tight text-slate-900 sm:text-2xl dark:text-white"
+            >
+              <span aria-hidden="true">{game.emoji} </span>
+              {copy.title}
+            </h2>
+            <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{copy.subtitle}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={messages.close}
+            className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-500 transition hover:border-slate-400 hover:text-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500 dark:hover:text-white"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-6 sm:py-5">
+          {content}
+          <p
+            id={`game-description-${game.id}`}
+            className="mt-4 text-sm leading-6 text-slate-600 dark:text-slate-300"
+          >
+            {copy.description}
+          </p>
+          {game.playMode === 'alohayo' && (
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {messages.aLohaEmbedNote}
+            </p>
+          )}
+        </div>
+
+        <footer className="flex flex-col gap-3 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700">
+          <div className="flex flex-wrap items-center gap-2">
+            {copy.tags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-mono text-[11px] text-slate-600 dark:border-slate-700 dark:bg-slate-900/70 dark:text-slate-300"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void copyEmbed()}
+              className="rounded-lg border border-cyan-700/30 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 transition hover:border-cyan-600 hover:bg-cyan-100 dark:border-cyan-400/30 dark:bg-cyan-950/40 dark:text-cyan-100 dark:hover:bg-cyan-900/60"
+            >
+              {copyStatus === 'copied' ? messages.copied : messages.copyEmbed}
+            </button>
+            <a
+              href={game.url}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 dark:bg-cyan-300 dark:text-slate-950 dark:hover:bg-cyan-200"
+            >
+              {messages.playOnline} ↗
+            </a>
+          </div>
+        </footer>
+        {copyStatus === 'error' && (
+          <p className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+            {messages.copyFailed}. {messages.embedNote}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function GameLauncher() {
+  const { locale } = useSiteLocale()
+  const messages = LIBRARY_MESSAGES[locale]
+  const [selectedGame, setSelectedGame] = useState<GameCatalogItem | null>(null)
+
+  return (
+    <div className="pt-8 pb-20 sm:pt-12">
+      <header className="mb-8 border-b border-slate-200 pb-8 dark:border-slate-700">
+        <p className="font-mono text-xs font-semibold tracking-[0.2em] text-cyan-600 uppercase dark:text-cyan-300">
+          {messages.eyebrow}
+        </p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white">
+          {messages.title}
+        </h1>
+        <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-300">
+          {messages.description}
+        </p>
+      </header>
+
+      <section aria-label={messages.eyebrow} className="grid gap-4 sm:grid-cols-2">
+        {GAME_CATALOG.map((game) => {
+          const copy = getGameCopy(game, locale)
+          return (
+            <button
+              key={game.id}
+              type="button"
+              onClick={() => setSelectedGame(game)}
+              className="group flex min-h-36 w-full items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm transition hover:-translate-y-0.5 hover:border-cyan-500/50 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:border-slate-700 dark:bg-[#10141b] dark:hover:border-cyan-400/60 dark:focus-visible:ring-offset-[#070d18]"
+            >
+              <div className="relative w-32 shrink-0 overflow-hidden bg-slate-900 sm:w-36">
+                <Image
+                  src={game.cover}
+                  alt=""
+                  loading="lazy"
+                  fill
+                  sizes="(min-width: 640px) 144px, 128px"
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+                <span className="absolute top-2 left-2 rounded-md bg-slate-950/75 px-2 py-1 text-xs text-white backdrop-blur-sm">
+                  {game.emoji}
+                </span>
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-4 p-4">
+                <div>
+                  <h2 className="truncate text-lg font-semibold text-slate-900 dark:text-white">
+                    {copy.title}
+                  </h2>
+                  <p className="mt-1 line-clamp-2 text-sm leading-5 text-slate-500 dark:text-slate-400">
+                    {copy.subtitle}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {copy.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-slate-200 px-2 py-0.5 font-mono text-[10px] text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  <span className="ml-auto text-xs font-semibold text-cyan-700 transition group-hover:translate-x-0.5 dark:text-cyan-300">
+                    {messages.open} ↗
+                  </span>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </section>
+
+      {selectedGame && (
+        <GameModal game={selectedGame} locale={locale} onClose={() => setSelectedGame(null)} />
+      )}
     </div>
   )
 }

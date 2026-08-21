@@ -13,7 +13,7 @@ const ContentSecurityPolicy = `
   media-src *.s3.amazonaws.com;
   connect-src *;
   font-src 'self';
-  frame-src giscus.app garfieldzhu.github.io;
+  frame-src giscus.app garfieldzhu.github.io uno-2026.vercel.app battle-city.js.org;
   worker-src 'self' blob:;
 `
 
