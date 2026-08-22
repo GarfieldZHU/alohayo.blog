@@ -866,6 +866,7 @@ interface HomeTerminalProps {
 }
 
 const HOME_SPLASH_STORAGE_KEY = 'alohayo-home-splash'
+const HOME_SPLASH_SEEN_STORAGE_KEY = 'alohayo:home-splash-seen'
 
 export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTerminalProps) {
   const { locale: contextLocale } = useLocale()
@@ -939,8 +940,17 @@ export default function HomeTerminal({ posts, locale: requestedLocale }: HomeTer
     const stored = window.localStorage.getItem(HOME_SPLASH_STORAGE_KEY)
     const resolved = getHomeSplashById(stored || '')
     if (resolved && !resolved.hidden) setActiveSplashId(resolved.id)
+
+    const hasSeenSplash = window.localStorage.getItem(HOME_SPLASH_SEEN_STORAGE_KEY) === 'true'
+    if (hasSeenSplash) {
+      setAppState('menu')
+      setMenuPromptTyped(menuPrompt)
+    } else {
+      window.localStorage.setItem(HOME_SPLASH_SEEN_STORAGE_KEY, 'true')
+    }
+
     setSplashStorageReady(true)
-  }, [])
+  }, [menuPrompt])
 
   useEffect(() => {
     if (typeof window === 'undefined' || !splashStorageReady) return
